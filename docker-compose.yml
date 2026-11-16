@@ -1,0 +1,17 @@
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: detecta-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: detecta
+      POSTGRES_USER: detecta_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - detecta_postgres_data:/var/lib/postgresql
+
+volumes:
+  detecta_postgres_data:
