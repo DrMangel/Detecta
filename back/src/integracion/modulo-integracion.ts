@@ -15,14 +15,17 @@ import {
 import type { VariablesEntorno } from '../validacion-entorno';
 import { ConectorBDConfigurable } from './conector-bd-configurable';
 import { cargarConfiguracionConector } from './configuracion-conector';
-import { ProveedorCorreoSinEnvio } from './proveedor-correo-sin-envio';
+import { ProveedorCorreoDesactivado } from './proveedor-correo-desactivado';
+import { ProveedorCorreoExterno } from './proveedor-correo-externo';
 
 /**
  * Adaptadores de integración inyectados al iniciar (nota del diagrama de
  * paquetes). Global para que los servicios reciban sus contratos por token
  * sin importar código de `integracion`.
  *
- * - ProveedorCorreo: provisional sin envío hasta B5.
+ * - ProveedorCorreo (B5): ProveedorCorreoExterno (SMTP/TLS con Brevo), o
+ *   ProveedorCorreoDesactivado si se declara CORREO_MODO=desactivado (nunca
+ *   en producción). Reemplaza al provisional de B3.
  * - ConectorBDInstitucional: ConectorBDConfigurable sobre la conexión
  *   `institucional` de B0 (solo lectura), con el origen y el mapeo del JSON
  *   indicado por CONECTOR_CONFIGURACION (B4).
@@ -30,7 +33,23 @@ import { ProveedorCorreoSinEnvio } from './proveedor-correo-sin-envio';
 @Global()
 @Module({
   providers: [
-    { provide: PROVEEDOR_CORREO, useClass: ProveedorCorreoSinEnvio },
+    {
+      provide: PROVEEDOR_CORREO,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<VariablesEntorno, true>) => {
+        const correo = config.get('CORREO', { infer: true });
+        return correo.modo === 'desactivado'
+          ? new ProveedorCorreoDesactivado()
+          : new ProveedorCorreoExterno({
+              host: correo.host,
+              puerto: correo.puerto,
+              usuario: correo.usuario,
+              clave: correo.clave,
+              remitente: correo.remitente,
+              remitenteNombre: correo.remitenteNombre,
+            });
+      },
+    },
     {
       provide: CONECTOR_BD_INSTITUCIONAL,
       inject: [

@@ -41,7 +41,28 @@ export interface VariablesEntorno {
   SINCRONIZACION_HORA_NOCTURNA: string | null;
   /** Secreto del disparo manual por HTTP (≥32); null desactiva la ruta. */
   SINCRONIZACION_SECRETO: string | null;
+  /** Correo saliente (B5): SMTP con Brevo, o desactivado explícitamente. */
+  CORREO: ConfiguracionCorreoEntorno;
 }
+
+/**
+ * B5 (respuesta 4 de Ivan): sin configuración SMTP la aplicación no arranca,
+ * salvo `CORREO_MODO=desactivado`, que se rechaza en producción.
+ */
+export type ConfiguracionCorreoEntorno =
+  | { modo: 'desactivado' }
+  | {
+      modo: 'smtp';
+      host: string;
+      puerto: number;
+      usuario: string;
+      /** Clave SMTP de Brevo: secreto, nunca se registra. */
+      clave: string;
+      remitente: string;
+      remitenteNombre: string;
+    };
+
+const FORMATO_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type ClaveTexto = {
   [K in keyof VariablesEntorno]: VariablesEntorno[K] extends string ? K : never;
@@ -194,6 +215,8 @@ export function validarEntorno(
     );
   }
 
+  const correo = validarCorreo(crudas, nodeEnv, errores);
+
   if (errores.length > 0) {
     throw new Error(
       `Variables de entorno inválidas:\n- ${errores.join('\n- ')}`,
@@ -201,6 +224,7 @@ export function validarEntorno(
   }
 
   return {
+    CORREO: correo as ConfiguracionCorreoEntorno,
     SINCRONIZACION_HORA_NOCTURNA: horaNocturna,
     SINCRONIZACION_SECRETO: secretoSincronizacion,
     ...(textos as Record<
@@ -217,5 +241,59 @@ export function validarEntorno(
     COOKIE_SEGURA: cookieSegura === 'true',
     URL_FRONTEND: origenFrontend as string,
     NODE_ENV: nodeEnv as EntornoEjecucion,
+  };
+}
+
+/** Variables del correo saliente (B5). */
+function validarCorreo(
+  crudas: Record<string, unknown>,
+  nodeEnv: string | undefined,
+  errores: string[],
+): ConfiguracionCorreoEntorno | null {
+  const modo = leerTexto(crudas['CORREO_MODO']) ?? 'smtp';
+  if (modo === 'desactivado') {
+    if (nodeEnv === 'production') {
+      errores.push('CORREO_MODO=desactivado no se admite en producción');
+    }
+    return { modo: 'desactivado' };
+  }
+  if (modo !== 'smtp') {
+    errores.push('CORREO_MODO debe ser smtp o desactivado');
+    return null;
+  }
+  const faltan = [
+    'CORREO_SMTP_HOST',
+    'CORREO_SMTP_PUERTO',
+    'CORREO_SMTP_USUARIO',
+    'CORREO_SMTP_CLAVE',
+    'CORREO_REMITENTE',
+    'CORREO_REMITENTE_NOMBRE',
+  ].filter((clave) => leerTexto(crudas[clave]) === undefined);
+  if (faltan.length > 0) {
+    errores.push(
+      `Falta la configuración SMTP (${faltan.join(', ')}); para no enviar correos declare CORREO_MODO=desactivado`,
+    );
+    return null;
+  }
+  const puerto = Number(leerTexto(crudas['CORREO_SMTP_PUERTO']));
+  if (!Number.isInteger(puerto) || puerto < 1 || puerto > 65535) {
+    errores.push('CORREO_SMTP_PUERTO debe ser un entero entre 1 y 65535');
+  }
+  const remitente = leerTexto(crudas['CORREO_REMITENTE']) ?? '';
+  if (!FORMATO_CORREO.test(remitente)) {
+    errores.push('CORREO_REMITENTE debe ser un correo válido');
+  }
+  const remitenteNombre = leerTexto(crudas['CORREO_REMITENTE_NOMBRE']) ?? '';
+  if (/[\r\n]/.test(remitenteNombre)) {
+    errores.push('CORREO_REMITENTE_NOMBRE no admite saltos de línea');
+  }
+  return {
+    modo: 'smtp',
+    host: leerTexto(crudas['CORREO_SMTP_HOST']) ?? '',
+    puerto,
+    usuario: leerTexto(crudas['CORREO_SMTP_USUARIO']) ?? '',
+    clave: leerTexto(crudas['CORREO_SMTP_CLAVE']) ?? '',
+    remitente,
+    remitenteNombre,
   };
 }
