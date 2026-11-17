@@ -4,7 +4,10 @@ import {
   omisionesVacias,
 } from '../../src/aplicacion/contratos/conector-bd-institucional';
 import { RecursoOcupadoError } from '../../src/aplicacion/contratos/unidad-trabajo';
-import { ServicioSincronizacion } from '../../src/aplicacion/servicios/servicio-sincronizacion';
+import {
+  BLOQUEO_SINCRONIZACION,
+  ServicioSincronizacion,
+} from '../../src/aplicacion/servicios/servicio-sincronizacion';
 import { Estudiante } from '../../src/dominio/entidades/estudiante';
 import { UnidadTrabajoPersistente } from '../../src/persistencia/unidad-trabajo-persistente';
 import { crearRepositorios, type Repositorios } from './escenario';
@@ -171,6 +174,38 @@ describe('sincronizarTodo', () => {
     expect(fila?.contrasena_hash).toBe(
       '$2b$12$hash-de-cuenta-activada-de-prueba',
     );
+  });
+
+  it('con una sincronización en curso (bloqueo retenido), la segunda falla de inmediato sin escribir nada', async () => {
+    // Retiene el bloqueo real de la sincronización en otra transacción abierta.
+    let liberar: () => void = () => undefined;
+    let bloqueado: () => void = () => undefined;
+    const enCurso = new Promise<void>((resolver) => (bloqueado = resolver));
+    const retencion = new UnidadTrabajoPersistente(fuente).ejecutar(
+      () =>
+        new Promise<void>((resolver) => {
+          liberar = resolver;
+          bloqueado();
+        }),
+      { bloqueoExclusivo: BLOQUEO_SINCRONIZACION },
+    );
+    await enCurso;
+
+    const inicio = performance.now();
+    const error = await servicio.sincronizarTodo().catch((e: unknown) => e);
+    const ms = performance.now() - inicio;
+
+    expect(error).toBeInstanceOf(RecursoOcupadoError);
+    expect(ms).toBeLessThan(1000);
+    console.log(`Segunda sincronización rechazada en ${ms.toFixed(0)} ms`);
+    expect(
+      await contar('SELECT count(*)::int AS total FROM registro_academico'),
+    ).toBe(0);
+
+    liberar();
+    await retencion;
+    // Liberado el bloqueo, la sincronización vuelve a funcionar.
+    await expect(servicio.sincronizarCurso('ISOF-101')).resolves.toBe(60);
   });
 
   it('dos sincronizaciones simultáneas: una falla sin esperar (pg_try_advisory_xact_lock)', async () => {

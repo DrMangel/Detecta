@@ -2,7 +2,9 @@ import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { DataSource } from 'typeorm';
+import { BLOQUEO_SINCRONIZACION } from '../src/aplicacion/servicios/servicio-sincronizacion';
 import { AppModule } from '../src/app.module';
+import { UnidadTrabajoPersistente } from '../src/persistencia/unidad-trabajo-persistente';
 import { configurarAplicacion } from '../src/configurar-aplicacion';
 import { validarEntorno } from '../src/validacion-entorno';
 import { crearRepositorios } from './integracion/escenario';
@@ -93,6 +95,34 @@ describe('POST /sincronizacion', () => {
       /^Sincronización completada: Se han actualizado \d+ registros académicos en la persistencia del sistema\.$/,
     );
     expect(cuerpo.desglose.datosInconsistentesEstudiante).toBe(2);
+  });
+
+  it('con una sincronización en curso: 409 de inmediato con el mensaje de sincronización en curso', async () => {
+    let liberar: () => void = () => undefined;
+    let bloqueado: () => void = () => undefined;
+    const enCurso = new Promise<void>((resolver) => (bloqueado = resolver));
+    const retencion = new UnidadTrabajoPersistente(fuente).ejecutar(
+      () =>
+        new Promise<void>((resolver) => {
+          liberar = resolver;
+          bloqueado();
+        }),
+      { bloqueoExclusivo: BLOQUEO_SINCRONIZACION },
+    );
+    await enCurso;
+    try {
+      const inicio = performance.now();
+      const respuesta = await sincronizar(servidor.url, `Bearer ${SECRETO}`);
+      const ms = performance.now() - inicio;
+      expect(respuesta.status).toBe(409);
+      expect((await respuesta.json()).message).toBe(
+        'Ya hay una sincronización en curso; intente más tarde.',
+      );
+      expect(ms).toBeLessThan(1000);
+    } finally {
+      liberar();
+      await retencion;
+    }
   });
 
   it('la ruta no exige sesión de usuario ni la acepta como sustituto del secreto', async () => {

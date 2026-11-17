@@ -9,7 +9,10 @@ import {
   MENSAJES_TABLA_2,
 } from '../aplicacion/contratos/conector-bd-institucional';
 import { RecursoOcupadoError } from '../aplicacion/contratos/unidad-trabajo';
-import type { ServicioSincronizacion } from '../aplicacion/servicios/servicio-sincronizacion';
+import {
+  MENSAJE_SINCRONIZACION_EN_CURSO,
+  type ServicioSincronizacion,
+} from '../aplicacion/servicios/servicio-sincronizacion';
 import {
   ControladorSincronizacion,
   secretosIguales,
@@ -49,12 +52,17 @@ describe('ControladorSincronizacion', () => {
     expect(sincronizar).not.toHaveBeenCalled();
   });
 
-  it('409 si ya hay una sincronización en curso', async () => {
-    await expect(
-      controlador(
-        jest.fn().mockRejectedValue(new RecursoOcupadoError('x')),
-      ).ejecutarSincronizacion(`Bearer ${SECRETO}`),
-    ).rejects.toBeInstanceOf(ConflictException);
+  it('409 con el mensaje "sincronización en curso" si ya hay una en curso', async () => {
+    const error = await controlador(
+      jest.fn().mockRejectedValue(new RecursoOcupadoError('x')),
+    )
+      .ejecutarSincronizacion(`Bearer ${SECRETO}`)
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ConflictException);
+    expect((error as Error).message).toBe(MENSAJE_SINCRONIZACION_EN_CURSO);
+    expect(MENSAJE_SINCRONIZACION_EN_CURSO).toBe(
+      'Ya hay una sincronización en curso; intente más tarde.',
+    );
   });
 
   it('503 con el mensaje de la Tabla 2 ante un error de conexión', async () => {
