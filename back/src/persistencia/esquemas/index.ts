@@ -16,6 +16,7 @@ import {
   EsquemaOrigenRiesgo,
   EsquemaSolicitud,
 } from './esquemas-riesgo';
+import { EsquemaTokenActivacion } from './esquemas-credenciales';
 import {
   EsquemaInformeRiesgo,
   EsquemaInformeRiesgoCaso,
@@ -27,6 +28,7 @@ import {
 export * from './esquemas-personas';
 export * from './esquemas-riesgo';
 export * from './esquemas-seguimiento';
+export * from './esquemas-credenciales';
 
 /** Todos los esquemas que se registran en la conexión `detecta` de TypeORM. */
 export const ESQUEMAS = [
@@ -49,4 +51,5 @@ export const ESQUEMAS = [
   EsquemaInformeRiesgo,
   EsquemaInformeRiesgoCaso,
   EsquemaInformeRiesgoPlan,
+  EsquemaTokenActivacion,
 ];

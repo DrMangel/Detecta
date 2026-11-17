@@ -22,14 +22,17 @@
     "bd:revertir": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta revertir",
     "bd:migrar:pruebas": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta_pruebas migrar",
     "bd:revertir:pruebas": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta_pruebas revertir",
-    "test:integracion": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-integracion.json --runInBand"
+    "test:integracion": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-integracion.json --runInBand",
+    "datos:iniciales": "node dist/comandos/datos-iniciales.js"
   },
   "dependencies": {
     "@nestjs/common": "12.5.1",
     "@nestjs/config": "12.1.1",
     "@nestjs/core": "12.5.1",
+    "@nestjs/jwt": "12.0.5",
     "@nestjs/platform-express": "12.5.1",
     "@nestjs/typeorm": "12.0.3",
+    "bcrypt": "6.0.0",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
@@ -38,6 +41,7 @@
   "devDependencies": {
     "@nestjs/cli": "12.0.13",
     "@nestjs/testing": "12.5.1",
+    "@types/bcrypt": "6.0.0",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.6",
     "jest": "30.5.2",
@@ -48,6 +52,7 @@
     "typescript": "6.0.3"
   },
   "allowScripts": {
-    "@parcel/watcher@2.6.0": true
+    "@parcel/watcher@2.6.0": true,
+    "bcrypt@6.0.0": true
   }
 }

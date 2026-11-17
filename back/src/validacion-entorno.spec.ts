@@ -13,7 +13,61 @@ const entornoValido: Record<string, string> = {
   BD_INSTITUCIONAL_NOMBRE: 'institucional_demo',
   BD_INSTITUCIONAL_USUARIO: 'lector',
   BD_INSTITUCIONAL_CONTRASENA: 'clave',
+  JWT_SECRETO: 'x'.repeat(32),
+  SESION_DURACION_MIN: '60',
+  COOKIE_SEGURA: 'true',
+  BCRYPT_COSTO: '12',
+  ACTIVACION_DURACION_MIN: '30',
+  URL_FRONTEND: 'http://localhost:5173/',
 };
+
+describe('validarEntorno: variables de autenticación (B3)', () => {
+  it('convierte los tipos y normaliza URL_FRONTEND a su origen', () => {
+    const resultado = validarEntorno(entornoValido);
+    expect(resultado.SESION_DURACION_MIN).toBe(60);
+    expect(resultado.COOKIE_SEGURA).toBe(true);
+    expect(resultado.BCRYPT_COSTO).toBe(12);
+    expect(resultado.ACTIVACION_DURACION_MIN).toBe(30);
+    expect(resultado.URL_FRONTEND).toBe('http://localhost:5173');
+  });
+
+  it('exige SESION_DURACION_MIN (sin valor por defecto, D14)', () => {
+    const sinDuracion = { ...entornoValido };
+    delete sinDuracion['SESION_DURACION_MIN'];
+    expect(() => validarEntorno(sinDuracion)).toThrow(
+      /SESION_DURACION_MIN debe ser un entero/,
+    );
+  });
+
+  it('rechaza un JWT_SECRETO de menos de 32 caracteres', () => {
+    expect(() =>
+      validarEntorno({ ...entornoValido, JWT_SECRETO: 'corto' }),
+    ).toThrow(/JWT_SECRETO debe tener al menos 32/);
+  });
+
+  it('exige COOKIE_SEGURA=true en producción', () => {
+    expect(() =>
+      validarEntorno({
+        ...entornoValido,
+        NODE_ENV: 'production',
+        COOKIE_SEGURA: 'false',
+      }),
+    ).toThrow(/COOKIE_SEGURA debe ser true en producción/);
+    expect(
+      validarEntorno({ ...entornoValido, COOKIE_SEGURA: 'false' })
+        .COOKIE_SEGURA,
+    ).toBe(false);
+  });
+
+  it('rechaza un BCRYPT_COSTO fuera de 10 a 15 y una URL_FRONTEND inválida', () => {
+    expect(() =>
+      validarEntorno({ ...entornoValido, BCRYPT_COSTO: '4' }),
+    ).toThrow(/BCRYPT_COSTO/);
+    expect(() =>
+      validarEntorno({ ...entornoValido, URL_FRONTEND: 'ftp://x' }),
+    ).toThrow(/URL_FRONTEND/);
+  });
+});
 
 describe('validarEntorno', () => {
   it('devuelve las variables tipadas cuando todas son válidas', () => {

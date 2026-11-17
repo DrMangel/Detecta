@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ESQUEMAS } from './persistencia/esquemas';
+import { ModuloAcceso } from './controladores/modulo-acceso';
+import { ModuloIntegracion } from './integracion/modulo-integracion';
 import { ModuloPersistencia } from './persistencia/modulo-persistencia';
 import { validarEntorno, VariablesEntorno } from './validacion-entorno';
 
@@ -66,6 +68,8 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
       }),
     }),
     ModuloPersistencia,
+    ModuloIntegracion,
+    ModuloAcceso,
   ],
 })
 export class AppModule {}

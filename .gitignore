@@ -25,3 +25,8 @@ Thumbs.db
 
 # Salida de Playwright CLI (puede contener credenciales)
 .playwright-cli/
+
+# Datos iniciales reales: contienen datos personales (Ley 1581). Solo se
+# versiona el archivo de ejemplo con datos ficticios.
+back/datos-iniciales*.json
+!back/datos-iniciales.ejemplo.json

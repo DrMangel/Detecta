@@ -20,3 +20,5 @@ export const REPOSITORIO_CURSO = Symbol('Repositorio<Curso>');
 export const REPOSITORIO_CITA = Symbol('Repositorio<Cita>');
 export const REPOSITORIO_ASESORIA = Symbol('Repositorio<Asesoria>');
 export const REPOSITORIO_INFORME_RIESGO = Symbol('Repositorio<InformeRiesgo>');
+/** D6 (B3): contraseñas y tokens de activación. */
+export const REPOSITORIO_CREDENCIALES = Symbol('RepositorioCredenciales');

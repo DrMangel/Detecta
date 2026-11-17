@@ -1,13 +1,13 @@
 # DETECTA — Línea base para la implementación del backend
 
-Documento de trabajo, no es la documentación técnica definitiva. Estado al 16 de noviembre de 2026.
+Documento de trabajo, no es la documentación técnica definitiva. Estado al 17 de noviembre de 2026 (actualizado tras las fases B0 a B3).
 Reúne lo que el agente de codificación necesita saber y no puede inferir de los diagramas: versiones vigentes, decisiones, diferencias entre fuentes y puntos abiertos.
 
 ## 1. Orden de autoridad
 
 1. Diagramas en `docs/diagramas/` (vigentes y aprobados por Ivan el 16/11/2026).
 2. Este documento.
-3. ER (v1.4, 04/11/2026) y Manual del sistema (v1.2, 30/10/2026) en `docs/referencias/`.
+3. ER (v1.4, 04/11/2026) y Manual del sistema (v1.2, 30/10/2026) en `docs/referencias/` (`ER_6.docx` y `Manual del sistema_6.docx`). La versión del ER en el repositorio ya incluye `fecha_nacimiento` en la Tabla 2 (D5) y la redacción del 3.5.5 sobre el origen del caso (D7), aunque su tabla de control sigue en la v1.4.
 4. `docs/plan-backend.md`.
 
 Ante una contradicción no resuelta aquí: detenerse y preguntar.
@@ -76,10 +76,41 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 - Disparo: tarea nocturna del backend más orden manual del administrador fuera de la aplicación. No se crea rol Administrador. `ControladorSincronizacion` y `ControladorAcceso` no heredan de `ControladorBase`.
 
 **Persistencia y arquitectura**
-- Patrón Repositorio opción B: `Repositorio<T>` como base más seis repositorios especializados (`RepositorioPersona`, `RepositorioCasoRiesgo`, `RepositorioAlerta`, `RepositorioSolicitud`, `RepositorioRegistroAcademico`, `RepositorioPlanNivelacion`). Un único adaptador `RepositorioPersistente<T>` realiza todos los contratos.
+- Patrón Repositorio opción B: `Repositorio<T>` como base más seis repositorios especializados (`RepositorioPersona`, `RepositorioCasoRiesgo`, `RepositorioAlerta`, `RepositorioSolicitud`, `RepositorioRegistroAcademico`, `RepositorioPlanNivelacion`). El adaptador es `RepositorioPersistente<T>` como base genérica, con seis subclases (una por contrato especializado), según la nota del diagrama de clases v3; no un único adaptador. Las entidades sin contrato especializado (Programa, Curso, Cita, Asesoria, InformeRiesgo) usan instancias de `RepositorioPersistente<T>` sin subclase (decidido en B2).
 - Los controladores heredan de `ControladorBase` (verifica permisos con `ControlAcceso`). No hay dependencia de código desde controladores ni servicios hacia `persistencia` o `integracion`: los adaptadores se inyectan al iniciar.
 - `contrasenaHash` es un atributo privado de `Persona`.
 - Token de sesión en cookie `HttpOnly`, `Secure` y `SameSite`.
+
+## 4.1 Reglas del dominio fijadas en B1
+
+- **Creación de un caso:** nace en estado `PENDIENTE`.
+  - De una alerta: sin ruta y con `confidencialidad = false` (inferencia).
+  - De una solicitud: `confidencialidad = true`. Si `tipoApoyo` es `PSICOLOGICA`, nace con ruta `PSICOLOGICA`; si es académica, sin ruta.
+  - Un origen genera como máximo un caso.
+- **`canalizar(ruta)`:** solo una vez. `ACADEMICA` lleva a `EN_NIVELACION`; `PSICOLOGICA` deja el caso en `PENDIENTE` (entra en pendientes de ruta psicológica).
+- **`asignarPsicologo`:** exige ruta `PSICOLOGICA`; devuelve `false` si ya hay otro psicólogo; lleva a `EN_EVALUACION`.
+- **`aprobar()`:** exige ruta `PSICOLOGICA`, psicólogo asignado y estado `EN_EVALUACION`; no cambia el estado (`EstadoCaso` no tiene un valor "aprobado").
+- **`programarCita`:** exige ruta `PSICOLOGICA`, psicólogo asignado y que no haya cruce de horario (misma fecha y hora exactas con una cita `PROGRAMADA` o `REPROGRAMADA` del psicólogo; D9). La primera cita lleva a `CITADO` y las siguientes a `EN_SEGUIMIENTO`. No exige consentimiento (ER R05). La cita se agrega a la agenda del psicólogo.
+- **`archivar` y `reorientar`:** llevan a `ARCHIVADO` y `REORIENTADO` y exigen justificación no vacía (Manual CU_10).
+- **`cerrar()`:** `CERRADO` si la asesoría de la última cita (la de fecha y hora más reciente) está completa (observaciones no vacías, ER R06); si no, devuelve `false`.
+- **Estados terminales** (no admiten más cambios): `CERRADO`, `ARCHIVADO` y `REORIENTADO`. `estaFinalizado()` es verdadero solo para `CERRADO` y `ARCHIVADO` (D11 abierta).
+- **Cita:** `reprogramar` no se permite si está `CERRADA`; `generarAsesoria` la cierra.
+- **Mayoría de edad:** 18 años (inferencia).
+
+## 4.2 Reglas diferidas a otras fases
+
+- Un menor sin consentimiento no puede registrar el resultado de la sesión (ER R06, situación 2): lo aplica el servicio de B7 con `habilitadoParaAtencion`, porque `Cita` no conoce a su caso.
+- El cruce de horario al reprogramar una cita lo verifica el servicio de B7 (`Cita` no conoce al psicólogo).
+- Qué ve el Jefe de una solicitud académica confidencial (D18): se define en el plan de B6.
+- Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
+
+**Estado de las fases**
+
+| Fase | Estado |
+|---|---|
+| B0, B1, B2 y B3 | Cerradas (17/11/2026) |
+| B4 | Siguiente |
+| B5 a B9 | Pendientes |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -92,13 +123,15 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - Correo por SMTP/TLS con Brevo, detrás de la interfaz `ProveedorCorreo`.
 - El usuario de base de datos de la aplicación no tiene permiso de eliminación (ER 3.7 c: el historial de alertas y casos no se elimina).
 - Las rutas REST, los DTO y los códigos de error **no están definidos** en los diagramas; el agente debe proponerlos en el plan de cada fase y esperar aprobación.
+- Las rutas de `/acceso` están definidas desde B3: `POST /acceso/iniciar-sesion`, `POST /acceso/cerrar-sesion`, `POST /acceso/solicitar-activacion`, `POST /acceso/activar` y `GET /acceso/sesion`. Las demás rutas siguen sin definirse.
+- **Restricción de despliegue:** la cookie de sesión es `SameSite=Strict`, así que el front y la API deben estar en el mismo sitio (mismo dominio registrable). Si el front corre en otro origen, se necesita CORS con credenciales solo para `URL_FRONTEND` (ya implementado en B3).
 
 ## 6. Requisitos no funcionales relevantes para el backend (ER)
 
 - Rendimiento (3.4, 3.7 g): consultas de un estudiante o de un psicólogo en menos de 2 s; sincronización de un curso de hasta 60 estudiantes en menos de 10 s; creación del caso por solicitud en menos de 3 s; informe en menos de 5 s; carga pico sin superar el doble de esos valores; 200 usuarios concurrentes y 100 terminales.
 - Capacidad (3.4.1 c): al menos 2000 estudiantes, cursos de hasta 60, más de 50 docentes, 2 a 3 psicólogos y 20 a 30 jefes.
 - Interfaz de correo (Tabla 1): procesamiento y envío al servicio externo en menos de 5 s.
-- Interfaz de sincronización (Tabla 2): conexión y resultado en menos de 5 s. Rangos: `id_estudiante` alfanumérico 5 a 20; `nombre_estudiante` 2 a 150; `correo_estudiante` máximo 100; `programa_academico` 3 a 100; `codigo_asignatura` 3 a 20; `calificacion_acumulada` 0.00 a 5.00 (2 decimales); `porcentaje_asistencia` 0.00 a 100.00 (2 decimales). Registros fuera de rango se omiten con advertencia. La sincronización no debe quedar registrada de forma parcial ante una interrupción (3.7 a).
+- Interfaz de sincronización (Tabla 2): conexión y resultado en menos de 5 s. Rangos: `id_estudiante` alfanumérico 5 a 20; `nombre_estudiante` 2 a 150; `correo_estudiante` máximo 100; `programa_academico` 3 a 100; `codigo_asignatura` 3 a 20; `fecha_nacimiento` fecha válida anterior a la actual (D5); `calificacion_acumulada` 0.00 a 5.00 (2 decimales); `porcentaje_asistencia` 0.00 a 100.00 (2 decimales). Registros fuera de rango se omiten con advertencia. La sincronización no debe quedar registrada de forma parcial ante una interrupción (3.7 a).
 - Acceso (3.5.3): el estudiante solo ve lo suyo; el docente, sus cursos y sus alertas; el Jefe, su programa sin acceso a contenidos clínicos; el psicólogo, los casos de su ruta y sus asesorías. El contenido del expediente psicológico solo lo ve el psicólogo.
 - Integridad (3.5.5): registro académico con estudiante y curso válidos; alerta con registro académico; correo único por usuario.
 - Seguridad (3.6.2, 3.7 c): bcrypt, OWASP Top 10, roles, transmisión cifrada, historial sin eliminación.
@@ -107,21 +140,54 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 
 - **Alertas automáticas:** ER 1.3.2, 1.4 (Alerta temprana), 3.5.1 y 3.7 f, y glosario y CU_05 del Manual hablan de generación automática. Vigente: emisión manual por el docente.
 - **R07:** el ER filtra por "código de departamento" y "código de asignatura". Vigente: periodo, `idPrograma` e `idCurso`.
-- **Tabla 2 del ER:** `nombre_asignatura`, `id_docente` y `nombre_docente` no son entradas del componente de compatibilidad; `codigo_asignatura` es solo la clave de enlace al curso configurado.
+- **Tabla 2 del ER:** en la versión actual del ER, la lista de "Campos requeridos de entrada" no incluye `id_docente`, `nombre_docente` ni `nombre_asignatura`, pero el "Formato de datos" de la misma tabla todavía menciona `nombre_docente` e `id_docente`. Vigente: la sincronización no los usa; `codigo_asignatura` es solo la clave de enlace al curso configurado.
 - **Notificaciones:** el ER (Tabla 1) lista tres tipos de correo; el diagrama de clases tiene cuatro operaciones en `ServicioNotificacion` (agrega `notificarPlanNivelacion`). Vigente: el diagrama.
 - **R04:** el ER pide el "código del estudiante beneficiario"; la secuencia usa `idCaso` (el caso identifica al estudiante).
 - **Consentimiento:** el ER menciona la validación de minoría de edad en R05; la confirmación del consentimiento se hace en R06 (`ControladorAtencionPsicologica`).
 - **Modelo de dominio del Manual:** incluye Acudiente, Vicerrector, Consentimiento_informado y Politicas_permanencia; son del negocio, no del sistema (no crear estas entidades).
 - **"Remisión":** el ER la menciona como entidad (3.5.5); no existe en el diseño. No crearla.
 
-## 8. Decisiones abiertas (el agente debe detenerse y preguntar)
+### Diferencias introducidas en la implementación (B2)
+
+- **`curso.id_docente`, clave foránea oculta:** la asociación "dicta" solo es navegable desde el Docente, así que el curso no conoce a su docente. Los cursos se crean en cascada desde `guardar(docente)` y `guardar(curso)` solo actualiza un curso existente. Del mismo modo, `caso_riesgo.id_jefe`, `plan_nivelacion.id_jefe` y `cita.id_psicologo` son claves foráneas que el dominio no expone y que deriva el adaptador.
+- **Clases marcadoras `Modelo*`:** TypeORM resuelve la herencia de tabla única de `Persona` y `OrigenRiesgo` por la cadena de prototipos del `target`; por eso existen clases vacías de persistencia (`ModeloPersona`, `ModeloEstudiante`, `ModeloAlerta`…) en `persistencia/esquemas`. No son entidades de dominio.
+- **GRANT explícito por tabla:** cada migración otorga a `detecta_app` solo `SELECT`, `INSERT` y `UPDATE` sobre sus tablas; no se usan permisos por defecto (`ALTER DEFAULT PRIVILEGES`), para que la tabla `migraciones_typeorm` quede sin permisos para la aplicación.
+- **Asociaciones que no se borran:** sin permiso `DELETE`, las filas de las asociaciones del plan ("refuerza") y del informe ("resume") nunca se eliminan; si un plan deja de reforzar un curso, la fila queda.
+
+### Diferencias introducidas en la implementación (B3)
+
+| Tipo | Elemento |
+|---|---|
+| Métodos | `ServicioAutenticacion.solicitarActivacion`, `activarCuenta` y `emitirEnlaceActivacion`; `ControladorAcceso.solicitarActivacion`, `activarCuenta` y `consultarSesion` |
+| Contrato y adaptador | `RepositorioCredenciales` y `RepositorioPersistenteCredenciales` |
+| Dependencia | `ServicioAutenticacion → ProveedorCorreo` |
+| Rutas | Las 4 de `/acceso`, más **`GET /acceso/sesion`** |
+| Cadena de acción | `listarCasosPendiente` (sd_CUD04) frente al método `listarCasosPendientes()` del diagrama de clases |
+| Piezas de NestJS (Manual 4.1.1.5) | `GuardSesion`; los decoradores `@Publico()` y `@UsuarioSesion()`; `ModuloAcceso` y `ModuloIntegracion`; `configurarAplicacion` |
+| Adaptador provisional | `ProveedorCorreoSinEnvio`, hasta B5 |
+| Otros | `hashContrasenas` (envoltorio de bcrypt), el comando `datos-iniciales` y la tabla `token_activacion` |
+
+**Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
+
+## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
 | # | Tema | Fase límite | Estado |
 |---|---|---|---|
-| D5 | Fuente de `Estudiante.fechaNacimiento`: la Tabla 2 del ER no la incluye entre los campos de la BD institucional | Antes de B4 | Ivan indicó asumirlo resuelto, pero el criterio no consta |
-| D6 | Cómo se crean las credenciales (`contrasenaHash`) de los estudiantes que llegan por sincronización | Antes de B3 | Igual que D5 |
-| D7 | ER 3.5.5 exige que un caso de riesgo esté asociado a un docente; en el diseño un caso nacido de una solicitud voluntaria no tiene docente | Antes de B2 | Por confirmar |
+| D5 | Fuente de `Estudiante.fechaNacimiento` | Antes de B4 | Resuelta. `fecha_nacimiento` viene de la base institucional (ER Tabla 2) |
+| D6 | Credenciales de las cuentas y origen de los usuarios | Antes de B3 | Resuelta (corregida). Solo los estudiantes se sincronizan; docentes, jefes, psicólogos, programas, cursos y asignación docente–curso se cargan con el script de datos iniciales. Las cuentas se activan por enlace con token de un solo uso enviado al correo institucional (sirve para todas las cuentas y para recuperar la contraseña) |
+| D7 | Docente obligatorio en un caso de riesgo (ER 3.5.5) | Antes de B2 | Resuelta (16/11/2026). Sin docente obligatorio; un caso tiene motivo, estudiante y exactamente un origen (Alerta o SolicitudAcompanamiento); prevalece sobre el ER 3.5.5 |
 | D8 | Reglas sin definir y fuera de los diagramas: tiempo máximo de canalización, si se notifica al estudiante la canalización, máximo de reprogramaciones de una cita | No implementar | Sin decisión |
+| D9 | Duración de una cita; hoy el cruce es solo misma fecha y hora exactas | Antes de B7 | Abierta |
+| D10 | Contenido de `PlanNivelacion.descripcion`; hoy queda vacía | Antes de B6 | Abierta |
+| D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | Antes de B7 | Abierta |
+| D12 | Periodo de un caso o plan | Antes de B7 | Resuelta (17/11/2026). El periodo de un caso o plan es el del curso; las solicitudes voluntarias quedan fuera de los informes por periodo; `listarPorPeriodo` de casos devuelve solo cerrados o archivados |
+| D13 | Carga de usuarios y configuración que no llegan por sincronización | B3 y B4 | Resuelta. Script de datos iniciales con archivo JSON: programas y usuarios en B3; cursos y asignación docente–curso en B4 |
+| D14 | Duración de la sesión | B3 | Resuelta. Sesión de 60 minutos fijos |
+| D15 | Bloqueo por intentos fallidos | Antes de B9 | Abierta. No en B3; limitador en memoria en B9, junto con un limitador por IP para solicitudes de activación y revisión de `UV_THREADPOOL_SIZE` por el costo de bcrypt |
+| D16 | Vida del token de activación y límite de solicitudes | B3 | Resuelta. Token de activación de 30 minutos y 3 solicitudes por cuenta y por hora |
+| D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta |
+| D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c ("únicamente psicología") y el perfil del Estudiante (oculta a docentes y estudiantes) se contradicen | Antes del plan de B6 | Abierta |
+| D19 | Contenido confidencial | B3 | Resuelta. Psicólogo con ruta `PSICOLOGICA` y caso sin asignar o asignado a él |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 

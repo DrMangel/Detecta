@@ -1,0 +1,26 @@
+{
+  "programas": [
+    { "idPrograma": "SIS", "nombre": "Ingeniería de Sistemas (ejemplo)" }
+  ],
+  "usuarios": [
+    {
+      "rol": "JEFE_DEPARTAMENTO",
+      "id": "JEFE-EJEMPLO",
+      "nombre": "Jefa de Ejemplo",
+      "correo": "jefe.ejemplo@ejemplo.invalid",
+      "idPrograma": "SIS"
+    },
+    {
+      "rol": "PSICOLOGO",
+      "id": "PSICO-EJEMPLO",
+      "nombre": "Psicólogo de Ejemplo",
+      "correo": "psicologo.ejemplo@ejemplo.invalid"
+    },
+    {
+      "rol": "DOCENTE",
+      "id": "DOC-EJEMPLO",
+      "nombre": "Docente de Ejemplo",
+      "correo": "docente.ejemplo@ejemplo.invalid"
+    }
+  ]
+}
