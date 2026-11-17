@@ -103,6 +103,25 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
   - manual, con `npm run sincronizar [-- --curso <idCurso>]` o con `POST /sincronizacion` y `Authorization: Bearer <SINCRONIZACION_SECRETO>`. Si el secreto está vacío, la ruta responde 404.
   - Si ya hay una sincronización en curso, la segunda falla de inmediato (409 en HTTP).
 
+## Alertas, solicitudes y consulta (B6)
+
+Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El identificador del usuario sale siempre de la sesión.
+
+| Ruta | Rol | Respuesta |
+|---|---|---|
+| `GET /alertas/cursos/:idCurso` | Docente | 200 con notas, asistencia y última sincronización; 403 si el curso es ajeno o no existe |
+| `GET /alertas/emitidas?periodo=` | Docente | 200 con las alertas emitidas y su estado de atención (`PENDIENTE` o `ATENDIDA`) |
+| `POST /alertas` `{idRegistro, nivelRiesgo, descripcion}` | Docente | 201; genera el caso en la bandeja del programa y notifica al estudiante y al jefe |
+| `GET /consulta/registros?periodo=` | Estudiante | 200 con sus notas y asistencia |
+| `GET /consulta/alertas?periodo=` | Estudiante | 200 con sus alertas (fecha, curso, nivel y descripción) |
+| `GET /consulta/solicitudes` | Estudiante | 200 con sus solicitudes y su estado (`PENDIENTE` o `ATENDIDA`) |
+| `POST /solicitudes` `{tipoApoyo, motivo, disponibilidad?}` | Estudiante | 201 con el comprobante (`codigo`); exige al menos un registro académico (matrícula activa, D21) |
+
+- `periodo` es obligatorio y es el del curso (D12), sin formato fijo.
+- El estado que ven el estudiante y el docente se deriva del caso: `PENDIENTE` mientras el caso esté pendiente y `ATENDIDA` después, sin ruta ni avance.
+- La alerta o la solicitud y su caso se guardan en una sola transacción. Los correos se envían después y no retrasan la respuesta; si el programa no tiene jefe, el caso se guarda igual y solo se omite ese correo.
+- Errores: 400 por campos vacíos o inválidos, 403 por rol o recurso ajeno, 503 si la base de datos falla.
+
 ## Notificaciones por correo (B5)
 
 - **Proveedor:** Brevo por SMTP (`smtp-relay.brevo.com:587`) con STARTTLS obligatorio, TLS 1.2 como mínimo y verificación del certificado siempre activa. Plazo global de 5 s por envío (ER Tabla 1).
@@ -137,7 +156,7 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
 | `npm run lint` | Lint con oxlint (con reglas que usan información de tipos) |
 | `npm run format` / `format:check` | Aplica o verifica el formato con Prettier |
 | `npm test` | Pruebas unitarias |
-| `npm run test:e2e` | Conexión a ambas bases, autenticación, correo de activación por un servidor SMTP local y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
+| `npm run test:e2e` | Conexión a ambas bases, autenticación, correo de activación por un servidor SMTP local, flujos del docente y del estudiante (B6) y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
 | `npm run datos:iniciales -- <archivo.json>` | Carga programas, cuentas y cursos iniciales e imprime los enlaces de activación (ver paso 4) |
 | `npm run bd:institucional` | Carga `institucional_demo` desde el CSV de demostración (ver paso 5) |
 | `npm run sincronizar [-- --curso <idCurso>]` | Sincroniza todos los cursos configurados, o uno solo, desde la base institucional |
