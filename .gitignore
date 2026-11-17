@@ -1,14 +1,16 @@
 # Dependencias
 node_modules/
 
-# Variables de entorno
+# Variables de entorno y credenciales (ER 3.6.2): solo se versiona .env.example
 .env
 .env.*
 !.env.example
 
-# Archivos de compilación
+# Archivos generados
 dist/
 build/
+coverage/
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -21,22 +23,5 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-
-# Variables de entorno y credenciales
-.env
-.env.*
-!.env.example
-
-# Dependencias
-node_modules/
-
-# Archivos generados
-dist/
-build/
-
-# Logs
-*.log
-
-# Sistema operativo
-.DS_Store
-Thumbs.db
+# Salida de Playwright CLI (puede contener credenciales)
+.playwright-cli/

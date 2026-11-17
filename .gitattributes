@@ -1,0 +1,8 @@
+# Finales de línea LF en el repositorio para evitar diferencias entre Windows y Linux
+* text=auto eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.docx binary
+*.qea binary
