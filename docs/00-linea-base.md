@@ -81,6 +81,37 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 - `contrasenaHash` es un atributo privado de `Persona`.
 - Token de sesión en cookie `HttpOnly`, `Secure` y `SameSite`.
 
+## 4.1 Reglas del dominio fijadas en B1
+
+- **Creación de un caso:** nace en estado `PENDIENTE`.
+  - De una alerta: sin ruta y con `confidencialidad = false` (inferencia).
+  - De una solicitud: `confidencialidad = true`. Si `tipoApoyo` es `PSICOLOGICA`, nace con ruta `PSICOLOGICA`; si es académica, sin ruta.
+  - Un origen genera como máximo un caso.
+- **`canalizar(ruta)`:** solo una vez. `ACADEMICA` lleva a `EN_NIVELACION`; `PSICOLOGICA` deja el caso en `PENDIENTE` (entra en pendientes de ruta psicológica).
+- **`asignarPsicologo`:** exige ruta `PSICOLOGICA`; devuelve `false` si ya hay otro psicólogo; lleva a `EN_EVALUACION`.
+- **`aprobar()`:** exige ruta `PSICOLOGICA`, psicólogo asignado y estado `EN_EVALUACION`; no cambia el estado (`EstadoCaso` no tiene un valor "aprobado").
+- **`programarCita`:** exige ruta `PSICOLOGICA`, psicólogo asignado y que no haya cruce de horario (misma fecha y hora exactas con una cita `PROGRAMADA` o `REPROGRAMADA` del psicólogo; D9). La primera cita lleva a `CITADO` y las siguientes a `EN_SEGUIMIENTO`. No exige consentimiento (ER R05). La cita se agrega a la agenda del psicólogo.
+- **`archivar` y `reorientar`:** llevan a `ARCHIVADO` y `REORIENTADO` y exigen justificación no vacía (Manual CU_10).
+- **`cerrar()`:** `CERRADO` si la asesoría de la última cita (la de fecha y hora más reciente) está completa (observaciones no vacías, ER R06); si no, devuelve `false`.
+- **Estados terminales** (no admiten más cambios): `CERRADO`, `ARCHIVADO` y `REORIENTADO`. `estaFinalizado()` es verdadero solo para `CERRADO` y `ARCHIVADO` (D11 abierta).
+- **Cita:** `reprogramar` no se permite si está `CERRADA`; `generarAsesoria` la cierra.
+- **Mayoría de edad:** 18 años (inferencia).
+
+## 4.2 Reglas diferidas a otras fases
+
+- Un menor sin consentimiento no puede registrar el resultado de la sesión (ER R06, situación 2): lo aplica el servicio de B7 con `habilitadoParaAtencion`, porque `Cita` no conoce a su caso.
+- El cruce de horario al reprogramar una cita lo verifica el servicio de B7 (`Cita` no conoce al psicólogo).
+- Qué ve el Jefe de una solicitud académica confidencial (D18): se define en el plan de B6.
+- Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
+
+**Estado de las fases**
+
+| Fase | Estado |
+|---|---|
+| B0, B1, B2 y B3 | Cerradas (17/11/2026) |
+| B4 | Siguiente |
+| B5 a B9 | Pendientes |
+
 ## 5. Decisiones técnicas del entorno y del plan
 
 Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y entorno):
@@ -92,6 +123,8 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - Correo por SMTP/TLS con Brevo, detrás de la interfaz `ProveedorCorreo`.
 - El usuario de base de datos de la aplicación no tiene permiso de eliminación (ER 3.7 c: el historial de alertas y casos no se elimina).
 - Las rutas REST, los DTO y los códigos de error **no están definidos** en los diagramas; el agente debe proponerlos en el plan de cada fase y esperar aprobación.
+- Las rutas de `/acceso` están definidas desde B3: `POST /acceso/iniciar-sesion`, `POST /acceso/cerrar-sesion`, `POST /acceso/solicitar-activacion`, `POST /acceso/activar` y `GET /acceso/sesion`. Las demás rutas siguen sin definirse.
+- **Restricción de despliegue:** la cookie de sesión es `SameSite=Strict`, así que el front y la API deben estar en el mismo sitio (mismo dominio registrable). Si el front corre en otro origen, se necesita CORS con credenciales solo para `URL_FRONTEND` (ya implementado en B3).
 
 ## 6. Requisitos no funcionales relevantes para el backend (ER)
 
@@ -107,7 +140,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 
 - **Alertas automáticas:** ER 1.3.2, 1.4 (Alerta temprana), 3.5.1 y 3.7 f, y glosario y CU_05 del Manual hablan de generación automática. Vigente: emisión manual por el docente.
 - **R07:** el ER filtra por "código de departamento" y "código de asignatura". Vigente: periodo, `idPrograma` e `idCurso`.
-- **Tabla 2 del ER:** `nombre_asignatura`, `id_docente` y `nombre_docente` no son entradas del componente de compatibilidad; `codigo_asignatura` es solo la clave de enlace al curso configurado.
+- **Tabla 2 del ER:** en la versión actual del ER, la lista de "Campos requeridos de entrada" no incluye `id_docente`, `nombre_docente` ni `nombre_asignatura`, pero el "Formato de datos" de la misma tabla todavía menciona `nombre_docente` e `id_docente`. Vigente: la sincronización no los usa; `codigo_asignatura` es solo la clave de enlace al curso configurado.
 - **Notificaciones:** el ER (Tabla 1) lista tres tipos de correo; el diagrama de clases tiene cuatro operaciones en `ServicioNotificacion` (agrega `notificarPlanNivelacion`). Vigente: el diagrama.
 - **R04:** el ER pide el "código del estudiante beneficiario"; la secuencia usa `idCaso` (el caso identifica al estudiante).
 - **Consentimiento:** el ER menciona la validación de minoría de edad en R05; la confirmación del consentimiento se hace en R06 (`ControladorAtencionPsicologica`).
