@@ -64,7 +64,7 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
    npm run bd:migrar
    ```
 
-4. **Datos iniciales.** Programas y cuentas que no llegan por sincronización (docentes, jefes de departamento con su programa y psicólogos). Copia [`back/datos-iniciales.ejemplo.json`](back/datos-iniciales.ejemplo.json) a `back/datos-iniciales.json` (fuera de git: contiene datos personales, Ley 1581) y complétalo. El script es idempotente por correo: no duplica ni modifica cuentas existentes. Por cada cuenta nueva imprime **una sola vez** su enlace de activación en la terminal.
+4. **Datos iniciales.** Programas, cuentas y cursos que no llegan por sincronización: docentes, jefes de departamento con su programa, psicólogos, y los cursos con su docente (asignación docente–curso). Los cursos deben existir antes de sincronizar. Copia [`back/datos-iniciales.ejemplo.json`](back/datos-iniciales.ejemplo.json) a `back/datos-iniciales.json` (fuera de git: contiene datos personales, Ley 1581) y complétalo. El script es idempotente por correo: no duplica ni modifica cuentas existentes. Por cada cuenta nueva imprime **una sola vez** su enlace de activación en la terminal.
 
    ```bash
    cd back
@@ -73,13 +73,35 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
    npm run datos:iniciales -- --enlace correo@ejemplo.edu.co   # enlace nuevo para una cuenta existente
    ```
 
-5. **Backend.**
+5. **Base institucional de demostración.** Carga `institucional_demo` desde [`docker/postgres/institucional_demo.csv`](docker/postgres/institucional_demo.csv) (datos ficticios). Vacía y recarga la tabla en cada ejecución, y se niega a correr si `BD_INSTITUCIONAL_NOMBRE` no es `institucional_demo`.
+
+   ```bash
+   cd back
+   npm run bd:institucional
+   ```
+
+6. **Backend.**
 
    ```bash
    cd back
    npm run build
    npm run start:prod
    ```
+
+## Sincronización con la base institucional (B4)
+
+- **Solo se sincronizan estudiantes**, con sus notas y su asistencia (ER Tabla 2).
+- **El conector** (`ConectorBDConfigurable`) lee el origen configurado en el JSON que indica `CONECTOR_CONFIGURACION` (ejemplo: [`back/conector-institucional.ejemplo.json`](back/conector-institucional.ejemplo.json)): la tabla o vista y el mapeo de cada campo a la columna de la institución. Así no hay que cambiar el esquema del cliente. Las credenciales vienen de `BD_INSTITUCIONAL_*` y la conexión es de solo lectura.
+- **Enlaces:**
+  - `codigo_asignatura` es el `idCurso` configurado: un curso por asignatura, así que un periodo nuevo exige cursos nuevos con códigos nuevos (D22);
+  - el programa se enlaza primero por `idPrograma` y luego por nombre normalizado.
+- **Filas inválidas:** se omiten y se cuentan por causa, con los mensajes de la Tabla 2.
+- **Atomicidad:** cada ejecución es una sola transacción (ER 3.7 a). Lo que deja de venir en la fuente se conserva (D20).
+- **Estudiantes:** los nuevos quedan sin activar y se activan por enlace (D6). La sincronización nunca cambia la contraseña de una cuenta existente.
+- **Ejecución:**
+  - nocturna, a la hora `SINCRONIZACION_HORA_NOCTURNA` de Bogotá (UTC-5). **No hay recuperación:** si el servidor estaba apagado a esa hora, esa ejecución se pierde;
+  - manual, con `npm run sincronizar [-- --curso <idCurso>]` o con `POST /sincronizacion` y `Authorization: Bearer <SINCRONIZACION_SECRETO>`. Si el secreto está vacío, la ruta responde 404.
+  - Si ya hay una sincronización en curso, la segunda falla de inmediato (409 en HTTP).
 
 ## Autenticación (B3)
 
@@ -106,12 +128,14 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
 | `npm run lint` | Lint con oxlint (con reglas que usan información de tipos) |
 | `npm run format` / `format:check` | Aplica o verifica el formato con Prettier |
 | `npm test` | Pruebas unitarias |
-| `npm run test:e2e` | Conexión a ambas bases y autenticación de punta a punta por HTTP, esta última contra `detecta_pruebas` (requiere PostgreSQL en marcha y `back/.env`) |
-| `npm run datos:iniciales -- <archivo.json>` | Carga programas y cuentas iniciales e imprime sus enlaces de activación (ver paso 4) |
+| `npm run test:e2e` | Conexión a ambas bases, autenticación y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
+| `npm run datos:iniciales -- <archivo.json>` | Carga programas, cuentas y cursos iniciales e imprime los enlaces de activación (ver paso 4) |
+| `npm run bd:institucional` | Carga `institucional_demo` desde el CSV de demostración (ver paso 5) |
+| `npm run sincronizar [-- --curso <idCurso>]` | Sincroniza todos los cursos configurados, o uno solo, desde la base institucional |
 | `npm run bd:crear` | Crea las bases `institucional_demo` y `detecta_pruebas` y los usuarios (ver paso 3) |
 | `npm run bd:migrar` / `bd:revertir` | Aplica o revierte las migraciones en `detecta` con `detecta_migrador` (requiere `npm run build`) |
 | `npm run bd:migrar:pruebas` / `bd:revertir:pruebas` | Lo mismo en `detecta_pruebas` |
-| `npm run test:integracion` | Pruebas de integración de la persistencia contra `detecta_pruebas` (vacía sus tablas) |
+| `npm run test:integracion` | Pruebas de integración de la persistencia y la sincronización contra `detecta_pruebas` e `institucional_demo` (vacía las tablas de `detecta_pruebas`; requiere `npm run bd:institucional`) |
 
 ## Migraciones
 
