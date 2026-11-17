@@ -106,6 +106,9 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 - Para B9 (sincronización):
   - medir `sincronizarTodo` con unos 2000 estudiantes: unas 14 000 consultas en una sola transacción, con el bloqueo exclusivo retenido mientras dura;
   - el estado compartido en `omisionesUltimaLectura()` y `obtenerUltimoResultado()` no es seguro si algún día se corre más de una sincronización en paralelo (hoy el bloqueo lo impide).
+- Para B9 (correo y dependencias):
+  - revisar los avisos de `npm audit` (D25) sin `--force`;
+  - los correos de alerta de B6 no deben bloquear la operación de negocio (ER Tabla 1: menos de 5 s).
 
 **Estado de las fases**
 
@@ -113,8 +116,9 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 |---|---|
 | B0, B1, B2 y B3 | Cerradas (17/11/2026) |
 | B4 | Cerrada (17/11/2026): 181 pruebas unitarias, 83 de integración y 33 e2e |
-| B5 | Siguiente |
-| B6 a B9 | Pendientes |
+| B5 | Cerrada (17/11/2026): 221 pruebas unitarias, 89 de integración y 37 e2e. Verificación del correo real con Brevo pendiente de Ivan |
+| B6 | Siguiente |
+| B7 a B9 | Pendientes |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -168,7 +172,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Rutas | Las 4 de `/acceso`, más **`GET /acceso/sesion`** |
 | Cadena de acción | `listarCasosPendiente` (sd_CUD04) frente al método `listarCasosPendientes()` del diagrama de clases |
 | Piezas de NestJS (Manual 4.1.1.5) | `GuardSesion`; los decoradores `@Publico()` y `@UsuarioSesion()`; `ModuloAcceso` y `ModuloIntegracion`; `configurarAplicacion` |
-| Adaptador provisional | `ProveedorCorreoSinEnvio`, hasta B5 |
+| Adaptador provisional | `ProveedorCorreoSinEnvio`, hasta B5 (reemplazado por `ProveedorCorreoExterno`) |
 | Otros | `hashContrasenas` (envoltorio de bcrypt), el comando `datos-iniciales` y la tabla `token_activacion` |
 
 ### Diferencias introducidas en la implementación (B4)
@@ -183,6 +187,20 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Ruta | `POST /sincronizacion` con `Authorization: Bearer <SINCRONIZACION_SECRETO>`: 404 si no hay secreto configurado, 401 si es erróneo, 409 si hay otra sincronización en curso, 503 por error de conexión |
 | Texto nuevo | El 409 responde "Ya hay una sincronización en curso; intente más tarde." (no viene del ER) |
 | Datos iniciales | Cursos y asignación docente–curso en `datos:iniciales` |
+
+### Diferencias introducidas en la implementación (B5)
+
+| Tipo | Elemento |
+|---|---|
+| Firma | `notificarCita(cita, destinatario)` en lugar de `notificarCita(cita)`: según el ER (Tabla 1), el destinatario depende del evento (estudiante, psicólogo o jefe de departamento), y `Cita` no conoce su caso |
+| Modo sin envío | `CORREO_MODO=desactivado` y `ProveedorCorreoDesactivado`: avisa al arrancar, no envía y no registra contenido; prohibido con `NODE_ENV=production` |
+| Configuración | Validación de las variables `CORREO_*` al arrancar: sin configuración SMTP la aplicación no arranca |
+| Comando | `npm run correo:prueba -- <destino>` |
+| Errores | `ErrorEnvioCorreo` y `sanear`: solo códigos técnicos, sin el mensaje ni la respuesta del servidor |
+| Piezas de NestJS | `ModuloNotificacion`, `CONFIGURACION_NOTIFICACION` y `MENSAJES_TABLA_1` |
+| Plantillas | Plantillas HTML (`plantillas-correo.ts`), con los valores dinámicos escapados y sin contenido confidencial |
+| Adaptador | Parámetro `ca` de `ProveedorCorreoExterno` (solo pruebas); `onModuleDestroy` cierra el pool |
+| Comportamiento de B3 | `solicitarActivacion` no espera el envío; `ServicioAutenticacion.onApplicationShutdown()` espera los envíos pendientes |
 
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
@@ -209,6 +227,9 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | Antes del plan de B6 | Abierta |
 | D22 | `codigo_asignatura = Curso.idCurso`: un curso por asignatura; un periodo nuevo exige cursos nuevos con códigos nuevos | B4 | Aceptada como limitación |
 | D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta |
+| D24 | Entrega de correos sin cola ni reintentos | B5 | Aceptada como limitación. Un fallo se registra como "Error de envío" y no se reintenta; la entrega no está garantizada (ER Tabla 1) |
+| D25 | Avisos de `npm audit` en `picomatch` y `glob` (dependencias anteriores a B5) | B9 | Abierta |
+| D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | Antes del plan de B7 | Abierta |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 
