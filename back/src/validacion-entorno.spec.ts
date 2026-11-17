@@ -20,7 +20,88 @@ const entornoValido: Record<string, string> = {
   ACTIVACION_DURACION_MIN: '30',
   URL_FRONTEND: 'http://localhost:5173/',
   CONECTOR_CONFIGURACION: 'conector-institucional.ejemplo.json',
+  CORREO_SMTP_HOST: 'smtp.ejemplo.test',
+  CORREO_SMTP_PUERTO: '587',
+  CORREO_SMTP_USUARIO: 'usuario-smtp',
+  CORREO_SMTP_CLAVE: 'clave-smtp',
+  CORREO_REMITENTE: 'detecta@ejemplo.test',
+  CORREO_REMITENTE_NOMBRE: 'DETECTA',
 };
+
+/** Entorno sin ninguna variable de correo. */
+function sinCorreo(): Record<string, string> {
+  const entorno = { ...entornoValido };
+  for (const clave of Object.keys(entorno)) {
+    if (clave.startsWith('CORREO_')) {
+      delete entorno[clave];
+    }
+  }
+  return entorno;
+}
+
+describe('validarEntorno: correo (B5)', () => {
+  it('con la configuración SMTP completa el modo es smtp', () => {
+    expect(validarEntorno(entornoValido).CORREO).toEqual({
+      modo: 'smtp',
+      host: 'smtp.ejemplo.test',
+      puerto: 587,
+      usuario: 'usuario-smtp',
+      clave: 'clave-smtp',
+      remitente: 'detecta@ejemplo.test',
+      remitenteNombre: 'DETECTA',
+    });
+  });
+
+  it('sin configuración SMTP la aplicación no arranca', () => {
+    expect(() => validarEntorno(sinCorreo())).toThrow(
+      /Falta la configuración SMTP \(CORREO_SMTP_HOST, CORREO_SMTP_PUERTO, CORREO_SMTP_USUARIO, CORREO_SMTP_CLAVE, CORREO_REMITENTE, CORREO_REMITENTE_NOMBRE\)/,
+    );
+    const sinClave = { ...entornoValido, CORREO_SMTP_CLAVE: '  ' };
+    expect(() => validarEntorno(sinClave)).toThrow(/CORREO_SMTP_CLAVE/);
+  });
+
+  it('el mensaje de error nunca incluye la clave SMTP', () => {
+    let mensaje = '';
+    try {
+      validarEntorno({ ...entornoValido, CORREO_SMTP_PUERTO: 'x' });
+    } catch (error) {
+      mensaje = (error as Error).message;
+    }
+    expect(mensaje).toMatch(/CORREO_SMTP_PUERTO debe ser un entero/);
+    expect(mensaje).not.toContain('clave-smtp');
+  });
+
+  it('CORREO_MODO=desactivado arranca sin configuración SMTP', () => {
+    expect(
+      validarEntorno({ ...sinCorreo(), CORREO_MODO: 'desactivado' }).CORREO,
+    ).toEqual({ modo: 'desactivado' });
+  });
+
+  it('CORREO_MODO=desactivado se rechaza con NODE_ENV=production', () => {
+    expect(() =>
+      validarEntorno({
+        ...entornoValido,
+        NODE_ENV: 'production',
+        CORREO_MODO: 'desactivado',
+      }),
+    ).toThrow(/CORREO_MODO=desactivado no se admite en producción/);
+  });
+
+  it('rechaza otro modo, un remitente inválido y saltos de línea en el nombre', () => {
+    expect(() =>
+      validarEntorno({ ...entornoValido, CORREO_MODO: 'consola' }),
+    ).toThrow(/CORREO_MODO debe ser smtp o desactivado/);
+    expect(() =>
+      validarEntorno({ ...entornoValido, CORREO_REMITENTE: 'no-es-correo' }),
+    ).toThrow(/CORREO_REMITENTE debe ser un correo válido/);
+    expect(() =>
+      validarEntorno({
+        ...entornoValido,
+        CORREO_REMITENTE_NOMBRE: 'DETECTA\r\nBcc: x@y.z',
+      }),
+    ).toThrow(/CORREO_REMITENTE_NOMBRE no admite saltos de línea/);
+  });
+});
 
 describe('validarEntorno: variables de sincronización (B4)', () => {
   it('la hora nocturna y el secreto son opcionales: vacíos quedan en null', () => {
