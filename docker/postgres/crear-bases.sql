@@ -70,3 +70,12 @@ GRANT CONNECT ON DATABASE detecta_pruebas TO detecta_app;
 GRANT USAGE ON SCHEMA public TO detecta_app;
 -- Los permisos sobre tablas (SELECT, INSERT, UPDATE; nunca DELETE ni TRUNCATE,
 -- ER 3.7 c) los otorga la propia migración tabla por tabla.
+
+-- 7. Migración de la base detecta (autorizada por Ivan en la auditoría de
+--    B2): el migrador puede conectarse y crear objetos en su esquema public.
+--    Solo agrega permisos; no modifica datos ni objetos existentes.
+\connect postgres
+GRANT CONNECT ON DATABASE detecta TO detecta_migrador;
+
+\connect detecta
+GRANT USAGE, CREATE ON SCHEMA public TO detecta_migrador;

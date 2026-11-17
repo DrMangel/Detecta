@@ -18,6 +18,8 @@
     "test": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js",
     "test:e2e": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-e2e.json",
     "bd:crear": "node --env-file=../.env ../docker/postgres/crear-bases.mjs",
+    "bd:migrar": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta migrar",
+    "bd:revertir": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta revertir",
     "bd:migrar:pruebas": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta_pruebas migrar",
     "bd:revertir:pruebas": "node --env-file=.env dist/persistencia/ejecutar-migraciones.js detecta_pruebas revertir",
     "test:integracion": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-integracion.json --runInBand"
