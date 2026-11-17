@@ -64,13 +64,37 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
    npm run bd:migrar
    ```
 
-4. **Backend.**
+4. **Datos iniciales.** Programas y cuentas que no llegan por sincronización (docentes, jefes de departamento con su programa y psicólogos). Copia [`back/datos-iniciales.ejemplo.json`](back/datos-iniciales.ejemplo.json) a `back/datos-iniciales.json` (fuera de git: contiene datos personales, Ley 1581) y complétalo. El script es idempotente por correo: no duplica ni modifica cuentas existentes. Por cada cuenta nueva imprime **una sola vez** su enlace de activación en la terminal.
+
+   ```bash
+   cd back
+   npm run build
+   npm run datos:iniciales -- datos-iniciales.json
+   npm run datos:iniciales -- --enlace correo@ejemplo.edu.co   # enlace nuevo para una cuenta existente
+   ```
+
+5. **Backend.**
 
    ```bash
    cd back
    npm run build
    npm run start:prod
    ```
+
+## Autenticación (B3)
+
+- Inicio de sesión con correo y contraseña. Las contraseñas se guardan con bcrypt (costo `BCRYPT_COSTO`).
+- La sesión es un JWT HS256 de `SESION_DURACION_MIN` minutos, sin renovación, que viaja en la cookie `detecta_sesion`, con los atributos `HttpOnly`, `SameSite=Strict` y `Secure`. `COOKIE_SEGURA` debe valer `true` en producción.
+- Las cuentas nuevas no tienen contraseña: se activan con un enlace de un solo uso que vence en `ACTIVACION_DURACION_MIN` minutos. El mismo flujo sirve para recuperar la contraseña. Hasta que llegue el proveedor de correo real (B5), la aplicación no envía correos: los enlaces se obtienen con `datos:iniciales`.
+- CORS admite solo el origen exacto de `URL_FRONTEND`, con credenciales.
+
+| Ruta | Respuesta |
+|---|---|
+| `POST /acceso/iniciar-sesion` | 200 `{id, nombre, correo, rol}` y la cookie; 401 con un mensaje genérico |
+| `POST /acceso/cerrar-sesion` | 204; expira la cookie |
+| `POST /acceso/solicitar-activacion` | 202 siempre, con el mismo cuerpo, exista o no el correo |
+| `POST /acceso/activar` | 204; 400 genérico si el enlace no es válido. El token va en el cuerpo, nunca en la URL |
+| `GET /acceso/sesion` | 200 `{id, nombre, correo, rol}`; 401 sin sesión |
 
 ## Scripts del backend (`back/`)
 
@@ -82,7 +106,8 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
 | `npm run lint` | Lint con oxlint (con reglas que usan información de tipos) |
 | `npm run format` / `format:check` | Aplica o verifica el formato con Prettier |
 | `npm test` | Pruebas unitarias |
-| `npm run test:e2e` | Prueba de conexión a ambas bases (requiere PostgreSQL en marcha y `back/.env`) |
+| `npm run test:e2e` | Conexión a ambas bases y autenticación de punta a punta por HTTP, esta última contra `detecta_pruebas` (requiere PostgreSQL en marcha y `back/.env`) |
+| `npm run datos:iniciales -- <archivo.json>` | Carga programas y cuentas iniciales e imprime sus enlaces de activación (ver paso 4) |
 | `npm run bd:crear` | Crea las bases `institucional_demo` y `detecta_pruebas` y los usuarios (ver paso 3) |
 | `npm run bd:migrar` / `bd:revertir` | Aplica o revierte las migraciones en `detecta` con `detecta_migrador` (requiere `npm run build`) |
 | `npm run bd:migrar:pruebas` / `bd:revertir:pruebas` | Lo mismo en `detecta_pruebas` |
