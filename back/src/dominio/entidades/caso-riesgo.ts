@@ -29,9 +29,21 @@ export interface PropiedadesCasoRiesgo {
   citas: readonly Cita[];
 }
 
+/** Estados que cuentan como finalizados para `estaFinalizado()` (R07, sd_CUD10). */
 const ESTADOS_FINALIZADOS: readonly EstadoCaso[] = [
   EstadoCaso.CERRADO,
   EstadoCaso.ARCHIVADO,
+];
+
+/**
+ * Estados terminales: el caso ya no admite cambios. Es un conjunto distinto
+ * de ESTADOS_FINALIZADOS porque REORIENTADO es terminal pero no cuenta como
+ * finalizado mientras D11 siga abierta (auditoría de B1).
+ */
+const ESTADOS_TERMINALES: readonly EstadoCaso[] = [
+  EstadoCaso.CERRADO,
+  EstadoCaso.ARCHIVADO,
+  EstadoCaso.REORIENTADO,
 ];
 
 /**
@@ -149,7 +161,7 @@ export class CasoRiesgo {
 
   /** Fija la ruta de atención (R03, sd_CUD04). Un caso se canaliza una sola vez (5.a). */
   canalizar(ruta: RutaAtencion): void {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
     if (this.estaCanalizado()) {
       throw new Error('El caso ya fue canalizado');
     }
@@ -169,7 +181,7 @@ export class CasoRiesgo {
    * (línea base §4, trazabilidad ER 1.3.4). Exige ruta PSICOLOGICA.
    */
   asignarPsicologo(psicologo: Psicologo): boolean {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
     this.#exigirRutaPsicologica();
     if (this.#psicologo !== null && this.#psicologo.id !== psicologo.id) {
       return false;
@@ -187,7 +199,7 @@ export class CasoRiesgo {
    * programe la cita.
    */
   aprobar(): void {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
     this.#exigirRutaPsicologica();
     if (this.#psicologo === null || this.#estado !== EstadoCaso.EN_EVALUACION) {
       throw new Error(
@@ -196,16 +208,21 @@ export class CasoRiesgo {
     }
   }
 
-  /** No pertinente (CUD07, 2.a). */
+  /**
+   * No pertinente (CUD07, 2.a). La justificación es obligatoria (Manual
+   * CU_10, paso 4 y requisito de trazabilidad de la justificación técnica).
+   */
   archivar(justificacion: string): void {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
+    this.#exigirJustificacion(justificacion);
     this.#justificacion = justificacion;
     this.#estado = EstadoCaso.ARCHIVADO;
   }
 
-  /** Corresponde a otra área (CUD07, 2.b). */
+  /** Corresponde a otra área (CUD07, 2.b; Manual CU_10, 4a). Justificación obligatoria. */
   reorientar(justificacion: string): void {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
+    this.#exigirJustificacion(justificacion);
     this.#justificacion = justificacion;
     this.#estado = EstadoCaso.REORIENTADO;
   }
@@ -239,12 +256,19 @@ export class CasoRiesgo {
    * Programa una cita PROGRAMADA (sd_CUD06). La primera deja el caso CITADO
    * y las de seguimiento, EN_SEGUIMIENTO. No exige consentimiento (ER R05):
    * el bloqueo del menor aplica al registrar el resultado (R06, servicio B7).
+   * Antes de crearla verifica el cruce de horario con
+   * `psicologo.estaDisponible` (ER R05; sd_CUD06, 4.a de CUD07) y, si no hay
+   * cruce, la registra en la agenda del psicólogo.
    */
   programarCita(fechaHora: Date, modalidad: Modalidad): Cita {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
     this.#exigirRutaPsicologica();
-    if (this.#psicologo === null) {
+    const psicologo = this.#psicologo;
+    if (psicologo === null) {
       throw new Error('El caso no tiene un psicólogo asignado');
+    }
+    if (!psicologo.estaDisponible(fechaHora)) {
+      throw new Error('El psicólogo ya tiene una cita en esa fecha y hora');
     }
     const cita = new Cita({
       idCita: randomUUID(),
@@ -256,6 +280,7 @@ export class CasoRiesgo {
     this.#estado =
       this.#citas.length === 0 ? EstadoCaso.CITADO : EstadoCaso.EN_SEGUIMIENTO;
     this.#citas.push(cita);
+    psicologo.agendar(cita);
     return cita;
   }
 
@@ -265,7 +290,7 @@ export class CasoRiesgo {
    * está incompleta (línea base §4).
    */
   cerrar(): boolean {
-    this.#exigirNoFinalizado();
+    this.#exigirNoTerminal();
     const ultimaCita = this.#citas.reduce<Cita | null>(
       (ultima, cita) =>
         ultima === null ||
@@ -289,9 +314,19 @@ export class CasoRiesgo {
     return ESTADOS_FINALIZADOS.includes(this.#estado);
   }
 
-  #exigirNoFinalizado(): void {
-    if (this.estaFinalizado()) {
-      throw new Error('El caso ya está finalizado');
+  // Auxiliares privados fuera del diagrama: solo verifican precondiciones.
+
+  #exigirNoTerminal(): void {
+    if (ESTADOS_TERMINALES.includes(this.#estado)) {
+      throw new Error(
+        `El caso está ${this.#estado} y no admite cambios (estado terminal)`,
+      );
+    }
+  }
+
+  #exigirJustificacion(justificacion: string): void {
+    if (justificacion.trim() === '') {
+      throw new Error('Registre la justificación');
     }
   }
 

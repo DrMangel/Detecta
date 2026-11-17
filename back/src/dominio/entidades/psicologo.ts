@@ -39,4 +39,13 @@ export class Psicologo extends Persona {
         cita.fechaHora.getTime() === fechaHora.getTime(),
     );
   }
+
+  /**
+   * Auxiliar fuera del diagrama (pedido en la auditoría de B1): registra una
+   * cita en la agenda (asociación "agenda"). Lo invoca
+   * `CasoRiesgo.programarCita` después de verificar `estaDisponible`.
+   */
+  agendar(cita: Cita): void {
+    this.#citas.push(cita);
+  }
 }

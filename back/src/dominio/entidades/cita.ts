@@ -55,6 +55,9 @@ export class Cita {
   /**
    * Cambia la fecha de la cita (sd_CUD06, 4.a). No se limita el número de
    * reprogramaciones (D8: no implementar).
+   * El cruce de horario NO se verifica aquí, porque la cita no conoce a su
+   * psicólogo: es una regla del servicio de B7, que debe llamar a
+   * `Psicologo.estaDisponible(fechaHora)` antes de reprogramar (ER R05).
    */
   reprogramar(fechaHora: Date): void {
     this.#exigirNoCerrada();

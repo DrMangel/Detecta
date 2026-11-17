@@ -425,9 +425,120 @@ describe('CasoRiesgo', () => {
       const caso = casoEnEvaluacion();
       caso.archivar('No pertinente');
       expect(() => caso.programarCita(HOY, Modalidad.VIRTUAL)).toThrow(
-        /finalizado/,
+        /no admite cambios/,
       );
-      expect(() => caso.reorientar('x')).toThrow(/finalizado/);
+      expect(() => caso.reorientar('x')).toThrow(/no admite cambios/);
+    });
+  });
+
+  describe('estado terminal REORIENTADO (auditoría de B1)', () => {
+    function casoReorientado(): CasoRiesgo {
+      const caso = casoEnEvaluacion();
+      caso.reorientar('Corresponde a otra área');
+      return caso;
+    }
+
+    it('un caso REORIENTADO rechaza programarCita', () => {
+      expect(() =>
+        casoReorientado().programarCita(HOY, Modalidad.VIRTUAL),
+      ).toThrow(/no admite cambios/);
+    });
+
+    it('un caso REORIENTADO rechaza cerrar', () => {
+      expect(() => casoReorientado().cerrar()).toThrow(/no admite cambios/);
+    });
+
+    it('un caso REORIENTADO rechaza archivar', () => {
+      expect(() => casoReorientado().archivar('Motivo')).toThrow(
+        /no admite cambios/,
+      );
+    });
+
+    it('un caso REORIENTADO rechaza reorientar', () => {
+      expect(() => casoReorientado().reorientar('Motivo')).toThrow(
+        /no admite cambios/,
+      );
+    });
+
+    it('un caso REORIENTADO rechaza canalizar', () => {
+      expect(() => casoReorientado().canalizar(RutaAtencion.ACADEMICA)).toThrow(
+        /no admite cambios/,
+      );
+    });
+
+    it('un caso REORIENTADO sigue sin contar como finalizado (D11)', () => {
+      expect(casoReorientado().estaFinalizado()).toBe(false);
+    });
+  });
+
+  describe('cruce de horario del psicólogo (ER R05, sd_CUD06)', () => {
+    const nueveAm = new Date(2026, 10, 20, 9, 0);
+
+    function dosCasosDelMismoPsicologo(): {
+      primero: CasoRiesgo;
+      segundo: CasoRiesgo;
+      psicologo: Psicologo;
+    } {
+      const psicologo = crearPsicologo();
+      const primero = casoDeSolicitud(RutaAtencion.PSICOLOGICA);
+      const segundo = casoDeSolicitud(RutaAtencion.PSICOLOGICA);
+      primero.asignarPsicologo(psicologo);
+      segundo.asignarPsicologo(psicologo);
+      return { primero, segundo, psicologo };
+    }
+
+    it('rechaza una segunda cita del mismo psicólogo a la misma fecha y hora', () => {
+      const { primero, segundo, psicologo } = dosCasosDelMismoPsicologo();
+      primero.programarCita(nueveAm, Modalidad.PRESENCIAL);
+      expect(() =>
+        segundo.programarCita(new Date(nueveAm), Modalidad.VIRTUAL),
+      ).toThrow('El psicólogo ya tiene una cita en esa fecha y hora');
+      expect(segundo.citas).toHaveLength(0);
+      expect(psicologo.citas).toHaveLength(1);
+    });
+
+    it('acepta citas del mismo psicólogo en fechas distintas y las agenda', () => {
+      const { primero, segundo, psicologo } = dosCasosDelMismoPsicologo();
+      const a = primero.programarCita(nueveAm, Modalidad.PRESENCIAL);
+      const b = segundo.programarCita(
+        new Date(2026, 10, 20, 10, 0),
+        Modalidad.PRESENCIAL,
+      );
+      expect(psicologo.citas).toEqual([a, b]);
+    });
+
+    it('una cita CERRADA a esa hora no cuenta como cruce', () => {
+      const { primero, segundo, psicologo } = dosCasosDelMismoPsicologo();
+      primero
+        .programarCita(nueveAm, Modalidad.PRESENCIAL)
+        .generarAsesoria(
+          TipoAsesoria.ORIENTACION,
+          'Obs',
+          '',
+          true,
+          false,
+          false,
+        );
+      expect(() =>
+        segundo.programarCita(new Date(nueveAm), Modalidad.VIRTUAL),
+      ).not.toThrow();
+      expect(psicologo.citas).toHaveLength(2);
+    });
+  });
+
+  describe('justificación obligatoria (Manual CU_10, paso 4)', () => {
+    it('archivar rechaza una justificación vacía o solo con espacios', () => {
+      const caso = casoEnEvaluacion();
+      expect(() => caso.archivar('')).toThrow(/justificación/);
+      expect(() => caso.archivar('   ')).toThrow(/justificación/);
+      expect(caso.estado).toBe(EstadoCaso.EN_EVALUACION);
+    });
+
+    it('reorientar rechaza una justificación vacía o solo con espacios', () => {
+      const caso = casoEnEvaluacion();
+      expect(() => caso.reorientar('')).toThrow(/justificación/);
+      expect(() => caso.reorientar(' \t ')).toThrow(/justificación/);
+      expect(caso.estado).toBe(EstadoCaso.EN_EVALUACION);
     });
   });
 
