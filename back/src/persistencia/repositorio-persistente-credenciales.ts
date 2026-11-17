@@ -1,4 +1,9 @@
-import { IsNull, type DataSource } from 'typeorm';
+import { IsNull } from 'typeorm';
+import {
+  accesoDatos,
+  type AccesoDatos,
+  type FuenteDatos,
+} from './acceso-datos';
 import type { RepositorioCredenciales } from '../dominio/repositorios/repositorio-credenciales';
 import { EsquemaTokenActivacion, ModeloPersona } from './esquemas';
 
@@ -8,7 +13,11 @@ import { EsquemaTokenActivacion, ModeloPersona } from './esquemas';
  * `token_activacion`. Ninguna operación borra filas.
  */
 export class RepositorioPersistenteCredenciales implements RepositorioCredenciales {
-  constructor(private readonly fuente: DataSource) {}
+  readonly #acceso: AccesoDatos;
+
+  constructor(fuente: FuenteDatos) {
+    this.#acceso = accesoDatos(fuente);
+  }
 
   async registrarToken(token: {
     idToken: string;
@@ -17,7 +26,7 @@ export class RepositorioPersistenteCredenciales implements RepositorioCredencial
     creadoEn: Date;
     expiraEn: Date;
   }): Promise<void> {
-    await this.fuente.transaction(async (m) => {
+    await this.#acceso.transaccion(async (m) => {
       // Al emitir un token nuevo se anulan los anteriores sin usar.
       await m.update(
         EsquemaTokenActivacion,
@@ -33,7 +42,7 @@ export class RepositorioPersistenteCredenciales implements RepositorioCredencial
   }
 
   async contarTokensDesde(idPersona: string, desde: Date): Promise<number> {
-    const [fila]: { total: number }[] = await this.fuente.query(
+    const [fila] = await this.#acceso.query<{ total: number }[]>(
       `SELECT count(*)::int AS total FROM token_activacion
        WHERE id_persona = $1 AND creado_en >= $2`,
       [idPersona, desde],
@@ -46,7 +55,7 @@ export class RepositorioPersistenteCredenciales implements RepositorioCredencial
     contrasenaHash: string,
     ahora: Date,
   ): Promise<boolean> {
-    return this.fuente.transaction(async (m) => {
+    return this.#acceso.transaccion(async (m) => {
       // Un solo UPDATE condicionado: dos canjes simultáneos del mismo token
       // no pueden tener éxito ambos (solo uno encuentra usado_en IS NULL).
       const resultado: unknown[] = await m.query(

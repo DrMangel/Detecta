@@ -6,6 +6,7 @@ import {
   type DependenciasDatosIniciales,
 } from '../../src/comandos/datos-iniciales';
 import { ServicioAutenticacion } from '../../src/aplicacion/servicios/servicio-autenticacion';
+import { Docente } from '../../src/dominio/entidades/docente';
 import { JefeDepartamento } from '../../src/dominio/entidades/jefe-departamento';
 import { RepositorioPersistenteCredenciales } from '../../src/persistencia/repositorio-persistente-credenciales';
 import { crearRepositorios, type Repositorios } from './escenario';
@@ -66,6 +67,7 @@ beforeEach(async () => {
   dependencias = {
     personas: repos.personas,
     programas: repos.programas,
+    cursos: repos.cursos,
     autenticacion,
     imprimir: (linea) => salida.push(linea),
   };
@@ -188,5 +190,83 @@ describe('datos:iniciales', () => {
     await expect(
       emitirEnlaceParaCorreo('nadie@x.co', dependencias),
     ).rejects.toThrow(/No existe una cuenta/);
+  });
+});
+
+describe('datos:iniciales: cursos y asignación docente–curso (B4)', () => {
+  const conCursos = (cursos: unknown[]) =>
+    validarDatosIniciales({
+      programas: [{ idPrograma: 'SIS', nombre: 'Sistemas' }],
+      usuarios: [
+        { rol: 'DOCENTE', id: 'D1', nombre: 'Docente', correo: 'doc@x.co' },
+        { rol: 'DOCENTE', id: 'D2', nombre: 'Otro', correo: 'otro@x.co' },
+      ],
+      cursos,
+    });
+  const ISOF = {
+    idCurso: 'ISOF-101',
+    nombre: 'Ingeniería de Software I',
+    periodo: '2026-2',
+    idDocente: 'D1',
+  };
+
+  it('crea el curso y lo asigna al docente (dicta)', async () => {
+    await cargarDatosIniciales(conCursos([ISOF]), dependencias);
+    const curso = await repos.cursos.buscarPorId('ISOF-101');
+    expect(curso?.periodo).toBe('2026-2');
+    expect(curso?.ultimaSincronizacion).toBeNull();
+    const docente = (await repos.personas.buscarPorId('D1')) as Docente;
+    expect(docente.cursos.map((c) => c.idCurso)).toEqual(['ISOF-101']);
+    expect(salida).toContain('Curso ISOF-101: creado y asignado a D1.');
+  });
+
+  it('es idempotente por idCurso', async () => {
+    await cargarDatosIniciales(conCursos([ISOF]), dependencias);
+    salida = [];
+    await cargarDatosIniciales(conCursos([ISOF]), dependencias);
+    expect(salida).toContain('Curso ISOF-101: ya existe, sin cambios.');
+    const [{ total }] = await fuente.query(
+      'SELECT count(*)::int AS total FROM curso',
+    );
+    expect(total).toBe(1);
+  });
+
+  it('reasignar un curso a otro docente falla con mensaje explicativo', async () => {
+    await cargarDatosIniciales(conCursos([ISOF]), dependencias);
+    await expect(
+      cargarDatosIniciales(
+        conCursos([{ ...ISOF, idDocente: 'D2' }]),
+        dependencias,
+      ),
+    ).rejects.toThrow(
+      'El curso ISOF-101 ya está asignado al docente D1: la reasignación de un curso a otro docente está pendiente de decisión',
+    );
+  });
+
+  it('el docente del curso debe existir', async () => {
+    await expect(
+      cargarDatosIniciales(
+        conCursos([{ ...ISOF, idDocente: 'NADIE' }]),
+        dependencias,
+      ),
+    ).rejects.toThrow('El docente NADIE del curso ISOF-101 no existe');
+  });
+
+  it('agregar cursos no altera el hash de un docente ya activado', async () => {
+    await cargarDatosIniciales(conCursos([]), dependencias);
+    await fuente.query(
+      "UPDATE persona SET contrasena_hash = '$2b$12$hash-docente-activado' WHERE id = 'D1'",
+    );
+    await cargarDatosIniciales(conCursos([ISOF]), dependencias);
+    const [fila] = await fuente.query(
+      "SELECT contrasena_hash FROM persona WHERE id = 'D1'",
+    );
+    expect(fila.contrasena_hash).toBe('$2b$12$hash-docente-activado');
+  });
+
+  it('valida el formato de idCurso y rechaza idCurso repetidos', () => {
+    expect(() =>
+      conCursos([{ ...ISOF, idCurso: 'IS OF' }, ISOF, ISOF]),
+    ).toThrow(/alfanumérico[\s\S]*idCurso repetido/);
   });
 });

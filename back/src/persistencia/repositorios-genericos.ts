@@ -1,4 +1,3 @@
-import type { DataSource } from 'typeorm';
 import type { Asesoria } from '../dominio/entidades/asesoria';
 import type { Cita } from '../dominio/entidades/cita';
 import type { Curso } from '../dominio/entidades/curso';
@@ -18,6 +17,7 @@ import {
   escribirInforme,
   escribirPrograma,
 } from './mapeadores/escritores';
+import type { FuenteDatos } from './acceso-datos';
 import { RepositorioPersistente } from './repositorio-persistente';
 
 /*
@@ -27,7 +27,7 @@ import { RepositorioPersistente } from './repositorio-persistente';
 
 /** guardar(programa): escribe solo el programa. */
 export function crearRepositorioPrograma(
-  fuente: DataSource,
+  fuente: FuenteDatos,
 ): RepositorioPersistente<Programa> {
   return new RepositorioPersistente<Programa>(fuente, {
     objetivo: EsquemaPrograma,
@@ -44,7 +44,7 @@ export function crearRepositorioPrograma(
  * No escribe sus estudiantes (salen de los registros académicos).
  */
 export function crearRepositorioCurso(
-  fuente: DataSource,
+  fuente: FuenteDatos,
 ): RepositorioPersistente<Curso> {
   return new RepositorioPersistente<Curso>(fuente, {
     objetivo: EsquemaCurso,
@@ -60,7 +60,7 @@ export function crearRepositorioCurso(
  * asesoría. Las citas se crean desde guardar(caso).
  */
 export function crearRepositorioCita(
-  fuente: DataSource,
+  fuente: FuenteDatos,
 ): RepositorioPersistente<Cita> {
   return new RepositorioPersistente<Cita>(fuente, {
     objetivo: EsquemaCita,
@@ -76,7 +76,7 @@ export function crearRepositorioCita(
  * crean desde guardar(cita) o guardar(caso).
  */
 export function crearRepositorioAsesoria(
-  fuente: DataSource,
+  fuente: FuenteDatos,
 ): RepositorioPersistente<Asesoria> {
   return new RepositorioPersistente<Asesoria>(fuente, {
     objetivo: EsquemaAsesoria,
@@ -92,7 +92,7 @@ export function crearRepositorioAsesoria(
  * "resume" con casos y planes. No escribe el curso, los casos ni los planes.
  */
 export function crearRepositorioInformeRiesgo(
-  fuente: DataSource,
+  fuente: FuenteDatos,
 ): RepositorioPersistente<InformeRiesgo> {
   return new RepositorioPersistente<InformeRiesgo>(fuente, {
     objetivo: EsquemaInformeRiesgo,

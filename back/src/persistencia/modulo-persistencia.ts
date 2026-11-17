@@ -14,7 +14,9 @@ import {
   REPOSITORIO_REGISTRO_ACADEMICO,
   REPOSITORIO_SOLICITUD,
 } from '../dominio/repositorios/tokens';
+import { UNIDAD_TRABAJO } from '../aplicacion/contratos/unidad-trabajo';
 import { RepositorioPersistenteCredenciales } from './repositorio-persistente-credenciales';
+import { UnidadTrabajoPersistente } from './unidad-trabajo-persistente';
 import {
   crearRepositorioAsesoria,
   crearRepositorioCita,
@@ -67,6 +69,8 @@ const PROVEEDORES: Provider[] = [
     REPOSITORIO_CREDENCIALES,
     (f) => new RepositorioPersistenteCredenciales(f),
   ),
+  // B4: transacciones definidas por los servicios (Manual 4.1.1.4).
+  proveedor(UNIDAD_TRABAJO, (f) => new UnidadTrabajoPersistente(f)),
 ];
 
 /**

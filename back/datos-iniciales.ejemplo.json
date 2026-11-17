@@ -1,6 +1,7 @@
 {
   "programas": [
-    { "idPrograma": "SIS", "nombre": "Ingeniería de Sistemas (ejemplo)" }
+    { "idPrograma": "SIS", "nombre": "Ingeniería de Sistemas" },
+    { "idPrograma": "QUI", "nombre": "Química" }
   ],
   "usuarios": [
     {
@@ -21,6 +22,26 @@
       "id": "DOC-EJEMPLO",
       "nombre": "Docente de Ejemplo",
       "correo": "docente.ejemplo@ejemplo.invalid"
+    }
+  ],
+  "cursos": [
+    {
+      "idCurso": "ISOF-101",
+      "nombre": "Ingeniería de Software I",
+      "periodo": "2026-2",
+      "idDocente": "DOC-EJEMPLO"
+    },
+    {
+      "idCurso": "CALC-201",
+      "nombre": "Cálculo Integral",
+      "periodo": "2026-2",
+      "idDocente": "DOC-EJEMPLO"
+    },
+    {
+      "idCurso": "FIS-301",
+      "nombre": "Física III",
+      "periodo": "2026-2",
+      "idDocente": "DOC-EJEMPLO"
     }
   ]
 }

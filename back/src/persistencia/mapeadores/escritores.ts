@@ -1,4 +1,4 @@
-import { In, type EntityManager } from 'typeorm';
+import { In, IsNull, type EntityManager } from 'typeorm';
 import type { Alerta } from '../../dominio/entidades/alerta';
 import type { Asesoria } from '../../dominio/entidades/asesoria';
 import type { CasoRiesgo } from '../../dominio/entidades/caso-riesgo';
@@ -34,8 +34,10 @@ import {
   ModeloDocente,
   ModeloEstudiante,
   ModeloJefeDepartamento,
+  ModeloPersona,
   ModeloPsicologo,
   ModeloSolicitud,
+  EsquemaTokenActivacion,
   type FilaAsesoria,
   type FilaCita,
 } from '../esquemas';
@@ -68,30 +70,46 @@ export async function escribirPrograma(
  *   ni los registros de esos cursos.
  * - Psicologo: NO escribe su agenda; las citas se insertan desde
  *   `guardar(caso)`.
+ *
+ * Regla del hash (aprobada por Ivan en el plan de B4): en una fila EXISTENTE
+ * nunca se cambia `contrasena_hash`; solo lo cambia RepositorioCredenciales
+ * (activación, D6). Así la sincronización y los datos iniciales no pueden
+ * pisar la contraseña de una cuenta ya activada. Al insertar, se guarda el
+ * hash de la entidad (el centinela de una cuenta sin activar).
+ *
+ * Si cambia el correo de una persona existente, se anulan sus tokens de
+ * activación pendientes: se enviaron al correo anterior (plan de B4, 11).
  */
 export async function escribirPersona(
   m: EntityManager,
   persona: Persona,
 ): Promise<void> {
-  const base = {
-    id: persona.id,
-    nombre: persona.nombre,
-    correo: persona.correo,
-    contrasenaHash: leerContrasenaHash(persona),
-  };
-  if (persona instanceof Estudiante) {
-    await m.save(ModeloEstudiante, {
-      ...base,
-      fechaNacimiento: aTextoFecha(persona.fechaNacimiento),
-      idPrograma: persona.obtenerPrograma().idPrograma,
+  const { modelo, propias } = filaPropiaDePersona(persona);
+  const comunes = { nombre: persona.nombre, correo: persona.correo };
+  const existente = await m.findOne(ModeloPersona, {
+    where: { id: persona.id },
+  });
+  if (existente === null) {
+    await m.save(modelo, {
+      id: persona.id,
+      ...comunes,
+      ...propias,
+      contrasenaHash: leerContrasenaHash(persona),
     });
-  } else if (persona instanceof JefeDepartamento) {
-    await m.save(ModeloJefeDepartamento, {
-      ...base,
-      idProgramaDirigido: persona.programa.idPrograma,
-    });
-  } else if (persona instanceof Docente) {
-    await m.save(ModeloDocente, base);
+  } else {
+    if (!(existente instanceof modelo)) {
+      throw new Error(`La persona ${persona.id} ya existe con otro rol`);
+    }
+    if (existente.correo !== persona.correo) {
+      await m.update(
+        EsquemaTokenActivacion,
+        { idPersona: persona.id, usadoEn: IsNull(), anuladoEn: IsNull() },
+        { anuladoEn: new Date() },
+      );
+    }
+    await m.update(modelo, { id: persona.id }, { ...comunes, ...propias });
+  }
+  if (persona instanceof Docente) {
     for (const curso of persona.cursos) {
       await m.upsert(
         EsquemaCurso,
@@ -105,13 +123,42 @@ export async function escribirPersona(
         ['idCurso'],
       );
     }
-  } else if (persona instanceof Psicologo) {
-    await m.save(ModeloPsicologo, base);
-  } else {
-    throw new Error(
-      `Subclase de Persona no soportada: ${persona.constructor.name}`,
-    );
   }
+}
+
+/** Modelo de la subclase y sus columnas propias (herencia de tabla única). */
+function filaPropiaDePersona(persona: Persona): {
+  modelo:
+    | typeof ModeloEstudiante
+    | typeof ModeloJefeDepartamento
+    | typeof ModeloDocente
+    | typeof ModeloPsicologo;
+  propias: Record<string, unknown>;
+} {
+  if (persona instanceof Estudiante) {
+    return {
+      modelo: ModeloEstudiante,
+      propias: {
+        fechaNacimiento: aTextoFecha(persona.fechaNacimiento),
+        idPrograma: persona.obtenerPrograma().idPrograma,
+      },
+    };
+  }
+  if (persona instanceof JefeDepartamento) {
+    return {
+      modelo: ModeloJefeDepartamento,
+      propias: { idProgramaDirigido: persona.programa.idPrograma },
+    };
+  }
+  if (persona instanceof Docente) {
+    return { modelo: ModeloDocente, propias: {} };
+  }
+  if (persona instanceof Psicologo) {
+    return { modelo: ModeloPsicologo, propias: {} };
+  }
+  throw new Error(
+    `Subclase de Persona no soportada: ${persona.constructor.name}`,
+  );
 }
 
 /**

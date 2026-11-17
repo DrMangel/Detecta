@@ -103,14 +103,18 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 - El cruce de horario al reprogramar una cita lo verifica el servicio de B7 (`Cita` no conoce al psicólogo).
 - Qué ve el Jefe de una solicitud académica confidencial (D18): se define en el plan de B6.
 - Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
+- Para B9 (sincronización):
+  - medir `sincronizarTodo` con unos 2000 estudiantes: unas 14 000 consultas en una sola transacción, con el bloqueo exclusivo retenido mientras dura;
+  - el estado compartido en `omisionesUltimaLectura()` y `obtenerUltimoResultado()` no es seguro si algún día se corre más de una sincronización en paralelo (hoy el bloqueo lo impide).
 
 **Estado de las fases**
 
 | Fase | Estado |
 |---|---|
 | B0, B1, B2 y B3 | Cerradas (17/11/2026) |
-| B4 | Siguiente |
-| B5 a B9 | Pendientes |
+| B4 | Cerrada (17/11/2026): 181 pruebas unitarias, 83 de integración y 33 e2e |
+| B5 | Siguiente |
+| B6 a B9 | Pendientes |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -167,6 +171,19 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Adaptador provisional | `ProveedorCorreoSinEnvio`, hasta B5 |
 | Otros | `hashContrasenas` (envoltorio de bcrypt), el comando `datos-iniciales` y la tabla `token_activacion` |
 
+### Diferencias introducidas en la implementación (B4)
+
+| Tipo | Elemento |
+|---|---|
+| Contrato y adaptador | `UnidadTrabajo` y `UnidadTrabajoPersistente`: transacciones definidas por el servicio (Manual 4.1.1.4), con bloqueo exclusivo |
+| Métodos | `ConectorBDInstitucional.omisionesUltimaLectura()` y el tipo `OmisionesLectura` (desglose por causa); `ServicioSincronizacion.obtenerUltimoResultado()` (el diagrama devuelve solo `Integer`) |
+| Regla de persistencia | `guardar(persona)` no cambia `contrasena_hash` de una fila existente (solo lo cambia `RepositorioCredenciales`) y anula los tokens de activación pendientes si cambia el correo |
+| Piezas de NestJS y de persistencia | `ModuloSincronizacion`, `ProgramadorSincronizacion` (tarea nocturna) y `AccesoDatos` |
+| Comando | `npm run sincronizar [-- --curso <idCurso>]` |
+| Ruta | `POST /sincronizacion` con `Authorization: Bearer <SINCRONIZACION_SECRETO>`: 404 si no hay secreto configurado, 401 si es erróneo, 409 si hay otra sincronización en curso, 503 por error de conexión |
+| Texto nuevo | El 409 responde "Ya hay una sincronización en curso; intente más tarde." (no viene del ER) |
+| Datos iniciales | Cursos y asignación docente–curso en `datos:iniciales` |
+
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
@@ -188,6 +205,10 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta |
 | D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c ("únicamente psicología") y el perfil del Estudiante (oculta a docentes y estudiantes) se contradicen | Antes del plan de B6 | Abierta |
 | D19 | Contenido confidencial | B3 | Resuelta. Psicólogo con ruta `PSICOLOGICA` y caso sin asignar o asignado a él |
+| D20 | Lo que deja de venir en la fuente institucional (estudiantes o registros) se conserva sin marca, porque no hay `DELETE` | Posterior | Abierta |
+| D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | Antes del plan de B6 | Abierta |
+| D22 | `codigo_asignatura = Curso.idCurso`: un curso por asignatura; un periodo nuevo exige cursos nuevos con códigos nuevos | B4 | Aceptada como limitación |
+| D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 

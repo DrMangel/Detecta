@@ -1,0 +1,13 @@
+{
+  "origen": "vista_estudiantes_matriculados",
+  "mapeoCampos": {
+    "id_estudiante": "id_estudiante",
+    "nombre_estudiante": "nombre_estudiante",
+    "correo_estudiante": "correo_estudiante",
+    "fecha_nacimiento": "fecha_nacimiento",
+    "programa_academico": "programa_academico",
+    "codigo_asignatura": "codigo_asignatura",
+    "calificacion_acumulada": "calificacion_acumulada",
+    "porcentaje_asistencia": "porcentaje_asistencia"
+  }
+}

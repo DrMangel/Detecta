@@ -35,11 +35,20 @@ export interface VariablesEntorno {
   ACTIVACION_DURACION_MIN: number;
   /** Origen del frontend: enlace de activación y CORS (sin comodines). */
   URL_FRONTEND: string;
+  /** Ruta del JSON con el origen y el mapeo de campos del conector (B4). */
+  CONECTOR_CONFIGURACION: string;
+  /** Hora HH:MM (Bogotá) de la sincronización nocturna; null la desactiva. */
+  SINCRONIZACION_HORA_NOCTURNA: string | null;
+  /** Secreto del disparo manual por HTTP (≥32); null desactiva la ruta. */
+  SINCRONIZACION_SECRETO: string | null;
 }
 
 type ClaveTexto = {
   [K in keyof VariablesEntorno]: VariablesEntorno[K] extends string ? K : never;
 }[keyof VariablesEntorno];
+
+/** HH:MM de 00:00 a 23:59. */
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** Enteros con su rango permitido. */
 const ENTEROS = {
@@ -67,6 +76,7 @@ const CLAVES_TEXTO: readonly Exclude<
   'BD_INSTITUCIONAL_USUARIO',
   'BD_INSTITUCIONAL_CONTRASENA',
   'JWT_SECRETO',
+  'CONECTOR_CONFIGURACION',
 ];
 
 const CLAVES_PUERTO: readonly ClavePuerto[] = [
@@ -166,6 +176,24 @@ export function validarEntorno(
     errores.push('URL_FRONTEND debe ser una URL http(s) válida');
   }
 
+  // B4: ambas son opcionales; vacías desactivan la tarea nocturna o la ruta
+  // HTTP del disparo manual.
+  const horaNocturna =
+    leerTexto(crudas['SINCRONIZACION_HORA_NOCTURNA']) ?? null;
+  if (horaNocturna !== null && !FORMATO_HORA.test(horaNocturna)) {
+    errores.push('SINCRONIZACION_HORA_NOCTURNA debe tener el formato HH:MM');
+  }
+  const secretoSincronizacion =
+    leerTexto(crudas['SINCRONIZACION_SECRETO']) ?? null;
+  if (
+    secretoSincronizacion !== null &&
+    secretoSincronizacion.length < LONGITUD_MINIMA_SECRETO
+  ) {
+    errores.push(
+      `SINCRONIZACION_SECRETO debe tener al menos ${LONGITUD_MINIMA_SECRETO} caracteres`,
+    );
+  }
+
   if (errores.length > 0) {
     throw new Error(
       `Variables de entorno inválidas:\n- ${errores.join('\n- ')}`,
@@ -173,7 +201,17 @@ export function validarEntorno(
   }
 
   return {
-    ...(textos as Record<Exclude<ClaveTexto, 'URL_FRONTEND'>, string>),
+    SINCRONIZACION_HORA_NOCTURNA: horaNocturna,
+    SINCRONIZACION_SECRETO: secretoSincronizacion,
+    ...(textos as Record<
+      Exclude<
+        ClaveTexto,
+        | 'URL_FRONTEND'
+        | 'SINCRONIZACION_HORA_NOCTURNA'
+        | 'SINCRONIZACION_SECRETO'
+      >,
+      string
+    >),
     ...(puertos as Record<ClavePuerto, number>),
     ...(enteros as Record<ClaveEntero, number>),
     COOKIE_SEGURA: cookieSegura === 'true',
