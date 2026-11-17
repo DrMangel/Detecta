@@ -1,10 +1,14 @@
 import { DataSource, type DataSourceOptions, type Logger } from 'typeorm';
 import { ESQUEMAS } from './esquemas';
 import { EsquemaInicial1794873600000 } from './migraciones/1794873600000-EsquemaInicial';
+import { TokensActivacion1794877200000 } from './migraciones/1794877200000-TokensActivacion';
 
 /** Migraciones en orden. Se listan explícitamente (sin glob) para que
  * funcionen igual desde `dist/` y desde las pruebas con ts-jest. */
-export const MIGRACIONES = [EsquemaInicial1794873600000];
+export const MIGRACIONES = [
+  EsquemaInicial1794873600000,
+  TokensActivacion1794877200000,
+];
 
 function exigirVariable(nombre: string): string {
   const valor = process.env[nombre]?.trim();

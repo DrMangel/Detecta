@@ -1,10 +1,11 @@
-import { Module, type Provider } from '@nestjs/common';
+import { Global, Module, type Provider } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import {
   REPOSITORIO_ALERTA,
   REPOSITORIO_ASESORIA,
   REPOSITORIO_CASO_RIESGO,
   REPOSITORIO_CITA,
+  REPOSITORIO_CREDENCIALES,
   REPOSITORIO_CURSO,
   REPOSITORIO_INFORME_RIESGO,
   REPOSITORIO_PERSONA,
@@ -13,6 +14,7 @@ import {
   REPOSITORIO_REGISTRO_ACADEMICO,
   REPOSITORIO_SOLICITUD,
 } from '../dominio/repositorios/tokens';
+import { RepositorioPersistenteCredenciales } from './repositorio-persistente-credenciales';
 import {
   crearRepositorioAsesoria,
   crearRepositorioCita,
@@ -61,13 +63,20 @@ const PROVEEDORES: Provider[] = [
   proveedor(REPOSITORIO_CITA, crearRepositorioCita),
   proveedor(REPOSITORIO_ASESORIA, crearRepositorioAsesoria),
   proveedor(REPOSITORIO_INFORME_RIESGO, crearRepositorioInformeRiesgo),
+  proveedor(
+    REPOSITORIO_CREDENCIALES,
+    (f) => new RepositorioPersistenteCredenciales(f),
+  ),
 ];
 
 /**
  * Módulo de persistencia: inyecta los adaptadores al iniciar (nota del
  * diagrama de paquetes). Controladores y servicios dependen solo de los
- * contratos de `dominio/repositorios` y de sus tokens.
+ * contratos de `dominio/repositorios` y de sus tokens. Es global para que
+ * los módulos de controladores reciban los repositorios por token sin
+ * importar código de `persistencia`.
  */
+@Global()
 @Module({
   providers: PROVEEDORES,
   exports: PROVEEDORES,
