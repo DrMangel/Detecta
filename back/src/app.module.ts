@@ -5,6 +5,7 @@ import { ESQUEMAS } from './persistencia/esquemas';
 import { ModuloAcceso } from './controladores/modulo-acceso';
 import { ModuloSincronizacion } from './controladores/modulo-sincronizacion';
 import { ModuloIntegracion } from './integracion/modulo-integracion';
+import { ModuloNotificacion } from './controladores/modulo-notificacion';
 import { ModuloPersistencia } from './persistencia/modulo-persistencia';
 import { validarEntorno, VariablesEntorno } from './validacion-entorno';
 
@@ -77,6 +78,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
     ModuloIntegracion,
     ModuloAcceso,
     ModuloSincronizacion,
+    ModuloNotificacion,
   ],
 })
 export class AppModule {}
