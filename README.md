@@ -103,11 +103,20 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
   - manual, con `npm run sincronizar [-- --curso <idCurso>]` o con `POST /sincronizacion` y `Authorization: Bearer <SINCRONIZACION_SECRETO>`. Si el secreto está vacío, la ruta responde 404.
   - Si ya hay una sincronización en curso, la segunda falla de inmediato (409 en HTTP).
 
+## Notificaciones por correo (B5)
+
+- **Proveedor:** Brevo por SMTP (`smtp-relay.brevo.com:587`) con STARTTLS obligatorio, TLS 1.2 como mínimo y verificación del certificado siempre activa. Plazo global de 5 s por envío (ER Tabla 1).
+- **Configuración:** variables `CORREO_*` de [`back/.env.example`](back/.env.example). El usuario y la clave SMTP van solo en `back/.env`.
+- **Sin configuración SMTP la aplicación no arranca**, salvo que se declare `CORREO_MODO=desactivado`. En ese modo avisa al arrancar, no envía nada y no registra el contenido. No se admite con `NODE_ENV=production`. Las suites de integración y e2e lo fuerzan para no enviar correos reales.
+- **Contenido:** HTML, sin datos confidenciales (Manual 4.1.1.6): ni el motivo del caso, ni el contenido de las asesorías, ni la palabra psicología en las citas. Cada correo remite al sistema.
+- **Fallos:** el envío no interrumpe el flujo. Se registra «Correo enviado» o «Error de envío» con el tipo y un código técnico, nunca el destinatario, el asunto ni el cuerpo.
+- **Correo de prueba:** `npm run build` y luego `npm run correo:prueba -- <destino>`. Envía un correo sin datos del sistema e imprime solo «Correo enviado» o «Error de envío (<código>)»; nunca imprime la configuración ni la clave.
+
 ## Autenticación (B3)
 
 - Inicio de sesión con correo y contraseña. Las contraseñas se guardan con bcrypt (costo `BCRYPT_COSTO`).
 - La sesión es un JWT HS256 de `SESION_DURACION_MIN` minutos, sin renovación, que viaja en la cookie `detecta_sesion`, con los atributos `HttpOnly`, `SameSite=Strict` y `Secure`. `COOKIE_SEGURA` debe valer `true` en producción.
-- Las cuentas nuevas no tienen contraseña: se activan con un enlace de un solo uso que vence en `ACTIVACION_DURACION_MIN` minutos. El mismo flujo sirve para recuperar la contraseña. Hasta que llegue el proveedor de correo real (B5), la aplicación no envía correos: los enlaces se obtienen con `datos:iniciales`.
+- Las cuentas nuevas no tienen contraseña: se activan con un enlace de un solo uso que vence en `ACTIVACION_DURACION_MIN` minutos. El mismo flujo sirve para recuperar la contraseña. El enlace llega por correo (B5); para las cuentas cargadas con `datos:iniciales`, el comando también imprime los enlaces en la salida estándar y no envía correos.
 - CORS admite solo el origen exacto de `URL_FRONTEND`, con credenciales.
 
 | Ruta | Respuesta |
@@ -128,10 +137,11 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
 | `npm run lint` | Lint con oxlint (con reglas que usan información de tipos) |
 | `npm run format` / `format:check` | Aplica o verifica el formato con Prettier |
 | `npm test` | Pruebas unitarias |
-| `npm run test:e2e` | Conexión a ambas bases, autenticación y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
+| `npm run test:e2e` | Conexión a ambas bases, autenticación, correo de activación por un servidor SMTP local y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
 | `npm run datos:iniciales -- <archivo.json>` | Carga programas, cuentas y cursos iniciales e imprime los enlaces de activación (ver paso 4) |
 | `npm run bd:institucional` | Carga `institucional_demo` desde el CSV de demostración (ver paso 5) |
 | `npm run sincronizar [-- --curso <idCurso>]` | Sincroniza todos los cursos configurados, o uno solo, desde la base institucional |
+| `npm run correo:prueba -- <destino>` | Envía un correo de prueba sin datos del sistema por el proveedor configurado (requiere `npm run build`) |
 | `npm run bd:crear` | Crea las bases `institucional_demo` y `detecta_pruebas` y los usuarios (ver paso 3) |
 | `npm run bd:migrar` / `bd:revertir` | Aplica o revierte las migraciones en `detecta` con `detecta_migrador` (requiere `npm run build`) |
 | `npm run bd:migrar:pruebas` / `bd:revertir:pruebas` | Lo mismo en `detecta_pruebas` |
