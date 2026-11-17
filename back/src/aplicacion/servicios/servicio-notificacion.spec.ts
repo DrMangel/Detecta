@@ -111,7 +111,7 @@ function capturarRegistro() {
   const espias = (['log', 'warn', 'error'] as const).map((nivel) =>
     jest
       .spyOn(Logger.prototype, nivel)
-      .mockImplementation((mensaje: unknown) => {
+      .mockImplementation((...[mensaje]: unknown[]) => {
         lineas.push(`${nivel}: ${String(mensaje)}`);
       }),
   );

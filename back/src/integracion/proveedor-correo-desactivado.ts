@@ -15,7 +15,11 @@ export class ProveedorCorreoDesactivado implements ProveedorCorreo {
     new Logger('ProveedorCorreo').warn(AVISO_CORREO_DESACTIVADO);
   }
 
-  enviar(): Promise<boolean> {
+  enviar(
+    _destino: string,
+    _asunto: string,
+    _cuerpoHtml: string,
+  ): Promise<boolean> {
     return Promise.resolve(false);
   }
 }
