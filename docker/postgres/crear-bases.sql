@@ -3,7 +3,8 @@
 -- Se puede ejecutar varias veces sin efectos duplicados: no borra datos ni recrea
 -- nada que ya exista. Se ejecuta como superusuario (detecta_user) dentro del
 -- contenedor mediante docker/postgres/crear-bases.mjs (npm run bd:crear desde back/).
--- Las contraseñas llegan como variables de psql (:clave_app, :clave_lector);
+-- Las contraseñas llegan como variables de psql (:clave_app, :clave_lector,
+-- :clave_migrador);
 -- nunca se escriben en este archivo (ER 3.6.2).
 --
 -- Permisos de B0: solo conexión y uso del esquema. Los privilegios sobre tablas
@@ -42,3 +43,30 @@ GRANT USAGE ON SCHEMA public TO detecta_app;
 
 \connect institucional_demo
 GRANT USAGE ON SCHEMA public TO institucional_lector;
+
+-- ---------------------------------------------------------------------------
+-- Fase B2. Las sentencias siguientes NO tocan detecta ni institucional_demo
+-- (condición de Ivan en el plan de B2).
+-- ---------------------------------------------------------------------------
+\connect postgres
+
+-- 5. Usuario dueño del esquema: ejecuta las migraciones (DDL). La aplicación
+--    nunca lo usa; detecta_app solo recibe SELECT, INSERT y UPDATE.
+SELECT format('CREATE ROLE detecta_migrador LOGIN PASSWORD %L', :'clave_migrador')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'detecta_migrador')\gexec
+SELECT format(
+  'ALTER ROLE detecta_migrador WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD %L',
+  :'clave_migrador')\gexec
+
+-- 6. Base de pruebas de integración (aprobada en el plan de B2). Su dueño es
+--    detecta_migrador, que así puede crear tablas en el esquema public
+--    (PostgreSQL 15+: public pertenece a pg_database_owner).
+SELECT 'CREATE DATABASE detecta_pruebas OWNER detecta_migrador'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'detecta_pruebas')\gexec
+REVOKE ALL ON DATABASE detecta_pruebas FROM PUBLIC;
+GRANT CONNECT ON DATABASE detecta_pruebas TO detecta_app;
+
+\connect detecta_pruebas
+GRANT USAGE ON SCHEMA public TO detecta_app;
+-- Los permisos sobre tablas (SELECT, INSERT, UPDATE; nunca DELETE ni TRUNCATE,
+-- ER 3.7 c) los otorga la propia migración tabla por tabla.
