@@ -7,8 +7,11 @@ import {
 } from '../aplicacion/contratos/unidad-trabajo';
 import { crearRepositorioCurso } from './repositorios-genericos';
 import {
+  RepositorioPersistenteAlerta,
+  RepositorioPersistenteCasoRiesgo,
   RepositorioPersistentePersona,
   RepositorioPersistenteRegistroAcademico,
+  RepositorioPersistenteSolicitud,
 } from './repositorios-persistentes';
 
 /**
@@ -40,6 +43,9 @@ export class UnidadTrabajoPersistente implements UnidadTrabajo {
         personas: new RepositorioPersistentePersona(manager),
         registros: new RepositorioPersistenteRegistroAcademico(manager),
         cursos: crearRepositorioCurso(manager),
+        alertas: new RepositorioPersistenteAlerta(manager),
+        solicitudes: new RepositorioPersistenteSolicitud(manager),
+        casos: new RepositorioPersistenteCasoRiesgo(manager),
       });
     });
   }

@@ -1,4 +1,5 @@
 import type { CasoRiesgo } from '../entidades/caso-riesgo';
+import type { EstadoCaso } from '../entidades/estado-caso';
 import type { Repositorio } from './repositorio';
 
 /**
@@ -18,4 +19,13 @@ export interface RepositorioCasoRiesgo extends Repositorio<CasoRiesgo> {
    * (decisión D12): las solicitudes voluntarias no aparecen.
    */
   listarPorPeriodo(periodo: string, idPrograma: string): Promise<CasoRiesgo[]>;
+  /**
+   * Estado del caso generado por cada origen, en UNA consulta para todos los
+   * orígenes (B6, respuesta 4 de Ivan: el estado que ven el estudiante y el
+   * docente se deriva del caso al leer). NO está en el diagrama de clases
+   * v3: se reporta como diferencia. Los orígenes sin caso no aparecen.
+   */
+  listarEstadosPorOrigen(
+    idsOrigen: readonly string[],
+  ): Promise<Map<string, EstadoCaso>>;
 }
