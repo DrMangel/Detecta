@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ESQUEMAS } from './persistencia/esquemas';
+import { ModuloPersistencia } from './persistencia/modulo-persistencia';
 import { validarEntorno, VariablesEntorno } from './validacion-entorno';
 
 /**
@@ -14,11 +16,11 @@ const REINTENTOS_CONEXION = 2;
 const ESPERA_ENTRE_REINTENTOS_MS = 1000;
 
 /**
- * Módulo raíz (fase B0). Solo carga la configuración y abre las dos conexiones
- * a PostgreSQL. Las entidades, el mapeo y las migraciones se agregan en B2, y
- * el conector institucional (`ConectorBDConfigurable`) en B4. Por eso aquí
- * `entities` está vacío y `synchronize` desactivado: el esquema solo se
- * modificará mediante migraciones.
+ * Módulo raíz. Carga la configuración y abre las dos conexiones a
+ * PostgreSQL (B0). La conexión `detecta` registra los esquemas de
+ * persistencia (B2); `synchronize` sigue desactivado: el esquema solo se
+ * modifica con migraciones (`detecta_migrador`). El conector institucional
+ * (`ConectorBDConfigurable`) se agrega en B4.
  */
 @Module({
   imports: [
@@ -36,7 +38,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
         database: config.get('BD_DETECTA_NOMBRE', { infer: true }),
         username: config.get('BD_DETECTA_USUARIO', { infer: true }),
         password: config.get('BD_DETECTA_CONTRASENA', { infer: true }),
-        entities: [],
+        entities: ESQUEMAS,
         synchronize: false,
         retryAttempts: REINTENTOS_CONEXION,
         retryDelay: ESPERA_ENTRE_REINTENTOS_MS,
@@ -63,6 +65,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
         extra: { options: '-c default_transaction_read_only=on' },
       }),
     }),
+    ModuloPersistencia,
   ],
 })
 export class AppModule {}
