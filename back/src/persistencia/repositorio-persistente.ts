@@ -1,6 +1,5 @@
 import {
   IsNull,
-  type DataSource,
   type EntityManager,
   type EntityTarget,
   type ObjectLiteral,
@@ -9,6 +8,11 @@ import type {
   CriteriosBusqueda,
   Repositorio,
 } from '../dominio/repositorios/repositorio';
+import {
+  accesoDatos,
+  type AccesoDatos,
+  type FuenteDatos,
+} from './acceso-datos';
 import { CargadorGrafo } from './mapeadores/cargador-grafo';
 
 export interface OpcionesRepositorioPersistente<T> {
@@ -40,12 +44,20 @@ const TIPOS_PERMITIDOS = new Set(['string', 'number', 'boolean']);
  *
  * El dominio no conoce TypeORM: esta clase recibe y devuelve entidades de
  * dominio y delega la conversión en el cargador y los escritores.
+ *
+ * Con una conexión, cada `guardar` es su propia transacción; con el
+ * EntityManager de una `UnidadTrabajo` (B4), escribe y lee dentro de la
+ * transacción del servicio y ve sus cambios aún no confirmados.
  */
 export class RepositorioPersistente<T> implements Repositorio<T> {
+  protected readonly acceso: AccesoDatos;
+
   constructor(
-    protected readonly fuente: DataSource,
+    fuente: FuenteDatos,
     private readonly opciones: OpcionesRepositorioPersistente<T>,
-  ) {}
+  ) {
+    this.acceso = accesoDatos(fuente);
+  }
 
   async buscarPorId(id: string): Promise<T | null> {
     const [entidad] = await this.cargarPorIds([id]);
@@ -53,7 +65,7 @@ export class RepositorioPersistente<T> implements Repositorio<T> {
   }
 
   async guardar(entidad: T): Promise<void> {
-    await this.fuente.transaction((manager) =>
+    await this.acceso.transaccion((manager) =>
       this.opciones.escribir(manager, entidad),
     );
   }
@@ -75,7 +87,7 @@ export class RepositorioPersistente<T> implements Repositorio<T> {
       donde[propiedad] = valor === null ? IsNull() : valor;
     }
     const { propiedadId } = this.opciones;
-    const filas = await this.fuente.manager.find(this.opciones.objetivo, {
+    const filas = await this.acceso.manager.find(this.opciones.objetivo, {
       select: { [propiedadId]: true },
       where: donde,
       order: { [propiedadId]: 'ASC' },
@@ -88,7 +100,7 @@ export class RepositorioPersistente<T> implements Repositorio<T> {
     if (ids.length === 0) {
       return Promise.resolve([]);
     }
-    return this.opciones.cargar(new CargadorGrafo(this.fuente.manager), ids);
+    return this.opciones.cargar(new CargadorGrafo(this.acceso.manager), ids);
   }
 
   /** Ejecuta una consulta de identificadores y carga sus entidades. */
@@ -96,7 +108,7 @@ export class RepositorioPersistente<T> implements Repositorio<T> {
     sql: string,
     parametros: readonly unknown[],
   ): Promise<T[]> {
-    const filas: { id: string }[] = await this.fuente.query(sql, [
+    const filas = await this.acceso.query<{ id: string }[]>(sql, [
       ...parametros,
     ]);
     return this.cargarPorIds(filas.map((fila) => fila.id));

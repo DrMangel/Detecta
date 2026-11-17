@@ -1,4 +1,3 @@
-import type { DataSource } from 'typeorm';
 import { Alerta } from '../dominio/entidades/alerta';
 import type { CasoRiesgo } from '../dominio/entidades/caso-riesgo';
 import { EstadoCaso } from '../dominio/entidades/estado-caso';
@@ -33,6 +32,7 @@ import {
   escribirRegistro,
   escribirSolicitud,
 } from './mapeadores/escritores';
+import type { FuenteDatos } from './acceso-datos';
 import { RepositorioPersistente } from './repositorio-persistente';
 
 /*
@@ -55,7 +55,7 @@ export class RepositorioPersistentePersona
   extends RepositorioPersistente<Persona>
   implements RepositorioPersona
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: ModeloPersona,
       propiedadId: 'id',
@@ -102,7 +102,7 @@ export class RepositorioPersistenteCasoRiesgo
   extends RepositorioPersistente<CasoRiesgo>
   implements RepositorioCasoRiesgo
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: EsquemaCasoRiesgo,
       propiedadId: 'idCaso',
@@ -182,7 +182,7 @@ export class RepositorioPersistenteAlerta
   extends RepositorioPersistente<Alerta>
   implements RepositorioAlerta
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: ModeloAlerta,
       propiedadId: 'idOrigen',
@@ -249,7 +249,7 @@ export class RepositorioPersistenteSolicitud
   extends RepositorioPersistente<SolicitudAcompanamiento>
   implements RepositorioSolicitud
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: ModeloSolicitud,
       propiedadId: 'idOrigen',
@@ -283,7 +283,7 @@ export class RepositorioPersistenteRegistroAcademico
   extends RepositorioPersistente<RegistroAcademico>
   implements RepositorioRegistroAcademico
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: EsquemaRegistroAcademico,
       propiedadId: 'idRegistro',
@@ -324,7 +324,7 @@ export class RepositorioPersistentePlanNivelacion
   extends RepositorioPersistente<PlanNivelacion>
   implements RepositorioPlanNivelacion
 {
-  constructor(fuente: DataSource) {
+  constructor(fuente: FuenteDatos) {
     super(fuente, {
       objetivo: EsquemaPlanNivelacion,
       propiedadId: 'idPlan',
