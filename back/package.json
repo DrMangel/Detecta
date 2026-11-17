@@ -25,6 +25,7 @@
     "test:integracion": "node --experimental-vm-modules --disable-warning=ExperimentalWarning node_modules/jest/bin/jest.js --config test/jest-integracion.json --runInBand",
     "datos:iniciales": "node dist/comandos/datos-iniciales.js",
     "sincronizar": "node dist/comandos/sincronizar.js",
+    "correo:prueba": "node dist/comandos/correo-prueba.js",
     "bd:institucional": "node --env-file=.env ../docker/postgres/cargar-institucional.mjs"
   },
   "dependencies": {
@@ -35,6 +36,7 @@
     "@nestjs/platform-express": "12.5.1",
     "@nestjs/typeorm": "12.0.3",
     "bcrypt": "6.0.0",
+    "nodemailer": "10.3.1",
     "pg": "8.23.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
@@ -46,10 +48,13 @@
     "@types/bcrypt": "6.0.0",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.6",
+    "@types/nodemailer": "8.0.2",
+    "@types/smtp-server": "3.5.13",
     "jest": "30.5.2",
     "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2007",
     "prettier": "3.10.1",
+    "smtp-server": "3.21.3",
     "ts-jest": "29.4.15",
     "typescript": "6.0.3"
   },
