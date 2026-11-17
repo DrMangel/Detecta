@@ -1,7 +1,8 @@
 // Ejecuta docker/postgres/crear-bases.sql dentro del contenedor de PostgreSQL.
 //
 // Uso (desde back/): npm run bd:crear
-// Lee BD_APP_CONTRASENA y BD_LECTOR_CONTRASENA del .env de la raíz (node --env-file)
+// Lee BD_APP_CONTRASENA, BD_LECTOR_CONTRASENA y BD_MIGRADOR_CONTRASENA del .env de
+// la raíz (node --env-file)
 // y las pasa a psql como variables de entorno del proceso, no como argumentos,
 // para que no aparezcan en la lista de procesos ni en el historial (ER 3.6.2).
 // No recrea el contenedor ni el volumen: solo usa `docker exec`.
@@ -13,7 +14,11 @@ import { fileURLToPath } from 'node:url';
 const CONTENEDOR = 'detecta-postgres';
 const SUPERUSUARIO = 'detecta_user';
 
-const faltantes = ['BD_APP_CONTRASENA', 'BD_LECTOR_CONTRASENA'].filter(
+const faltantes = [
+  'BD_APP_CONTRASENA',
+  'BD_LECTOR_CONTRASENA',
+  'BD_MIGRADOR_CONTRASENA',
+].filter(
   (clave) => !process.env[clave]?.trim(),
 );
 if (faltantes.length > 0) {
@@ -32,9 +37,10 @@ const resultado = spawnSync(
     'exec', '-i',
     '-e', 'CLAVE_APP',
     '-e', 'CLAVE_LECTOR',
+    '-e', 'CLAVE_MIGRADOR',
     CONTENEDOR,
     'sh', '-c',
-    `psql -U ${SUPERUSUARIO} -d postgres -v ON_ERROR_STOP=1 -v clave_app="$CLAVE_APP" -v clave_lector="$CLAVE_LECTOR"`,
+    `psql -U ${SUPERUSUARIO} -d postgres -v ON_ERROR_STOP=1 -v clave_app="$CLAVE_APP" -v clave_lector="$CLAVE_LECTOR" -v clave_migrador="$CLAVE_MIGRADOR"`,
   ],
   {
     input: sql,
@@ -43,6 +49,7 @@ const resultado = spawnSync(
       ...process.env,
       CLAVE_APP: process.env.BD_APP_CONTRASENA,
       CLAVE_LECTOR: process.env.BD_LECTOR_CONTRASENA,
+      CLAVE_MIGRADOR: process.env.BD_MIGRADOR_CONTRASENA,
     },
   },
 );

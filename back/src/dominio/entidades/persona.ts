@@ -8,24 +8,34 @@ export interface PropiedadesPersona {
 }
 
 /**
+ * Lectura de acceso restringido de `contrasenaHash` (aprobada por Ivan en el
+ * plan de B2). No es un método ni un getter: es una función de módulo que se
+ * asigna en el bloque estático de `Persona`, la única forma de leer un campo
+ * `#` privado desde fuera de la clase. Así el hash no es propiedad del objeto
+ * ni del prototipo y nunca aparece al serializar (JSON.stringify).
+ *
+ * Solo la pueden importar archivos de `persistencia/` (mapeador, B2) y
+ * `ServicioAutenticacion` (verificación con bcrypt, B3). Lo verifica la
+ * prueba `src/acceso-contrasena.spec.ts`.
+ */
+export let leerContrasenaHash: (persona: Persona) => string;
+
+/**
  * Entidad abstracta `Persona` (diagrama de entidades). Base de los cuatro
  * actores del sistema (línea base §4). En el modelo persistente se mapea con
  * herencia de tabla única (B2).
  */
 export abstract class Persona {
+  static {
+    leerContrasenaHash = (persona) => persona.#contrasenaHash;
+  }
+
   readonly #id: string;
   readonly #nombre: string;
   readonly #correo: string;
-  // Atributo privado (línea base §4) sin getter (plan de B1): la lectura del
-  // mapeador se define en B2 y la verificación con bcrypt en B3. Es `#` y no
-  // `protected` para que no sea una propiedad enumerable: así nunca se filtra
-  // al serializar la entidad (p. ej. JSON.stringify). Como ninguna operación
-  // lo lee todavía, se suprime el aviso de "no leído" solo aquí; cuando B2 o
-  // B3 lo lean, @ts-expect-error fallará y obligará a quitar esta supresión.
-  /* oxlint-disable no-unused-private-class-members */
-  // @ts-expect-error TS6133: se leerá en B2/B3 (ver comentario anterior).
+  // Atributo privado (línea base §4), sin getter: se lee solo con
+  // `leerContrasenaHash`.
   readonly #contrasenaHash: string;
-  /* oxlint-enable no-unused-private-class-members */
 
   protected constructor(propiedades: PropiedadesPersona) {
     this.#id = propiedades.id;

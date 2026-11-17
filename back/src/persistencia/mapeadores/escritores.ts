@@ -1,0 +1,470 @@
+import { In, type EntityManager } from 'typeorm';
+import type { Alerta } from '../../dominio/entidades/alerta';
+import type { Asesoria } from '../../dominio/entidades/asesoria';
+import type { CasoRiesgo } from '../../dominio/entidades/caso-riesgo';
+import type { Cita } from '../../dominio/entidades/cita';
+import type { Curso } from '../../dominio/entidades/curso';
+import { Docente } from '../../dominio/entidades/docente';
+import { Estudiante } from '../../dominio/entidades/estudiante';
+import type { InformeRiesgo } from '../../dominio/entidades/informe-riesgo';
+import { JefeDepartamento } from '../../dominio/entidades/jefe-departamento';
+import {
+  leerContrasenaHash,
+  type Persona,
+} from '../../dominio/entidades/persona';
+import type { PlanNivelacion } from '../../dominio/entidades/plan-nivelacion';
+import type { Programa } from '../../dominio/entidades/programa';
+import { Psicologo } from '../../dominio/entidades/psicologo';
+import type { RegistroAcademico } from '../../dominio/entidades/registro-academico';
+import { RutaAtencion } from '../../dominio/entidades/ruta-atencion';
+import { SolicitudAcompanamiento } from '../../dominio/entidades/solicitud-acompanamiento';
+import {
+  EsquemaAsesoria,
+  EsquemaCasoRiesgo,
+  EsquemaCita,
+  EsquemaCurso,
+  EsquemaInformeRiesgo,
+  EsquemaInformeRiesgoCaso,
+  EsquemaInformeRiesgoPlan,
+  EsquemaPlanNivelacion,
+  EsquemaPlanNivelacionCurso,
+  EsquemaPrograma,
+  EsquemaRegistroAcademico,
+  ModeloAlerta,
+  ModeloDocente,
+  ModeloEstudiante,
+  ModeloJefeDepartamento,
+  ModeloPsicologo,
+  ModeloSolicitud,
+  type FilaAsesoria,
+  type FilaCita,
+} from '../esquemas';
+import { verificarCoherenciaEstudianteOrigen } from './coherencia';
+import { aTextoFecha } from './fechas';
+
+/*
+ * Escritores dominio → filas. Cada función documenta qué escribe en cascada.
+ * Se ejecutan dentro de la transacción de `RepositorioPersistente.guardar`.
+ * Ninguno borra filas: la aplicación no tiene permiso DELETE (ER 3.7 c).
+ */
+
+/** Escribe el programa. */
+export async function escribirPrograma(
+  m: EntityManager,
+  programa: Programa,
+): Promise<void> {
+  await m.upsert(
+    EsquemaPrograma,
+    { idPrograma: programa.idPrograma, nombre: programa.nombre },
+    ['idPrograma'],
+  );
+}
+
+/**
+ * Escribe la fila de la persona según su subclase (herencia de tabla única).
+ * No escribe el Programa (debe existir).
+ * - Docente: escribe en cascada sus cursos con `id_docente` (la asociación
+ *   "dicta" solo es navegable desde el docente). No escribe los estudiantes
+ *   ni los registros de esos cursos.
+ * - Psicologo: NO escribe su agenda; las citas se insertan desde
+ *   `guardar(caso)`.
+ */
+export async function escribirPersona(
+  m: EntityManager,
+  persona: Persona,
+): Promise<void> {
+  const base = {
+    id: persona.id,
+    nombre: persona.nombre,
+    correo: persona.correo,
+    contrasenaHash: leerContrasenaHash(persona),
+  };
+  if (persona instanceof Estudiante) {
+    await m.save(ModeloEstudiante, {
+      ...base,
+      fechaNacimiento: aTextoFecha(persona.fechaNacimiento),
+      idPrograma: persona.obtenerPrograma().idPrograma,
+    });
+  } else if (persona instanceof JefeDepartamento) {
+    await m.save(ModeloJefeDepartamento, {
+      ...base,
+      idProgramaDirigido: persona.programa.idPrograma,
+    });
+  } else if (persona instanceof Docente) {
+    await m.save(ModeloDocente, base);
+    for (const curso of persona.cursos) {
+      await m.upsert(
+        EsquemaCurso,
+        {
+          idCurso: curso.idCurso,
+          nombre: curso.nombre,
+          periodo: curso.periodo,
+          ultimaSincronizacion: curso.ultimaSincronizacion,
+          idDocente: persona.id,
+        },
+        ['idCurso'],
+      );
+    }
+  } else if (persona instanceof Psicologo) {
+    await m.save(ModeloPsicologo, base);
+  } else {
+    throw new Error(
+      `Subclase de Persona no soportada: ${persona.constructor.name}`,
+    );
+  }
+}
+
+/**
+ * Solo ACTUALIZA un curso existente (nombre, periodo, última sincronización).
+ * Los cursos se crean en cascada desde `guardar(docente)`, porque el curso no
+ * conoce a su docente y `id_docente` es obligatorio.
+ */
+export async function escribirCurso(
+  m: EntityManager,
+  curso: Curso,
+): Promise<void> {
+  const resultado = await m.update(
+    EsquemaCurso,
+    { idCurso: curso.idCurso },
+    {
+      nombre: curso.nombre,
+      periodo: curso.periodo,
+      ultimaSincronizacion: curso.ultimaSincronizacion,
+    },
+  );
+  if (resultado.affected === 0) {
+    throw new Error(
+      `El curso ${curso.idCurso} no existe: los cursos se crean al guardar su docente`,
+    );
+  }
+}
+
+/** Escribe el registro. No escribe el estudiante ni el curso (deben existir). */
+export async function escribirRegistro(
+  m: EntityManager,
+  registro: RegistroAcademico,
+): Promise<void> {
+  await m.upsert(
+    EsquemaRegistroAcademico,
+    {
+      idRegistro: registro.idRegistro,
+      nota: registro.nota,
+      porcentajeAsistencia: registro.porcentajeAsistencia,
+      idEstudiante: registro.estudiante.id,
+      idCurso: registro.curso.idCurso,
+    },
+    ['idRegistro'],
+  );
+}
+
+/** Escribe la alerta. No escribe su caso, docente ni registro. */
+export async function escribirAlerta(
+  m: EntityManager,
+  alerta: Alerta,
+): Promise<void> {
+  await m.save(ModeloAlerta, {
+    idOrigen: alerta.idOrigen,
+    fecha: alerta.fecha,
+    estado: alerta.estado,
+    nivelRiesgo: alerta.nivelRiesgo,
+    descripcion: alerta.descripcion,
+    idDocente: alerta.docente.id,
+    idRegistro: alerta.registro.idRegistro,
+  });
+}
+
+/** Escribe la solicitud. No escribe su caso ni su estudiante. */
+export async function escribirSolicitud(
+  m: EntityManager,
+  solicitud: SolicitudAcompanamiento,
+): Promise<void> {
+  await m.save(ModeloSolicitud, {
+    idOrigen: solicitud.idOrigen,
+    fecha: solicitud.fecha,
+    estado: solicitud.estado,
+    tipoApoyo: solicitud.tipoApoyo,
+    motivo: solicitud.motivo,
+    disponibilidad: solicitud.disponibilidad,
+    idEstudiante: solicitud.obtenerEstudiante().id,
+  });
+}
+
+/**
+ * Jefe que dirige el programa (línea base §4: la bandeja del Jefe es su
+ * programa). Sin jefe configurado lanza Error (plan de B2, respuesta 4).
+ */
+export async function jefeDelPrograma(
+  m: EntityManager,
+  idPrograma: string,
+): Promise<string> {
+  const jefe = await m.findOne(ModeloJefeDepartamento, {
+    where: { idProgramaDirigido: idPrograma },
+  });
+  if (!jefe) {
+    throw new Error(
+      `No hay Jefe de Departamento configurado para el programa ${idPrograma}`,
+    );
+  }
+  return jefe.id;
+}
+
+/**
+ * Regla sin estado para `caso_riesgo.id_jefe` (respuesta 4 de Ivan): se fija
+ * cuando la ruta no es nula Y el origen NO es una solicitud con tipoApoyo
+ * PSICOLOGICA (esas nacen con ruta y no pasan por el jefe). En otro caso NULL.
+ */
+export async function derivarJefeDelCaso(
+  m: EntityManager,
+  caso: CasoRiesgo,
+): Promise<string | null> {
+  const nacioConRutaPsicologica =
+    caso.origen instanceof SolicitudAcompanamiento &&
+    caso.origen.tipoApoyo === RutaAtencion.PSICOLOGICA;
+  if (caso.ruta === null || nacioConRutaPsicologica) {
+    return null;
+  }
+  return jefeDelPrograma(
+    m,
+    caso.obtenerEstudiante().obtenerPrograma().idPrograma,
+  );
+}
+
+function filaCita(
+  cita: Cita,
+): Pick<FilaCita, 'idCita' | 'fechaHora' | 'modalidad' | 'estado'> {
+  return {
+    idCita: cita.idCita,
+    fechaHora: cita.fechaHora,
+    modalidad: cita.modalidad,
+    estado: cita.estado,
+  };
+}
+
+function filaAsesoria(asesoria: Asesoria): Omit<FilaAsesoria, 'idCita'> {
+  return {
+    idAsesoria: asesoria.idAsesoria,
+    fecha: asesoria.fecha,
+    tipoAsesoria: asesoria.tipoAsesoria,
+    observaciones: asesoria.observaciones,
+    acuerdos: asesoria.acuerdos,
+    asistencia: asesoria.asistencia,
+    requiereSeguimiento: asesoria.requiereSeguimiento,
+    presentaRiesgoCritico: asesoria.presentaRiesgoCritico,
+  };
+}
+
+async function escribirAsesoriaDeCita(
+  m: EntityManager,
+  cita: Cita,
+): Promise<void> {
+  if (cita.asesoria) {
+    await m.upsert(
+      EsquemaAsesoria,
+      { ...filaAsesoria(cita.asesoria), idCita: cita.idCita },
+      ['idAsesoria'],
+    );
+  }
+}
+
+/**
+ * Escribe el caso (agregado raíz con Cita, diagrama de clases v3) y en
+ * cascada sus citas y las asesorías de esas citas.
+ * - Citas nuevas: se insertan con `id_caso` y `id_psicologo = caso.psicologo`
+ *   (asociación "agenda").
+ * - Citas existentes: solo se actualizan sus atributos; `id_caso` e
+ *   `id_psicologo` no cambian.
+ * - No escribe el estudiante, el origen ni el psicólogo (deben existir).
+ * - Verifica la coherencia estudiante–origen y deriva `id_jefe`.
+ */
+export async function escribirCaso(
+  m: EntityManager,
+  caso: CasoRiesgo,
+): Promise<void> {
+  verificarCoherenciaEstudianteOrigen(caso);
+  const idJefe = await derivarJefeDelCaso(m, caso);
+  await m.upsert(
+    EsquemaCasoRiesgo,
+    {
+      idCaso: caso.idCaso,
+      fechaCreacion: caso.fechaCreacion,
+      motivo: caso.motivo,
+      nivelRiesgo: caso.nivelRiesgo,
+      ruta: caso.ruta,
+      estado: caso.estado,
+      justificacion: caso.justificacion,
+      confidencialidad: caso.confidencialidad,
+      consentimientoConfirmado: caso.consentimientoConfirmado,
+      idEstudiante: caso.obtenerEstudiante().id,
+      idOrigen: caso.origen.idOrigen,
+      idPsicologo: caso.psicologo?.id ?? null,
+      idJefe,
+    },
+    ['idCaso'],
+  );
+
+  const citas = caso.citas;
+  if (citas.length === 0) {
+    return;
+  }
+  const existentes = new Set(
+    (
+      await m.find(EsquemaCita, {
+        select: { idCita: true },
+        where: { idCita: In(citas.map((cita) => cita.idCita)) },
+      })
+    ).map((fila) => fila.idCita),
+  );
+  for (const cita of citas) {
+    if (existentes.has(cita.idCita)) {
+      await m.update(EsquemaCita, { idCita: cita.idCita }, filaCita(cita));
+    } else {
+      if (caso.psicologo === null) {
+        throw new Error(`La cita ${cita.idCita} no tiene psicólogo en su caso`);
+      }
+      await m.insert(EsquemaCita, {
+        ...filaCita(cita),
+        idCaso: caso.idCaso,
+        idPsicologo: caso.psicologo.id,
+      });
+    }
+    await escribirAsesoriaDeCita(m, cita);
+  }
+}
+
+/**
+ * Solo ACTUALIZA una cita existente (fecha, modalidad, estado) y escribe en
+ * cascada su asesoría. Las citas se insertan desde `guardar(caso)`, porque la
+ * cita no conoce su caso ni su psicólogo.
+ */
+export async function escribirCita(
+  m: EntityManager,
+  cita: Cita,
+): Promise<void> {
+  const resultado = await m.update(
+    EsquemaCita,
+    { idCita: cita.idCita },
+    filaCita(cita),
+  );
+  if (resultado.affected === 0) {
+    throw new Error(
+      `La cita ${cita.idCita} no existe: las citas se crean al guardar su caso`,
+    );
+  }
+  await escribirAsesoriaDeCita(m, cita);
+}
+
+/**
+ * Solo ACTUALIZA una asesoría existente. Las asesorías se insertan desde
+ * `guardar(cita)` o `guardar(caso)`, porque la asesoría no conoce su cita.
+ */
+export async function escribirAsesoria(
+  m: EntityManager,
+  asesoria: Asesoria,
+): Promise<void> {
+  const resultado = await m.update(
+    EsquemaAsesoria,
+    { idAsesoria: asesoria.idAsesoria },
+    filaAsesoria(asesoria),
+  );
+  if (resultado.affected === 0) {
+    throw new Error(
+      `La asesoría ${asesoria.idAsesoria} no existe: se crea al guardar su cita`,
+    );
+  }
+}
+
+/**
+ * Escribe el plan y en cascada su asociación "refuerza" con los cursos
+ * (agrega las que falten; nunca borra). No escribe el caso ni los cursos.
+ * `id_jefe` ("estructura", 1) = jefe del programa del estudiante, con la
+ * misma derivación que el caso (respuesta 4 de Ivan); sin jefe, Error.
+ */
+export async function escribirPlan(
+  m: EntityManager,
+  plan: PlanNivelacion,
+): Promise<void> {
+  const idJefe = await jefeDelPrograma(
+    m,
+    plan.obtenerEstudiante().obtenerPrograma().idPrograma,
+  );
+  await m.upsert(
+    EsquemaPlanNivelacion,
+    {
+      idPlan: plan.idPlan,
+      descripcion: plan.descripcion,
+      fecha: plan.fecha,
+      cronograma: plan.cronograma,
+      tutorNombre: plan.tutorNombre,
+      tutorCodigo: plan.tutorCodigo,
+      estado: plan.estado,
+      idCaso: plan.caso.idCaso,
+      idJefe,
+    },
+    ['idPlan'],
+  );
+  await m
+    .createQueryBuilder()
+    .insert()
+    .into(EsquemaPlanNivelacionCurso)
+    .values(
+      plan.cursos.map((curso) => ({
+        idPlan: plan.idPlan,
+        idCurso: curso.idCurso,
+      })),
+    )
+    .orIgnore()
+    .execute();
+}
+
+/**
+ * Escribe el informe y en cascada sus asociaciones "resume" con casos y
+ * planes (agrega las que falten). No escribe el curso, los casos ni los
+ * planes. Las columnas del actor que lo genera se agregan en B8.
+ */
+export async function escribirInforme(
+  m: EntityManager,
+  informe: InformeRiesgo,
+): Promise<void> {
+  await m.upsert(
+    EsquemaInformeRiesgo,
+    {
+      idInforme: informe.idInforme,
+      fecha: informe.fecha,
+      periodo: informe.periodo,
+      totalAlertas: informe.totalAlertas,
+      totalCasos: informe.totalCasos,
+      totalPlanes: informe.totalPlanes,
+      resumen: informe.resumen,
+      idCurso: informe.curso.idCurso,
+    },
+    ['idInforme'],
+  );
+  if (informe.casos.length > 0) {
+    await m
+      .createQueryBuilder()
+      .insert()
+      .into(EsquemaInformeRiesgoCaso)
+      .values(
+        informe.casos.map((caso) => ({
+          idInforme: informe.idInforme,
+          idCaso: caso.idCaso,
+        })),
+      )
+      .orIgnore()
+      .execute();
+  }
+  if (informe.planes.length > 0) {
+    await m
+      .createQueryBuilder()
+      .insert()
+      .into(EsquemaInformeRiesgoPlan)
+      .values(
+        informe.planes.map((plan) => ({
+          idInforme: informe.idInforme,
+          idPlan: plan.idPlan,
+        })),
+      )
+      .orIgnore()
+      .execute();
+  }
+}
