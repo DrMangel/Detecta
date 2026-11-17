@@ -133,26 +133,46 @@ describe('Restricciones de subtipo, integridad y rangos', () => {
 });
 
 describe('Usuario de la aplicación sin DELETE (ER 3.7 c)', () => {
-  it('detecta_app tiene SELECT, INSERT y UPDATE, y no DELETE ni TRUNCATE, en todas las tablas', async () => {
-    const filas: {
-      tabla: string;
-      select: boolean;
-      insert: boolean;
-      update: boolean;
-      delete: boolean;
-      truncate: boolean;
-    }[] = await fuente.query(
-      `SELECT t AS tabla,
-              has_table_privilege('detecta_app', t, 'SELECT') AS "select",
-              has_table_privilege('detecta_app', t, 'INSERT') AS "insert",
-              has_table_privilege('detecta_app', t, 'UPDATE') AS "update",
-              has_table_privilege('detecta_app', t, 'DELETE') AS "delete",
-              has_table_privilege('detecta_app', t, 'TRUNCATE') AS "truncate"
-       FROM unnest($1::text[]) AS t`,
-      [TABLAS],
+  /** Tabla interna de TypeORM: la app no debe tener ningún permiso sobre ella. */
+  const TABLA_MIGRACIONES = 'migraciones_typeorm';
+
+  type Privilegios = {
+    tabla: string;
+    select: boolean;
+    insert: boolean;
+    update: boolean;
+    delete: boolean;
+    truncate: boolean;
+  };
+
+  /**
+   * Recorre TODAS las tablas del esquema public (pg_tables), no una lista
+   * fija: una tabla que agregue una migración futura sin su GRANT explícito
+   * hace fallar esta prueba (auditoría de B2).
+   */
+  async function privilegiosDeTodasLasTablas(): Promise<Privilegios[]> {
+    return fuente.query(
+      `SELECT tablename AS tabla,
+              has_table_privilege('detecta_app', format('public.%I', tablename), 'SELECT') AS "select",
+              has_table_privilege('detecta_app', format('public.%I', tablename), 'INSERT') AS "insert",
+              has_table_privilege('detecta_app', format('public.%I', tablename), 'UPDATE') AS "update",
+              has_table_privilege('detecta_app', format('public.%I', tablename), 'DELETE') AS "delete",
+              has_table_privilege('detecta_app', format('public.%I', tablename), 'TRUNCATE') AS "truncate"
+       FROM pg_tables
+       WHERE schemaname = 'public'
+       ORDER BY tablename`,
     );
-    expect(filas).toHaveLength(TABLAS.length);
-    for (const fila of filas) {
+  }
+
+  it('detecta_app tiene SELECT, INSERT y UPDATE, y no DELETE ni TRUNCATE, en todas las tablas del esquema public', async () => {
+    const filas = await privilegiosDeTodasLasTablas();
+    const delDominio = filas.filter((fila) => fila.tabla !== TABLA_MIGRACIONES);
+
+    // La consulta debe encontrar al menos las tablas conocidas (no es vacía).
+    expect(delDominio.map((fila) => fila.tabla)).toEqual(
+      expect.arrayContaining([...TABLAS]),
+    );
+    for (const fila of delDominio) {
       expect(fila).toEqual({
         tabla: fila.tabla,
         select: true,
@@ -162,6 +182,18 @@ describe('Usuario de la aplicación sin DELETE (ER 3.7 c)', () => {
         truncate: false,
       });
     }
+  });
+
+  it('detecta_app no tiene ningún permiso sobre la tabla de migraciones', async () => {
+    const filas = await privilegiosDeTodasLasTablas();
+    expect(filas.find((fila) => fila.tabla === TABLA_MIGRACIONES)).toEqual({
+      tabla: TABLA_MIGRACIONES,
+      select: false,
+      insert: false,
+      update: false,
+      delete: false,
+      truncate: false,
+    });
   });
 
   it('un DELETE real con la conexión de la aplicación falla con permission denied', async () => {
