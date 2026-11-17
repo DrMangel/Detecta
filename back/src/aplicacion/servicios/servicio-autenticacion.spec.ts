@@ -15,6 +15,7 @@ import {
   MENSAJE_ENLACE_INVALIDO,
   ServicioAutenticacion,
 } from './servicio-autenticacion';
+import { problemasHtml } from '../../../test/verificar-html';
 
 /** Costo mínimo admitido: las pruebas no necesitan el costo de producción. */
 const COSTO = 10;
@@ -157,6 +158,23 @@ describe('ServicioAutenticacion.solicitarActivacion (D6)', () => {
     expect(registro.expiraEn.getTime() - registro.creadoEn.getTime()).toBe(
       30 * 60_000,
     );
+  });
+
+  it('B5: el cuerpo es HTML válido y el token no aparece en el asunto (respuesta 8)', async () => {
+    const { servicio, correo } = crear(docente(HASH_SIN_ACTIVAR));
+    servicio.solicitarActivacion('d1@ejemplo.edu.co');
+    await servicio.onApplicationShutdown();
+
+    const [, asunto, cuerpo] = correo.enviar.mock.calls[0] as [
+      string,
+      string,
+      string,
+    ];
+    const token = /#token=([A-Za-z0-9_-]{43})/.exec(cuerpo)?.[1] ?? '';
+    expect(token).toHaveLength(43);
+    expect(problemasHtml(cuerpo)).toEqual([]);
+    expect(asunto).not.toContain(token);
+    expect(asunto).not.toMatch(/[\r\n]/);
   });
 
   it('correo inexistente: no registra token ni envía correo', async () => {
