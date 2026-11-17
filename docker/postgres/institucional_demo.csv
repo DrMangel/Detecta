@@ -1,0 +1,81 @@
+id_estudiante,nombre_estudiante,correo_estudiante,fecha_nacimiento,programa_academico,codigo_asignatura,calificacion_acumulada,porcentaje_asistencia,semestre,creditos,estado_matricula,id_docente,nombre_docente
+2026001,Luis Gomez Torres,estudiante1@ejemplo.invalid,2002-02-02,Ingeniería de Sistemas,ISOF-101,1.87,53.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026002,Carla Rodriguez Ramirez,estudiante2@ejemplo.invalid,2003-03-03,INGENIERIA DE SISTEMAS,ISOF-101,2.24,66.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026003,Diego Martinez Herrera,estudiante3@ejemplo.invalid,2004-04-04,SIS,ISOF-101,2.61,79.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026004,Elena Lopez Castro,estudiante4@ejemplo.invalid,2001-05-05,Ingeniería de Sistemas,ISOF-101,2.98,92.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026005,Felipe Diaz Vargas,estudiante5@ejemplo.invalid,2012-03-14,INGENIERIA DE SISTEMAS,ISOF-101,3.35,44.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026006,Gloria Torres Rojas,estudiante6@ejemplo.invalid,2003-07-07,SIS,ISOF-101,3.72,57.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026007,Hugo Ramirez Moreno,estudiante7@ejemplo.invalid,2004-08-08,Ingeniería de Sistemas,ISOF-101,4.09,70.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026008,Irene Herrera Ortiz,estudiante8@ejemplo.invalid,2001-09-09,INGENIERIA DE SISTEMAS,ISOF-101,4.46,83.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026009,Javier Castro Silva,estudiante9@ejemplo.invalid,2002-10-10,SIS,ISOF-101,1.53,96.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026010,Karen Vargas Rios,estudiante10@ejemplo.invalid,2011-09-02,Ingeniería de Sistemas,ISOF-101,1.9,48.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026011,Lucas Rojas Mendoza,estudiante11@ejemplo.invalid,2004-12-12,INGENIERIA DE SISTEMAS,ISOF-101,2.27,61.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026012,Marta Moreno Perez,estudiante12@ejemplo.invalid,2001-01-13,SIS,ISOF-101,2.64,74.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026013,Nicolas Ortiz Gomez,estudiante13@ejemplo.invalid,2002-02-14,Ingeniería de Sistemas,ISOF-101,3.01,87.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026014,Olga Silva Rodriguez,estudiante14@ejemplo.invalid,2003-03-15,INGENIERIA DE SISTEMAS,ISOF-101,3.38,100.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026015,Pablo Rios Martinez,estudiante15@ejemplo.invalid,2004-04-16,SIS,ISOF-101,3.75,52.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026016,Rosa Mendoza Lopez,estudiante16@ejemplo.invalid,2001-05-17,Ingeniería de Sistemas,ISOF-101,4.12,65.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026017,Samuel Perez Diaz,estudiante17@ejemplo.invalid,2002-06-18,INGENIERIA DE SISTEMAS,ISOF-101,4.49,78.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026018,Teresa Gomez Torres,estudiante18@ejemplo.invalid,2003-07-19,SIS,ISOF-101,1.56,91.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026019,Valeria Rodriguez Ramirez,estudiante19@ejemplo.invalid,2004-08-20,Ingeniería de Sistemas,ISOF-101,1.93,43.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026020,Ana Martinez Herrera,estudiante20@ejemplo.invalid,2001-09-21,INGENIERIA DE SISTEMAS,ISOF-101,2.3,56.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026021,Luis Lopez Castro,estudiante21@ejemplo.invalid,2002-10-22,SIS,ISOF-101,2.67,69.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026022,Carla Diaz Vargas,estudiante22@ejemplo.invalid,2003-11-23,Ingeniería de Sistemas,ISOF-101,3.04,82.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026023,Diego Torres Rojas,estudiante23@ejemplo.invalid,2004-12-24,INGENIERIA DE SISTEMAS,ISOF-101,3.41,95.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026024,Elena Ramirez Moreno,estudiante24@ejemplo.invalid,2001-01-25,SIS,ISOF-101,3.78,47.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026025,Felipe Herrera Ortiz,estudiante25@ejemplo.invalid,2002-02-26,Ingeniería de Sistemas,ISOF-101,4.15,60.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026026,Gloria Castro Silva,estudiante26@ejemplo.invalid,2003-03-27,INGENIERIA DE SISTEMAS,ISOF-101,4.52,73.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026027,Hugo Vargas Rios,estudiante27@ejemplo.invalid,2004-04-01,SIS,ISOF-101,1.59,86.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026028,Irene Rojas Mendoza,estudiante28@ejemplo.invalid,2001-05-02,Ingeniería de Sistemas,ISOF-101,1.96,99.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026029,Javier Moreno Perez,estudiante29@ejemplo.invalid,2002-06-03,INGENIERIA DE SISTEMAS,ISOF-101,2.33,51.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026030,Karen Ortiz Gomez,estudiante30@ejemplo.invalid,2003-07-04,SIS,ISOF-101,2.7,64.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026031,Lucas Silva Rodriguez,estudiante31@ejemplo.invalid,2004-08-05,Ingeniería de Sistemas,ISOF-101,3.07,77.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026032,Marta Rios Martinez,estudiante32@ejemplo.invalid,2001-09-06,INGENIERIA DE SISTEMAS,ISOF-101,3.44,90.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026033,Nicolas Mendoza Lopez,estudiante33@ejemplo.invalid,2002-10-07,SIS,ISOF-101,3.81,42.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026034,Olga Perez Diaz,estudiante34@ejemplo.invalid,2003-11-08,Ingeniería de Sistemas,ISOF-101,4.18,55.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026035,Pablo Gomez Torres,estudiante35@ejemplo.invalid,2004-12-09,INGENIERIA DE SISTEMAS,ISOF-101,4.55,68.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026036,Rosa Rodriguez Ramirez,estudiante36@ejemplo.invalid,2001-01-10,SIS,ISOF-101,1.62,81.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026037,Samuel Martinez Herrera,estudiante37@ejemplo.invalid,2002-02-11,Ingeniería de Sistemas,ISOF-101,1.99,94.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026038,Teresa Lopez Castro,estudiante38@ejemplo.invalid,2003-03-12,INGENIERIA DE SISTEMAS,ISOF-101,2.36,46.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026039,Valeria Diaz Vargas,estudiante39@ejemplo.invalid,2004-04-13,SIS,ISOF-101,2.73,59.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026040,Ana Torres Rojas,estudiante40@ejemplo.invalid,2001-05-14,Ingeniería de Sistemas,ISOF-101,3.1,72.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026041,Luis Ramirez Moreno,estudiante41@ejemplo.invalid,2002-06-15,INGENIERIA DE SISTEMAS,ISOF-101,3.47,85.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026042,Carla Herrera Ortiz,estudiante42@ejemplo.invalid,2003-07-16,SIS,ISOF-101,3.84,98.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026043,Diego Castro Silva,estudiante43@ejemplo.invalid,2004-08-17,Ingeniería de Sistemas,ISOF-101,4.21,50.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026044,Elena Vargas Rios,estudiante44@ejemplo.invalid,2001-09-18,INGENIERIA DE SISTEMAS,ISOF-101,4.58,63.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026045,Felipe Rojas Mendoza,estudiante45@ejemplo.invalid,2002-10-19,SIS,ISOF-101,1.65,76.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026046,Gloria Moreno Perez,estudiante46@ejemplo.invalid,2003-11-20,Ingeniería de Sistemas,ISOF-101,2.02,89.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026047,Hugo Ortiz Gomez,estudiante47@ejemplo.invalid,2004-12-21,INGENIERIA DE SISTEMAS,ISOF-101,2.39,41.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026048,Irene Silva Rodriguez,estudiante48@ejemplo.invalid,2001-01-22,SIS,ISOF-101,2.76,54.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026049,Javier Rios Martinez,estudiante49@ejemplo.invalid,2002-02-23,Ingeniería de Sistemas,ISOF-101,3.13,67.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026050,Karen Mendoza Lopez,estudiante50@ejemplo.invalid,2003-03-24,INGENIERIA DE SISTEMAS,ISOF-101,3.5,80.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026051,Lucas Perez Diaz,estudiante51@ejemplo.invalid,2004-04-25,SIS,ISOF-101,3.87,93.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026052,Marta Gomez Torres,estudiante52@ejemplo.invalid,2001-05-26,Ingeniería de Sistemas,ISOF-101,4.24,45.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026053,Nicolas Rodriguez Ramirez,estudiante53@ejemplo.invalid,2002-06-27,INGENIERIA DE SISTEMAS,ISOF-101,4.61,58.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026054,Olga Martinez Herrera,estudiante54@ejemplo.invalid,2003-07-01,SIS,ISOF-101,1.68,71.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026055,Pablo Lopez Castro,estudiante55@ejemplo.invalid,2004-08-02,Ingeniería de Sistemas,ISOF-101,2.05,84.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026056,Rosa Diaz Vargas,estudiante56@ejemplo.invalid,2001-09-03,INGENIERIA DE SISTEMAS,ISOF-101,2.42,97.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026057,Samuel Torres Rojas,estudiante57@ejemplo.invalid,2002-10-04,SIS,ISOF-101,2.79,49.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026058,Teresa Ramirez Moreno,estudiante58@ejemplo.invalid,2003-11-05,Ingeniería de Sistemas,ISOF-101,3.16,62.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026059,Valeria Herrera Ortiz,estudiante59@ejemplo.invalid,2004-12-06,INGENIERIA DE SISTEMAS,ISOF-101,3.53,75.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026060,Ana Castro Silva,estudiante60@ejemplo.invalid,2001-01-07,SIS,ISOF-101,3.9,88.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026001,Luis Gomez Torres,estudiante1@ejemplo.invalid,2002-02-02,SIS,CALC-201,3.10,90.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026100,Laura Gomez Ruiz,estudiante100@ejemplo.invalid,2012-06-20,QUI,CALC-201,4.20,95.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026101,Mateo Silva Rojas,estudiante101@ejemplo.invalid,2003-02-11,QUIMICA,CALC-201,3.50,80.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026102,Sofia Rios Castro,estudiante102@ejemplo.invalid,2002-07-07,SIS,CALC-201,5.50,85.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026103,Tomas Vargas Diaz,estudiante103@ejemplo.invalid,2002-08-08,SIS,CALC-201,-0.10,85.00,5,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026104,Paula Ortiz Mora,estudiante104@ejemplo.invalid,2002-09-09,SIS,CALC-201,3.00,120.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026105,Andres Lopez Rey,estudiante105@ejemplo.invalid,2030-01-01,SIS,CALC-201,3.00,70.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026106,Camila Ruiz Leon,estudiante106@ejemplo.invalid,2026-11-17,SIS,CALC-201,3.00,70.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026 107,Daniel Mora Paz,estudiante107@ejemplo.invalid,2002-10-10,SIS,CALC-201,3.00,70.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+1234,Eva Paz Leon,estudiante1234@ejemplo.invalid,2002-11-11,SIS,CALC-201,3.00,70.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026108,Fabian Leon Paz,sin-arroba.ejemplo.invalid,2002-12-12,SIS,CALC-201,3.00,70.00,1,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026109,Gabriela Paz Mora,estudiante109@ejemplo.invalid,2003-01-13,Arquitectura,CALC-201,3.00,70.00,2,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026110,Hector Rey Paz,estudiante110@ejemplo.invalid,2003-02-14,Licenciatura en Musica,CALC-201,3.00,70.00,3,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026111,Isabel Cruz Paz,docente.ejemplo@ejemplo.invalid,2003-03-15,SIS,CALC-201,3.00,70.00,4,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026112,Jorge Paz Cruz,estudiante112@ejemplo.invalid,2003-04-16,SIS,CALC-201,3.00,70.00,5,3,INACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026113,Pedro Tres,estudiante113@ejemplo.invalid,2003-05-17,SIS,CALC-201,3.00,70.00,6,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026116,Pedro 3,estudiante116@ejemplo.invalid,2003-05-17,SIS,CALC-201,3.00,70.00,7,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026002,Nombre Distinto Del Otro,estudiante2@ejemplo.invalid,2003-03-03,SIS,FIS-301,2.00,60.00,8,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026114,Karla Cruz Rey,estudiante114@ejemplo.invalid,2001-06-18,QUI,FIS-301,2.50,65.00,9,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
+2026115,Laura Rey Cruz,estudiante115@ejemplo.invalid,2001-07-19,QUI,QUIM-999,3.00,70.00,10,3,ACTIVA,DOC-EJEMPLO,Docente de Ejemplo
