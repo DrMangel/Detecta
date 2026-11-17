@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ESQUEMAS } from './persistencia/esquemas';
 import { ModuloAcceso } from './controladores/modulo-acceso';
+import { ModuloAlertasSolicitudes } from './controladores/modulo-alertas-solicitudes';
 import { ModuloSincronizacion } from './controladores/modulo-sincronizacion';
 import { ModuloIntegracion } from './integracion/modulo-integracion';
 import { ModuloNotificacion } from './controladores/modulo-notificacion';
@@ -79,6 +80,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
     ModuloAcceso,
     ModuloSincronizacion,
     ModuloNotificacion,
+    ModuloAlertasSolicitudes,
   ],
 })
 export class AppModule {}
