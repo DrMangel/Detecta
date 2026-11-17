@@ -19,7 +19,52 @@ const entornoValido: Record<string, string> = {
   BCRYPT_COSTO: '12',
   ACTIVACION_DURACION_MIN: '30',
   URL_FRONTEND: 'http://localhost:5173/',
+  CONECTOR_CONFIGURACION: 'conector-institucional.ejemplo.json',
 };
+
+describe('validarEntorno: variables de sincronización (B4)', () => {
+  it('la hora nocturna y el secreto son opcionales: vacíos quedan en null', () => {
+    const resultado = validarEntorno({
+      ...entornoValido,
+      SINCRONIZACION_HORA_NOCTURNA: '',
+      SINCRONIZACION_SECRETO: '',
+    });
+    expect(resultado.SINCRONIZACION_HORA_NOCTURNA).toBeNull();
+    expect(resultado.SINCRONIZACION_SECRETO).toBeNull();
+    expect(resultado.CONECTOR_CONFIGURACION).toBe(
+      'conector-institucional.ejemplo.json',
+    );
+  });
+
+  it('acepta HH:MM y rechaza otra forma de hora', () => {
+    expect(
+      validarEntorno({
+        ...entornoValido,
+        SINCRONIZACION_HORA_NOCTURNA: '02:00',
+      }).SINCRONIZACION_HORA_NOCTURNA,
+    ).toBe('02:00');
+    expect(() =>
+      validarEntorno({
+        ...entornoValido,
+        SINCRONIZACION_HORA_NOCTURNA: '24:00',
+      }),
+    ).toThrow(/HH:MM/);
+  });
+
+  it('rechaza un secreto de sincronización de menos de 32 caracteres', () => {
+    expect(() =>
+      validarEntorno({ ...entornoValido, SINCRONIZACION_SECRETO: 'corto' }),
+    ).toThrow(/SINCRONIZACION_SECRETO debe tener al menos 32/);
+  });
+
+  it('exige CONECTOR_CONFIGURACION', () => {
+    const sinConector = { ...entornoValido };
+    delete sinConector['CONECTOR_CONFIGURACION'];
+    expect(() => validarEntorno(sinConector)).toThrow(
+      /CONECTOR_CONFIGURACION es obligatoria/,
+    );
+  });
+});
 
 describe('validarEntorno: variables de autenticación (B3)', () => {
   it('convierte los tipos y normaliza URL_FRONTEND a su origen', () => {
