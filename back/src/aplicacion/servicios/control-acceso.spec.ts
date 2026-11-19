@@ -130,3 +130,135 @@ describe('ControlAcceso.puedeVerContenidoConfidencial (ER 3.7 c, 3.5.3; Manual C
     ).toBe(false);
   });
 });
+
+describe('D18: matriz de puedeVerContenidoConfidencial (plan de B7, respuesta 1 y ajuste A)', () => {
+  const otroPrograma = new Programa({ idPrograma: 'P2', nombre: 'Química' });
+  const jefeOtro = new JefeDepartamento({
+    ...base('J2'),
+    programa: otroPrograma,
+  });
+
+  function solicitud(tipo: RutaAtencion): CasoRiesgo {
+    return estudiante
+      .solicitarAcompanamiento(tipo, 'Motivo reservado', 'Lunes')
+      .generarCasoRiesgo();
+  }
+
+  /** [descripción del caso, fábrica] */
+  const CASOS: [string, () => CasoRiesgo][] = [
+    [
+      'solicitud académica sin canalizar',
+      () => solicitud(RutaAtencion.ACADEMICA),
+    ],
+    [
+      'solicitud académica canalizada a la ruta académica',
+      () => {
+        const caso = solicitud(RutaAtencion.ACADEMICA);
+        caso.canalizar(RutaAtencion.ACADEMICA);
+        return caso;
+      },
+    ],
+    [
+      'solicitud académica canalizada a psicología, sin psicólogo',
+      () => {
+        const caso = solicitud(RutaAtencion.ACADEMICA);
+        caso.canalizar(RutaAtencion.PSICOLOGICA);
+        return caso;
+      },
+    ],
+    [
+      'solicitud académica canalizada a psicología, asignada a PS1',
+      () => {
+        const caso = solicitud(RutaAtencion.ACADEMICA);
+        caso.canalizar(RutaAtencion.PSICOLOGICA);
+        caso.asignarPsicologo(psicologo);
+        return caso;
+      },
+    ],
+    [
+      'solicitud psicosocial sin psicólogo',
+      () => solicitud(RutaAtencion.PSICOLOGICA),
+    ],
+    [
+      'solicitud psicosocial asignada a PS1',
+      () => {
+        const caso = solicitud(RutaAtencion.PSICOLOGICA);
+        caso.asignarPsicologo(psicologo);
+        return caso;
+      },
+    ],
+  ];
+
+  /** Resultado esperado por caso: [Jefe del programa, Jefe de otro programa, PS1, PS2, Docente, Estudiante]. */
+  const ESPERADO: Record<string, boolean[]> = {
+    'solicitud académica sin canalizar': [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ],
+    'solicitud académica canalizada a la ruta académica': [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ],
+    'solicitud académica canalizada a psicología, sin psicólogo': [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+    ],
+    'solicitud académica canalizada a psicología, asignada a PS1': [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ],
+    'solicitud psicosocial sin psicólogo': [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+    ],
+    'solicitud psicosocial asignada a PS1': [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+    ],
+  };
+
+  const ROLES: [string, Persona][] = [
+    ['Jefe del programa', jefe],
+    ['Jefe de otro programa', jefeOtro],
+    ['PS1', psicologo],
+    ['PS2', otroPsicologo],
+    ['Docente', docente],
+    ['Estudiante', estudiante],
+  ];
+
+  it.each(CASOS)('%s', (nombre, crear) => {
+    const caso = crear();
+    const obtenido = ROLES.map(([, usuario]) =>
+      control.puedeVerContenidoConfidencial(usuario, caso),
+    );
+    expect(
+      Object.fromEntries(ROLES.map(([rol], i) => [rol, obtenido[i]])),
+    ).toEqual(
+      Object.fromEntries(ROLES.map(([rol], i) => [rol, ESPERADO[nombre]?.[i]])),
+    );
+  });
+});

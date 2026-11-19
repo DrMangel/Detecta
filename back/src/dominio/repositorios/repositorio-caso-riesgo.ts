@@ -25,6 +25,16 @@ export interface RepositorioCasoRiesgo extends Repositorio<CasoRiesgo> {
    * docente se deriva del caso al leer). NO está en el diagrama de clases
    * v3: se reporta como diferencia. Los orígenes sin caso no aparecen.
    */
+  /**
+   * Caso visible para el Jefe de Departamento (B7, ajuste A de Ivan; NO está
+   * en el diagrama): del programa que dirige y NUNCA de una solicitud
+   * psicosocial (ruta psicológica desde su nacimiento). La exclusión se hace
+   * en la consulta. Devuelve null si el caso no existe o no es visible.
+   */
+  buscarParaPrograma(
+    idCaso: string,
+    idPrograma: string,
+  ): Promise<CasoRiesgo | null>;
   listarEstadosPorOrigen(
     idsOrigen: readonly string[],
   ): Promise<Map<string, EstadoCaso>>;

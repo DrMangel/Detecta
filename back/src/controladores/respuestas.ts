@@ -1,8 +1,10 @@
 import {
+  ConflictException,
   HttpException,
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { BloqueoAgotadoError } from '../aplicacion/contratos/unidad-trabajo';
 import type { Alerta } from '../dominio/entidades/alerta';
 import { EstadoCaso } from '../dominio/entidades/estado-caso';
 import type { NivelRiesgo } from '../dominio/entidades/nivel-riesgo';
@@ -17,6 +19,12 @@ import type { SolicitudAcompanamiento } from '../dominio/entidades/solicitud-aco
 
 /** sd_CUD01, flujo 4.a: sin datos sincronizados (ER 3.3.1). */
 export const MENSAJE_INFORMACION_NO_DISPONIBLE = 'Información no disponible';
+/**
+ * Texto nuevo (B7, ajuste B): venció la espera del bloqueo del caso o de la
+ * agenda porque otra sesión lo está modificando.
+ */
+export const MENSAJE_BLOQUEO_AGOTADO =
+  'Otra sesión está modificando este caso. Intente de nuevo.';
 /** sd_CUD01, flujo *.a. */
 export const MENSAJE_ERROR_CONSULTA = 'Error al consultar la información';
 
@@ -188,6 +196,9 @@ export async function conPersistencia<T>(
   } catch (error) {
     if (error instanceof HttpException) {
       throw error;
+    }
+    if (error instanceof BloqueoAgotadoError) {
+      throw new ConflictException(MENSAJE_BLOQUEO_AGOTADO);
     }
     registro.error(
       `${mensaje}: ${error instanceof Error ? error.name : 'error'}`,

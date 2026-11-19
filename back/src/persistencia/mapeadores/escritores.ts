@@ -323,6 +323,27 @@ async function escribirAsesoriaDeCita(
  * - No escribe el estudiante, el origen ni el psicólogo (deben existir).
  * - Verifica la coherencia estudiante–origen y deriva `id_jefe`.
  */
+/**
+ * Trazabilidad sin estado (respuesta 10 de Ivan en el plan de B7): fija una
+ * sola vez la fecha de canalización (cuando el Jefe canalizó: `id_jefe` no
+ * nulo) y la fecha y el psicólogo de la confirmación del consentimiento. Las
+ * fechas las pone PostgreSQL al confirmar el cambio.
+ */
+async function trazarCaso(m: EntityManager, idCaso: string): Promise<void> {
+  await m.query(
+    `UPDATE caso_riesgo SET fecha_canalizacion = now()
+     WHERE id_caso = $1 AND id_jefe IS NOT NULL AND fecha_canalizacion IS NULL`,
+    [idCaso],
+  );
+  await m.query(
+    `UPDATE caso_riesgo
+     SET fecha_consentimiento = now(), id_psicologo_consentimiento = id_psicologo
+     WHERE id_caso = $1 AND consentimiento_confirmado
+       AND id_psicologo IS NOT NULL AND fecha_consentimiento IS NULL`,
+    [idCaso],
+  );
+}
+
 export async function escribirCaso(
   m: EntityManager,
   caso: CasoRiesgo,
@@ -348,6 +369,7 @@ export async function escribirCaso(
     },
     ['idCaso'],
   );
+  await trazarCaso(m, caso.idCaso);
 
   const citas = caso.citas;
   if (citas.length === 0) {

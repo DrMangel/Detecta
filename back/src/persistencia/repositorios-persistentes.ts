@@ -148,6 +148,23 @@ export class RepositorioPersistenteCasoRiesgo
     );
   }
 
+  /** Caso del programa, excluidas en SQL las solicitudes psicosociales (B7). */
+  async buscarParaPrograma(
+    idCaso: string,
+    idPrograma: string,
+  ): Promise<CasoRiesgo | null> {
+    const [caso] = await this.cargarConsulta(
+      `SELECT c.id_caso AS id
+       FROM caso_riesgo c
+       JOIN persona e ON e.id = c.id_estudiante
+       JOIN origen_riesgo o ON o.id_origen = c.id_origen
+       WHERE c.id_caso = $1 AND e.id_programa = $2
+         AND NOT (o.tipo = $3 AND o.tipo_apoyo = $4)`,
+      [idCaso, idPrograma, TIPO_SOLICITUD, RutaAtencion.PSICOLOGICA],
+    );
+    return caso ?? null;
+  }
+
   /** Una sola consulta (unión origen–caso) para todos los orígenes (B6). */
   async listarEstadosPorOrigen(
     idsOrigen: readonly string[],
