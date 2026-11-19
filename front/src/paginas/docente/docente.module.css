@@ -1,0 +1,270 @@
+/*
+ * Pantallas del Docente (F2). Uso principal desde computador de escritorio
+ * (ER 3.3.4): tablas con encabezados semánticos. A menos de 48rem cada fila
+ * se apila como tarjeta, con el rótulo de la columna tomado de data-rotulo,
+ * para no desbordar a 360 px. Controles de al menos 44 px. Tokens de
+ * estilos/base.css.
+ */
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  max-width: 40rem;
+  margin-bottom: var(--espacio-4);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.campo label,
+.grupo legend {
+  font-weight: 600;
+}
+
+.campo input,
+.campo textarea {
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.campo textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.campo textarea[aria-invalid='true'],
+.grupo[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 0.875rem;
+}
+
+.grupo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.grupo legend {
+  width: 100%;
+  margin-bottom: var(--espacio-1);
+  padding: 0;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 2.75rem;
+}
+
+.opcion input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.boton,
+.botonSecundario {
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-4);
+  border-radius: var(--radio);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton {
+  align-self: flex-start;
+  border: none;
+  background: var(--color-primario);
+  color: var(--color-primario-texto);
+}
+
+.botonSecundario {
+  border: 1px solid var(--color-primario);
+  background: var(--color-superficie);
+  color: var(--color-primario);
+}
+
+.boton:disabled,
+.botonSecundario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Estado de la sincronización (ER 3.3.5): siempre visible sobre el listado. */
+.curso {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: 0 0 var(--espacio-4);
+  padding: var(--espacio-3);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.curso dt {
+  font-weight: 600;
+}
+
+.curso dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.seccion {
+  margin-top: var(--espacio-4);
+}
+
+.seccion h2 {
+  font-size: 1.25rem;
+  margin: 0 0 var(--espacio-2);
+}
+
+.seccion:focus {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 4px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  max-width: 40rem;
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.registro {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: 0;
+}
+
+.registro dt {
+  font-weight: 600;
+}
+
+.registro dd {
+  margin: 0;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-superficie);
+}
+
+.tabla th,
+.tabla td {
+  padding: var(--espacio-2) var(--espacio-3);
+  border-bottom: 1px solid var(--color-borde);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tabla thead th {
+  font-weight: 700;
+  border-bottom-width: 2px;
+}
+
+.tabla tbody th {
+  font-weight: 600;
+}
+
+.numero {
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla td.accion {
+  text-align: right;
+}
+
+.texto {
+  white-space: pre-line;
+}
+
+/* Solo para lectores de pantalla. */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 47.99rem) {
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .tabla,
+  .tabla tbody,
+  .tabla tr,
+  .tabla th,
+  .tabla td {
+    display: block;
+  }
+
+  .tabla {
+    background: transparent;
+  }
+
+  .tabla tr {
+    margin-bottom: var(--espacio-2);
+    padding: var(--espacio-2) 0;
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+  }
+
+  .tabla th,
+  .tabla td {
+    border-bottom: none;
+    padding: var(--espacio-1) var(--espacio-3);
+  }
+
+  .tabla [data-rotulo]::before {
+    content: attr(data-rotulo) ': ';
+    font-weight: 600;
+  }
+
+  .tabla td.accion {
+    text-align: left;
+  }
+}
