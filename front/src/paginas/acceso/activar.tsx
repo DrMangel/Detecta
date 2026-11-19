@@ -7,7 +7,12 @@ import {
 } from '../../componentes/formulario-acceso';
 import estilos from '../../componentes/formulario.module.css';
 import { MensajeError } from '../../componentes/mensaje-error';
-import { ROTULOS, TITULOS } from '../../componentes/textos';
+import { useSesion } from '../../componentes/sesion';
+import {
+  ROTULOS,
+  TEXTO_CONTRASENA_FIJADA,
+  TITULOS,
+} from '../../componentes/textos';
 import { activarCuenta } from '../../servicios-api/acceso';
 import { mensajeDeError } from '../../servicios-api/errores';
 
@@ -30,6 +35,7 @@ function leerTokenDelFragmento(): string | null {
 
 export function PaginaActivar() {
   const navegar = useNavigate();
+  const { anunciar } = useSesion();
   // Lectura única al montar; el token no se registra ni se guarda en
   // almacenamiento del navegador.
   const token = useRef<string | null>(null);
@@ -66,6 +72,7 @@ export function PaginaActivar() {
       await activarCuenta(token.current, contrasena);
       token.current = null;
       setContrasena('');
+      anunciar({ texto: TEXTO_CONTRASENA_FIJADA, tipo: 'confirmacion' });
       void navegar('/iniciar-sesion', { replace: true });
     } catch (causa) {
       setError(mensajeDeError(causa));

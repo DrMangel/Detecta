@@ -59,6 +59,37 @@ describe('Fijar contraseña con el enlace de activación', () => {
     expect(screen.queryByLabelText('Nueva contraseña')).toBeNull();
   });
 
+  it('tras fijar la contraseña, el inicio de sesión muestra UNA vez «Contraseña fijada. Ya puede iniciar sesión.» con role="status"', async () => {
+    window.history.replaceState(null, '', `/activar#token=${TOKEN}`);
+    simularApi({
+      'GET /acceso/sesion': SIN_SESION,
+      'POST /acceso/activar': { estado: 204 },
+    });
+    renderizar('/activar');
+    const usuario = userEvent.setup();
+    await usuario.type(
+      await screen.findByLabelText('Nueva contraseña'),
+      'una-contrasena-larga',
+    );
+    await usuario.click(
+      screen.getByRole('button', { name: 'Fijar contraseña' }),
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Contraseña fijada. Ya puede iniciar sesión.',
+    );
+    expect(screen.getByTestId('ruta')).toHaveTextContent('/iniciar-sesion');
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    // Una sola vez: al ir y volver, la confirmación ya no aparece.
+    await usuario.click(
+      screen.getByRole('link', { name: 'Solicitar enlace de acceso' }),
+    );
+    await usuario.click(screen.getByRole('link', { name: 'Iniciar sesión' }));
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('sin token en el enlace: el texto del backend y el botón deshabilitado', async () => {
     simularApi({ 'GET /acceso/sesion': SIN_SESION });
     renderizar('/activar');

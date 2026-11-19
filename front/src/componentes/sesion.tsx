@@ -22,14 +22,24 @@ import type { DatosSesion } from '../servicios-api/tipos';
  * - Un 401 en una petición protegida borra la sesión, deja el texto del
  *   backend («Sesión no válida o caducada») como aviso de un solo uso y
  *   lleva a /iniciar-sesion (ajuste A).
+ * - Tras fijar la contraseña, la pantalla de activación deja la
+ *   confirmación como aviso de un solo uso (cierre de F0, punto 1).
  */
+
+/** Aviso de un solo uso para la pantalla de inicio de sesión. */
+export interface Aviso {
+  texto: string;
+  /** error: role="alert"; confirmacion: role="status". */
+  tipo: 'error' | 'confirmacion';
+}
 
 interface ValorSesion {
   /** undefined mientras se consulta la sesión inicial. */
   usuario: DatosSesion | null | undefined;
   /** Aviso pendiente para la pantalla de inicio de sesión (un solo uso). */
-  aviso: string | null;
-  consumirAviso: () => string | null;
+  aviso: Aviso | null;
+  consumirAviso: () => Aviso | null;
+  anunciar: (aviso: Aviso) => void;
   establecer: (usuario: DatosSesion) => void;
   cerrar: () => Promise<void>;
 }
@@ -41,7 +51,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<DatosSesion | null | undefined>(
     undefined,
   );
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
 
   useEffect(() => {
     let vigente = true;
@@ -63,7 +73,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   useEffect(() => {
     registrarSesionInvalida((mensaje) => {
       setUsuario(null);
-      setAviso(mensaje);
+      setAviso({ texto: mensaje, tipo: 'error' });
       void navegar('/iniciar-sesion', { replace: true });
     });
     return () => registrarSesionInvalida(null);
@@ -74,6 +84,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     setAviso(null);
     return pendiente;
   }, [aviso]);
+
+  const anunciar = useCallback((nuevo: Aviso) => setAviso(nuevo), []);
 
   const establecer = useCallback((datos: DatosSesion) => {
     setAviso(null);
@@ -90,8 +102,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, [navegar]);
 
   const valor = useMemo(
-    () => ({ usuario, aviso, consumirAviso, establecer, cerrar }),
-    [usuario, aviso, consumirAviso, establecer, cerrar],
+    () => ({ usuario, aviso, consumirAviso, anunciar, establecer, cerrar }),
+    [usuario, aviso, consumirAviso, anunciar, establecer, cerrar],
   );
   return (
     <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>

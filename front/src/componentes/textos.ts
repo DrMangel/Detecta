@@ -21,5 +21,9 @@ export const TITULOS = {
   fijarContrasena: 'Fijar contraseña',
 } as const;
 
+/** Confirmación tras fijar la contraseña (aprobada en el cierre de F0). */
+export const TEXTO_CONTRASENA_FIJADA =
+  'Contraseña fijada. Ya puede iniciar sesión.';
+
 /** Nombre del sistema (ER), en la pestaña y en el encabezado. */
 export const NOMBRE_SISTEMA = 'DETECTA';

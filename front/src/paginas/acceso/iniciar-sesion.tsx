@@ -7,7 +7,10 @@ import {
   FormularioAcceso,
 } from '../../componentes/formulario-acceso';
 import estilos from '../../componentes/formulario.module.css';
-import { MensajeError } from '../../componentes/mensaje-error';
+import {
+  MensajeError,
+  MensajeInformativo,
+} from '../../componentes/mensaje-error';
 import { ESPACIO_POR_ROL } from '../../componentes/roles';
 import { useSesion } from '../../componentes/sesion';
 import { ROTULOS, TITULOS } from '../../componentes/textos';
@@ -17,7 +20,8 @@ import { ErrorApi, mensajeDeError } from '../../servicios-api/errores';
 /*
  * Inicio de sesión (ControladorAcceso.iniciarSesion; ER 1.3.1: correo y
  * contraseña propios). Muestra una vez el aviso de sesión caducada (ajuste
- * A) y respeta el 429 con Retry-After (D15).
+ * A) o la confirmación de la contraseña fijada (cierre de F0), y respeta el
+ * 429 con Retry-After (D15).
  */
 export function PaginaIniciarSesion() {
   const { consumirAviso, establecer } = useSesion();
@@ -25,20 +29,24 @@ export function PaginaIniciarSesion() {
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [confirmacion, setConfirmacion] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const { enEspera, esperar } = useEsperaReintento();
 
   // El aviso pasa a esta pantalla una sola vez (ajuste A).
   useEffect(() => {
     const aviso = consumirAviso();
-    if (aviso !== null) {
-      setError(aviso);
+    if (aviso?.tipo === 'error') {
+      setError(aviso.texto);
+    } else if (aviso?.tipo === 'confirmacion') {
+      setConfirmacion(aviso.texto);
     }
     // Solo al montar: consumirAviso cambia al vaciar el aviso.
   }, []);
 
   const enviar = async () => {
     setError(null);
+    setConfirmacion(null);
     setEnviando(true);
     try {
       const datos = await iniciarSesion(correo.trim(), contrasena);
@@ -66,6 +74,7 @@ export function PaginaIniciarSesion() {
       }
     >
       <MensajeError mensaje={error} />
+      <MensajeInformativo mensaje={confirmacion} />
       <Campo
         rotulo={ROTULOS.correo}
         tipo="email"
