@@ -122,6 +122,8 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
   - `reprogramarCita` carga todos los casos del psicólogo para ubicar el caso de la cita (la `Cita` no conoce su caso);
   - `lock_timeout` de 5 s en los bloqueos con espera de casos y agendas;
   - medir las bandejas del Jefe y del psicólogo bajo carga (en B7, 235 ms como máximo sin carga).
+- Para B9 (desde B8):
+  - `GeneradorInformeRiesgo` carga los casos y los planes de todo el programa y del periodo y filtra en memoria por asignatura; medir con un tamaño real (en B8, 222 ms como máximo con 60 estudiantes, 200 alertas, 200 casos y 200 planes; 46 consultas, constantes con el volumen).
 - Para F1 (frontend):
   - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar;
   - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso.
@@ -137,8 +139,8 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B5 | Cerrada (17/11/2026): 221 pruebas unitarias, 89 de integración y 37 e2e. Verificación del correo real con Brevo pendiente de Ivan |
 | B6 | Cerrada (18/11/2026): 277 pruebas unitarias, 96 de integración y 48 e2e |
 | B7 | Cerrada (18/11/2026): 353 pruebas unitarias, 108 de integración y 62 e2e |
-| B8 | Siguiente |
-| B9 | Pendiente |
+| B8 | Cerrada (18/11/2026): commits 73d3f23 (B8a) y f6a6afd (B8b); 403 pruebas unitarias, 113 de integración y 69 e2e. Fases B0 a B8 cerradas |
+| B9 | Siguiente |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -260,6 +262,22 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Textos transcritos | sd_CUD04 y sd_CUD06; el 503 de sd_CUD06, "Error al registrar la información del expediente", lo transcribió Ivan porque la imagen del diagrama está cortada |
 | Textos reutilizados | "Error al consultar la información" (CUD01) en las lecturas de B7; "La solicitud no es válida." (B6) en entradas inválidas y en la reprogramación idéntica; mensajes del dominio (B1): "Registre la justificación" (400 en `evaluarPertinencia`), "La cita ya está cerrada" y el de estado terminal (409) |
 
+### Diferencias introducidas en la implementación (B8)
+
+| Tipo | Elemento |
+|---|---|
+| Contrato | `RepositorioInformeRiesgo` (el diagrama usa `Repositorio<InformeRiesgo>`) con `guardarConAutor(informe, idPrograma, autor)` y `buscarProgramaDelInforme(idInforme)`; el segundo hace falta para que el Jefe solo exporte los informes de su programa |
+| Esquema | Migración `AutoriaInforme`: `id_programa` (NOT NULL, con relleno de filas existentes), `id_jefe` e `id_psicologo` (CHECK `ck_informe_un_autor`: exactamente uno). Es la asociación "genera" del diagrama de entidades; la entidad no la expone |
+| Servicio | `GeneradorInformeRiesgo.generar(periodo, idPrograma, curso, autor)`: recibe el autor, devuelve null sin datos (no guarda) y filtra en memoria por asignatura |
+| Tipo y soporte | Tipo `Archivo` (`nombre`, `tipoContenido`, `contenido`) y generador de PDF propio `pdf-minimo.ts` (PDF 1.4, Helvetica WinAnsi, sin dependencias) |
+| Contrato | `RepositoriosTransaccionales` con `planes`; el texto del bloqueo vencido es configurable en `conPersistencia` |
+| Piezas de NestJS y rutas | `ModuloPlanesInformes`; `POST /planes`, `POST /planes/:idPlan/finalizacion`, `POST /informes`, `GET /informes/:idInforme/pdf`; `InformeDto` con las definiciones de cada total |
+| Flujo | Los cursos del plan se validan contra los registros académicos del estudiante; la lista no puede estar vacía; el cronograma es opcional |
+| Prueba de B2 modificada | `repositorios.int-spec.ts › InformeRiesgo` guarda con `guardarConAutor`, porque un informe nuevo exige programa y autor |
+| Textos transcritos | sd_CUD04 (CUD05): "Faltan los datos del estudiante tutor", "Plan de nivelación registrado"; sd_CUD10: "No hay datos para el periodo seleccionado", "Error al generar el informe" |
+| Textos nuevos (no vienen del ER) | "Error al registrar el plan de nivelación"; "Otra sesión está modificando este plan. Intente de nuevo."; en el PDF, el título, las etiquetas de los totales, las tres definiciones (alertas, casos cerrados o archivados, planes contados aparte) y la nota de que solo contiene datos agregados |
+| Textos reutilizados | "La solicitud no es válida.", "Indique el periodo académico." y "El texto excede la longitud permitida." (B6); "Otra sesión está modificando este caso. Intente de nuevo." (B7, bloqueo del caso en `estructurarPlan`); del dominio (B1), como 409: "El plan de nivelación requiere un caso con ruta ACADEMICA" y "El plan de nivelación ya está finalizado" |
+
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
@@ -271,8 +289,8 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D7 | Docente obligatorio en un caso de riesgo (ER 3.5.5) | Antes de B2 | Resuelta (16/11/2026). Sin docente obligatorio; un caso tiene motivo, estudiante y exactamente un origen (Alerta o SolicitudAcompanamiento); prevalece sobre el ER 3.5.5 |
 | D8 | Reglas sin definir y fuera de los diagramas: tiempo máximo de canalización, si se notifica al estudiante la canalización, máximo de reprogramaciones de una cita | No implementar | Sin decisión |
 | D9 | Duración de una cita; hoy el cruce es solo misma fecha y hora exactas | B7 | Aceptada como limitación (18/11/2026). El cruce es por fecha y hora exactas |
-| D10 | Contenido de `PlanNivelacion.descripcion`; hoy queda vacía | Antes del plan de B8 | Abierta |
-| D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | Antes del plan de B8 | Abierta. Por ahora `estaFinalizado()` solo es verdadero para `CERRADO` y `ARCHIVADO` |
+| D10 | Contenido de `PlanNivelacion.descripcion` | B8 | Aceptada como limitación (18/11/2026). Queda vacía: ni R04 ni `estructurarPlan` la reciben |
+| D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | B8 | Resuelta (18/11/2026). No cuenta: `estaFinalizado()` solo es verdadero para `CERRADO` y `ARCHIVADO` (R07: "cerrados o archivados") |
 | D12 | Periodo de un caso o plan | Antes de B7 | Resuelta (17/11/2026). El periodo de un caso o plan es el del curso; las solicitudes voluntarias quedan fuera de los informes por periodo; `listarPorPeriodo` de casos devuelve solo cerrados o archivados |
 | D13 | Carga de usuarios y configuración que no llegan por sincronización | B3 y B4 | Resuelta. Script de datos iniciales con archivo JSON: programas y usuarios en B3; cursos y asignación docente–curso en B4 |
 | D14 | Duración de la sesión | B3 | Resuelta. Sesión de 60 minutos fijos |
@@ -290,6 +308,8 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | B7 | Resuelta (18/11/2026). Solo el estudiante (R05 paso 6, R06 paso 8); con un menor sin consentimiento, el correo incluye una línea genérica sobre el consentimiento del acudiente, sin mencionar psicología |
 | D27 | Estado que ven el estudiante y el docente de una solicitud o alerta: la regla de B1 marca el origen ATENDIDO al generar el caso, y CUD02 dice que la solicitud queda pendiente | B6, ajustada en B7 | Resuelta (18/11/2026). Se deriva del caso al leer: `ATENDIDA` si el caso salió de PENDIENTE o tiene `fecha_canalizacion`; `PENDIENTE` en otro caso. Una solicitud psicosocial nace con ruta psicológica pero sin canalización: sigue PENDIENTE hasta que un psicólogo la toma. Sin ruta ni avance; el estado guardado del origen no cambia |
 | D28 | Código único de rastreo de la solicitud (R02) | B6 | Aceptada como limitación. Es `idOrigen` (UUID) |
+| D29 | Estado del caso académico con el plan de nivelación | B8 | Aceptada como limitación (18/11/2026). El caso queda `EN_NIVELACION` al registrar y al finalizar el plan, así que los casos de la ruta académica no entran en `totalCasos`; los planes se cuentan aparte (`totalPlanes`). Se admiten varios planes por caso |
+| D30 | Formato del archivo exportado del informe (R07: "formato estándar"; sd_CUD10 y Manual CUD10: PDF) | B8 | Resuelta (18/11/2026). PDF con un generador propio mínimo, sin dependencias |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 

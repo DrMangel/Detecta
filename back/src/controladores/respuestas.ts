@@ -199,6 +199,8 @@ export async function conPersistencia<T>(
   registro: Logger,
   mensaje: string,
   trabajo: () => Promise<T>,
+  /** Texto del 409 si vence la espera de un bloqueo (B7: caso; B8: plan). */
+  mensajeBloqueo: string = MENSAJE_BLOQUEO_AGOTADO,
 ): Promise<T> {
   try {
     return await trabajo();
@@ -207,7 +209,7 @@ export async function conPersistencia<T>(
       throw error;
     }
     if (error instanceof BloqueoAgotadoError) {
-      throw new ConflictException(MENSAJE_BLOQUEO_AGOTADO);
+      throw new ConflictException(mensajeBloqueo);
     }
     registro.error(
       `${mensaje}: ${error instanceof Error ? error.name : 'error'}`,

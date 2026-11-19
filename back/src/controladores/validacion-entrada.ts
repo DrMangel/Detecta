@@ -27,6 +27,12 @@ export const LONGITUD_MAXIMA = {
   periodo: 20,
   /** Identificadores varchar(36) */
   identificador: 36,
+  /** plan_nivelacion.tutor_nombre varchar(150) */
+  tutorNombre: 150,
+  /** plan_nivelacion.tutor_codigo varchar(20) */
+  tutorCodigo: 20,
+  /** plan_nivelacion.cronograma text: límite técnico */
+  cronograma: 2000,
 } as const;
 
 /** Devuelve el cuerpo como registro si es un objeto con solo campos permitidos. */
@@ -147,4 +153,28 @@ export function leerFechaHoraFutura(
     throw new BadRequestException(MENSAJE_FECHA_PASADA);
   }
   return fecha;
+}
+
+/**
+ * Lista obligatoria y no vacía de identificadores (B8: `idsCursos`). Cada
+ * elemento es texto de hasta 36 caracteres; los repetidos se descartan.
+ */
+export function leerListaIdentificadores(
+  campos: Record<string, unknown>,
+  campo: string,
+): string[] {
+  const valor = campos[campo];
+  if (
+    !Array.isArray(valor) ||
+    valor.length === 0 ||
+    valor.some(
+      (elemento) =>
+        typeof elemento !== 'string' ||
+        elemento.trim() === '' ||
+        elemento.length > LONGITUD_MAXIMA.identificador,
+    )
+  ) {
+    throw new BadRequestException(MENSAJE_SOLICITUD_NO_VALIDA);
+  }
+  return [...new Set(valor as string[])];
 }

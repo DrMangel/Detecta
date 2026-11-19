@@ -145,6 +145,19 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 - **Correos de cita:** solo al estudiante (D26); si es menor sin consentimiento, incluyen el requisito del consentimiento firmado por el acudiente.
 - **Migración nueva:** `npm run build` y `npm run bd:migrar` (fecha de canalización y trazabilidad del consentimiento).
 
+## Plan de nivelación e informes de riesgo (B8)
+
+| Ruta | Rol | Respuesta |
+|---|---|---|
+| `POST /planes` `{idCaso, idsCursos, tutorNombre, tutorCodigo, cronograma?}` | Jefe | 201; plan ACTIVO sobre un caso de la ruta académica; correo al estudiante |
+| `POST /planes/:idPlan/finalizacion` | Jefe | 200; plan FINALIZADO; el caso sigue EN_NIVELACION |
+| `POST /informes` `{periodo, idPrograma?, idCurso}` | Jefe o Psicólogo | 201 con los totales; 200 `{mensaje}` si no hay datos. `idPrograma` es obligatorio para el Psicólogo y no se admite para el Jefe (usa el programa que dirige) |
+| `GET /informes/:idInforme/pdf` | Jefe o Psicólogo | PDF adjunto (`informe-riesgo.pdf`); el Jefe solo los de su programa |
+
+- **Cursos del plan:** solo cursos en los que el estudiante tiene registro académico. El tutor es un dato informativo (nombre y código obligatorios).
+- **Qué cuenta el informe:** alertas de la asignatura y el periodo; casos cerrados o archivados con origen en una alerta de la asignatura (no los reorientados, ni las solicitudes voluntarias, ni los casos de la ruta académica); planes que refuerzan la asignatura, contados aparte. Solo datos agregados, iguales para el Jefe y el Psicólogo.
+- **Migración nueva:** `npm run build` y `npm run bd:migrar` (programa y autor del informe).
+
 ## Notificaciones por correo (B5)
 
 - **Proveedor:** Brevo por SMTP (`smtp-relay.brevo.com:587`) con STARTTLS obligatorio, TLS 1.2 como mínimo y verificación del certificado siempre activa. Plazo global de 5 s por envío (ER Tabla 1).

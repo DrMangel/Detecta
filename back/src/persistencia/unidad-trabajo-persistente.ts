@@ -15,6 +15,7 @@ import {
   RepositorioPersistenteAlerta,
   RepositorioPersistenteCasoRiesgo,
   RepositorioPersistentePersona,
+  RepositorioPersistentePlanNivelacion,
   RepositorioPersistenteRegistroAcademico,
   RepositorioPersistenteSolicitud,
 } from './repositorios-persistentes';
@@ -96,6 +97,7 @@ export class UnidadTrabajoPersistente implements UnidadTrabajo {
         casos: new RepositorioPersistenteCasoRiesgo(manager),
         citas: crearRepositorioCita(manager),
         asesorias: crearRepositorioAsesoria(manager),
+        planes: new RepositorioPersistentePlanNivelacion(manager),
       });
     });
   }
