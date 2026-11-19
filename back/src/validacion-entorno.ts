@@ -6,6 +6,12 @@
  * aplicación no arranca y el mensaje lista todos los problemas a la vez.
  */
 
+import {
+  HILOS_LIBUV_MAXIMO,
+  HILOS_LIBUV_MINIMO,
+  HILOS_LIBUV_POR_DEFECTO,
+} from './hilos-libuv';
+
 const ENTORNOS_PERMITIDOS = ['development', 'test', 'production'] as const;
 
 export type EntornoEjecucion = (typeof ENTORNOS_PERMITIDOS)[number];
@@ -43,6 +49,13 @@ export interface VariablesEntorno {
   SINCRONIZACION_SECRETO: string | null;
   /** Correo saliente (B5): SMTP con Brevo, o desactivado explícitamente. */
   CORREO: ConfiguracionCorreoEntorno;
+  /**
+   * Hilos de libuv (B9, ajuste 3a): opcional, 4 por defecto. Se valida aquí,
+   * pero lo aplica hilos-libuv.ts al arrancar, antes de cargar este módulo.
+   */
+  UV_THREADPOOL_SIZE: number;
+  /** Conexiones máximas del pool de la base detecta (B9, ajuste 3b): opcional. */
+  BD_DETECTA_POOL_MAX: number;
 }
 
 /**
@@ -79,6 +92,21 @@ const ENTEROS = {
 } as const;
 
 type ClaveEntero = keyof typeof ENTEROS;
+
+/**
+ * Enteros opcionales (B9): [mínimo, máximo, valor por defecto]. El tope del
+ * pool queda por debajo de max_connections de PostgreSQL (100 por defecto).
+ */
+const ENTEROS_OPCIONALES = {
+  UV_THREADPOOL_SIZE: [
+    HILOS_LIBUV_MINIMO,
+    HILOS_LIBUV_MAXIMO,
+    HILOS_LIBUV_POR_DEFECTO,
+  ],
+  BD_DETECTA_POOL_MAX: [1, 50, 10],
+} as const;
+
+type ClaveEnteroOpcional = keyof typeof ENTEROS_OPCIONALES;
 
 const LONGITUD_MINIMA_SECRETO = 32;
 
@@ -174,6 +202,21 @@ export function validarEntorno(
     }
   }
 
+  const opcionales: Partial<Record<ClaveEnteroOpcional, number>> = {};
+  for (const [clave, [minimo, maximo, porDefecto]] of Object.entries(
+    ENTEROS_OPCIONALES,
+  ) as [ClaveEnteroOpcional, readonly [number, number, number]][]) {
+    const valor = leerTexto(crudas[clave]);
+    const numero = valor === undefined ? porDefecto : Number(valor);
+    if (!Number.isInteger(numero) || numero < minimo || numero > maximo) {
+      errores.push(
+        `${clave} es opcional; si se declara debe ser un entero entre ${minimo} y ${maximo}`,
+      );
+    } else {
+      opcionales[clave] = numero;
+    }
+  }
+
   const cookieSegura = leerTexto(crudas['COOKIE_SEGURA']);
   if (cookieSegura !== 'true' && cookieSegura !== 'false') {
     errores.push('COOKIE_SEGURA debe ser true o false');
@@ -238,6 +281,7 @@ export function validarEntorno(
     >),
     ...(puertos as Record<ClavePuerto, number>),
     ...(enteros as Record<ClaveEntero, number>),
+    ...(opcionales as Record<ClaveEnteroOpcional, number>),
     COOKIE_SEGURA: cookieSegura === 'true',
     URL_FRONTEND: origenFrontend as string,
     NODE_ENV: nodeEnv as EntornoEjecucion,
