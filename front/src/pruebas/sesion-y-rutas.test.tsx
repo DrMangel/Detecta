@@ -12,7 +12,7 @@ import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
  */
 
 const ROLES: [Rol, string, string][] = [
-  ['ESTUDIANTE', '/estudiante', 'Estudiante'],
+  ['ESTUDIANTE', '/estudiante', 'Consulta académica'],
   ['DOCENTE', '/docente', 'Docente'],
   [
     'JEFE_DEPARTAMENTO',
@@ -52,8 +52,11 @@ describe('Inicio de sesión por rol', () => {
       expect(screen.getByTestId('ruta')).toHaveTextContent(ruta);
       await waitFor(() => expect(document.title).toBe(`${titulo} · DETECTA`));
       expect(screen.getByText(`Usuario ${rol}`)).toBeInTheDocument();
-      // Espacio vacío: solo el título dentro del contenido principal.
-      expect(screen.getByRole('main').children).toHaveLength(1);
+      // Espacio vacío: solo el título dentro del contenido principal. El del
+      // Estudiante tiene contenido desde F1 (pruebas en estudiante-*.test).
+      if (rol !== 'ESTUDIANTE') {
+        expect(screen.getByRole('main').children).toHaveLength(1);
+      }
       expect(llamadas.at(-1)?.cuerpo).toEqual({
         correo: `${rol.toLowerCase()}@ejemplo.edu.co`,
         contrasena: 'clave-12345678',
@@ -134,7 +137,7 @@ describe('Sesión caducada y cierre de sesión', () => {
       'GET /consulta/registros': SIN_SESION,
     });
     renderizar('/estudiante');
-    await screen.findByRole('heading', { name: 'Estudiante' });
+    await screen.findByRole('heading', { name: 'Consulta académica' });
 
     await act(async () => {
       await pedir('GET', '/consulta/registros').catch(() => undefined);

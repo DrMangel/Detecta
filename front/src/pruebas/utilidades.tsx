@@ -15,9 +15,16 @@ export interface RespuestaSimulada {
   cabeceras?: Record<string, string>;
 }
 
-/** 'red' simula un fallo de conexión (fetch rechaza). */
+/**
+ * 'red' simula un fallo de conexión (fetch rechaza). Una función puede
+ * devolver una promesa para retener la respuesta (F1: envío en curso).
+ */
 type Simulacion =
-  RespuestaSimulada | 'red' | ((cuerpo: unknown) => RespuestaSimulada | 'red');
+  | RespuestaSimulada
+  | 'red'
+  | ((
+      cuerpo: unknown,
+    ) => RespuestaSimulada | 'red' | Promise<RespuestaSimulada | 'red'>);
 
 export interface LlamadaRegistrada {
   metodo: string;
@@ -42,7 +49,7 @@ export function simularApi(rutas: Record<string, Simulacion>) {
     const ruta = url.replace(/^\/api/, '');
     const simulada = rutas[`${metodo} ${ruta}`];
     const resultado =
-      typeof simulada === 'function' ? simulada(cuerpo) : simulada;
+      typeof simulada === 'function' ? await simulada(cuerpo) : simulada;
     if (resultado === 'red') {
       throw new TypeError('Failed to fetch');
     }
