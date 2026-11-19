@@ -56,6 +56,12 @@ export interface VariablesEntorno {
   UV_THREADPOOL_SIZE: number;
   /** Conexiones máximas del pool de la base detecta (B9, ajuste 3b): opcional. */
   BD_DETECTA_POOL_MAX: number;
+  /**
+   * Espera máxima por una conexión libre del pool, en ms (B9, condición 4 del
+   * informe parcial 2): opcional, 10000 por defecto. Al vencer, la petición
+   * responde 503 en lugar de quedar en cola sin límite.
+   */
+  BD_DETECTA_CONEXION_ESPERA_MS: number;
 }
 
 /**
@@ -104,6 +110,9 @@ const ENTEROS_OPCIONALES = {
     HILOS_LIBUV_POR_DEFECTO,
   ],
   BD_DETECTA_POOL_MAX: [1, 50, 10],
+  // Finita a propósito (0 sería espera infinita en pg); el tope coincide con
+  // headersTimeout (60 s).
+  BD_DETECTA_CONEXION_ESPERA_MS: [1000, 60000, 10000],
 } as const;
 
 type ClaveEnteroOpcional = keyof typeof ENTEROS_OPCIONALES;
