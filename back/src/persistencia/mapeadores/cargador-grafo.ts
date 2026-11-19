@@ -264,11 +264,11 @@ export class CargadorGrafo {
   async #resolver(): Promise<void> {
     while (this.#hayPendientes()) {
       const p = this.#pendientes;
-      const consultas: Promise<void>[] = [];
+      const consultas: (() => Promise<void>)[] = [];
 
       if (p.informes.size > 0) {
         const ids = this.#tomar('informes');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaInformeRiesgo, { where: { idInforme: In(ids) } })
             .then((filas) =>
@@ -287,27 +287,29 @@ export class CargadorGrafo {
           this.#planesPorInforme.set(id, []);
         });
         consultas.push(
-          this.manager
-            .find(EsquemaInformeRiesgoCaso, { where: { idInforme: In(ids) } })
-            .then((filas) =>
-              filas.forEach((fila) => {
-                this.#casosPorInforme.get(fila.idInforme)?.push(fila.idCaso);
-                this.#pedir('casos', fila.idCaso);
-              }),
-            ),
-          this.manager
-            .find(EsquemaInformeRiesgoPlan, { where: { idInforme: In(ids) } })
-            .then((filas) =>
-              filas.forEach((fila) => {
-                this.#planesPorInforme.get(fila.idInforme)?.push(fila.idPlan);
-                this.#pedir('planes', fila.idPlan);
-              }),
-            ),
+          () =>
+            this.manager
+              .find(EsquemaInformeRiesgoCaso, { where: { idInforme: In(ids) } })
+              .then((filas) =>
+                filas.forEach((fila) => {
+                  this.#casosPorInforme.get(fila.idInforme)?.push(fila.idCaso);
+                  this.#pedir('casos', fila.idCaso);
+                }),
+              ),
+          () =>
+            this.manager
+              .find(EsquemaInformeRiesgoPlan, { where: { idInforme: In(ids) } })
+              .then((filas) =>
+                filas.forEach((fila) => {
+                  this.#planesPorInforme.get(fila.idInforme)?.push(fila.idPlan);
+                  this.#pedir('planes', fila.idPlan);
+                }),
+              ),
         );
       }
       if (p.planes.size > 0) {
         const ids = this.#tomar('planes');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaPlanNivelacion, { where: { idPlan: In(ids) } })
             .then((filas) =>
@@ -322,7 +324,7 @@ export class CargadorGrafo {
       if (p.cursosDePlanes.size > 0) {
         const ids = this.#tomar('cursosDePlanes');
         ids.forEach((id) => this.#cursosPorPlan.set(id, []));
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaPlanNivelacionCurso, { where: { idPlan: In(ids) } })
             .then((filas) =>
@@ -335,7 +337,7 @@ export class CargadorGrafo {
       }
       if (p.casos.size > 0) {
         const ids = this.#tomar('casos');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaCasoRiesgo, { where: { idCaso: In(ids) } })
             .then((filas) =>
@@ -353,7 +355,7 @@ export class CargadorGrafo {
       }
       if (p.citasDeCasos.size > 0) {
         const ids = this.#tomar('citasDeCasos');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaCita, { where: { idCaso: In(ids) } })
             .then((filas) =>
@@ -363,7 +365,7 @@ export class CargadorGrafo {
       }
       if (p.citasDePsicologos.size > 0) {
         const ids = this.#tomar('citasDePsicologos');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaCita, { where: { idPsicologo: In(ids) } })
             .then((filas) =>
@@ -373,7 +375,7 @@ export class CargadorGrafo {
       }
       if (p.asesoriasDeCitas.size > 0) {
         const ids = this.#tomar('asesoriasDeCitas');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaAsesoria, { where: { idCita: In(ids) } })
             .then((filas) =>
@@ -385,7 +387,7 @@ export class CargadorGrafo {
       }
       if (p.origenes.size > 0) {
         const ids = this.#tomar('origenes');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(ModeloOrigenRiesgo, { where: { idOrigen: In(ids) } })
             .then((filas) =>
@@ -403,7 +405,7 @@ export class CargadorGrafo {
       }
       if (p.registros.size > 0) {
         const ids = this.#tomar('registros');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaRegistroAcademico, { where: { idRegistro: In(ids) } })
             .then((filas) =>
@@ -413,7 +415,7 @@ export class CargadorGrafo {
       }
       if (p.registrosDeCursos.size > 0) {
         const ids = this.#tomar('registrosDeCursos');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaRegistroAcademico, { where: { idCurso: In(ids) } })
             .then((filas) =>
@@ -423,7 +425,7 @@ export class CargadorGrafo {
       }
       if (p.cursos.size > 0) {
         const ids = this.#tomar('cursos');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaCurso, { where: { idCurso: In(ids) } })
             .then((filas) =>
@@ -433,7 +435,7 @@ export class CargadorGrafo {
       }
       if (p.cursosDeDocentes.size > 0) {
         const ids = this.#tomar('cursosDeDocentes');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaCurso, { where: { idDocente: In(ids) } })
             .then((filas) =>
@@ -443,7 +445,7 @@ export class CargadorGrafo {
       }
       if (p.personas.size > 0) {
         const ids = this.#tomar('personas');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(ModeloPersona, { where: { id: In(ids) } })
             .then((filas) =>
@@ -464,7 +466,7 @@ export class CargadorGrafo {
       }
       if (p.programas.size > 0) {
         const ids = this.#tomar('programas');
-        consultas.push(
+        consultas.push(() =>
           this.manager
             .find(EsquemaPrograma, { where: { idPrograma: In(ids) } })
             .then((filas) =>
@@ -475,8 +477,19 @@ export class CargadorGrafo {
         );
       }
 
-      // Las consultas de un mismo nivel son independientes.
-      await Promise.all(consultas);
+      // Las consultas de un mismo nivel son independientes. Dentro de una
+      // transacción hay UNA sola conexión: lanzarlas en paralelo solo las
+      // encola en el cliente de pg, que lo desaprueba ("Calling
+      // client.query() when the client is already executing a query",
+      // pg@9 lo eliminará). Ahí se ejecutan en serie; fuera de una
+      // transacción, cada consulta toma su propia conexión del pool (B9, R9).
+      if (this.manager.queryRunner?.isTransactionActive) {
+        for (const consulta of consultas) {
+          await consulta();
+        }
+      } else {
+        await Promise.all(consultas.map((consulta) => consulta()));
+      }
     }
   }
 
