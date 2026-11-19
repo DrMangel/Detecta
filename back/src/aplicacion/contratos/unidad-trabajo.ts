@@ -5,6 +5,7 @@ import type { Repositorio } from '../../dominio/repositorios/repositorio';
 import type { RepositorioAlerta } from '../../dominio/repositorios/repositorio-alerta';
 import type { RepositorioCasoRiesgo } from '../../dominio/repositorios/repositorio-caso-riesgo';
 import type { RepositorioPersona } from '../../dominio/repositorios/repositorio-persona';
+import type { RepositorioPlanNivelacion } from '../../dominio/repositorios/repositorio-plan-nivelacion';
 import type { RepositorioRegistroAcademico } from '../../dominio/repositorios/repositorio-registro-academico';
 import type { RepositorioSolicitud } from '../../dominio/repositorios/repositorio-solicitud';
 
@@ -33,6 +34,8 @@ export interface RepositoriosTransaccionales {
   /** B7: la cita y su asesoría se guardan junto con el caso. */
   citas: Repositorio<Cita>;
   asesorias: Repositorio<Asesoria>;
+  /** B8: el plan de nivelación se guarda con bloqueo del caso o del plan. */
+  planes: RepositorioPlanNivelacion;
 }
 
 export interface OpcionesUnidadTrabajo {
