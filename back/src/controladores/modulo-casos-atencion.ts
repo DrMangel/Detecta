@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ControladorAtencionPsicologica } from './controlador-atencion-psicologica';
 import { ControladorCasosRiesgo } from './controlador-casos-riesgo';
 import { ControladorPertinencia } from './controlador-pertinencia';
 import { ModuloAcceso } from './modulo-acceso';
@@ -12,6 +13,10 @@ import { ModuloNotificacion } from './modulo-notificacion';
  */
 @Module({
   imports: [ModuloAcceso, ModuloNotificacion],
-  controllers: [ControladorCasosRiesgo, ControladorPertinencia],
+  controllers: [
+    ControladorCasosRiesgo,
+    ControladorPertinencia,
+    ControladorAtencionPsicologica,
+  ],
 })
 export class ModuloCasosAtencion {}

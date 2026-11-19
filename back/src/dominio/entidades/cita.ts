@@ -20,7 +20,7 @@ export interface PropiedadesCita {
 export class Cita {
   readonly #idCita: string;
   #fechaHora: Date;
-  readonly #modalidad: Modalidad;
+  #modalidad: Modalidad;
   #estado: EstadoCita;
   #asesoria: Asesoria | null;
 
@@ -53,15 +53,18 @@ export class Cita {
   }
 
   /**
-   * Cambia la fecha de la cita (sd_CUD06, 4.a). No se limita el número de
-   * reprogramaciones (D8: no implementar).
+   * Cambia la fecha, la hora y la modalidad de la cita (sd_CUD06, 4.a; ER
+   * R06: "nueva fecha, hora y modalidad"). Firma ampliada con `modalidad` en
+   * B7 (respuesta 8 de Ivan; diferencia con el diagrama, que recibe solo
+   * `fechaHora`). No se limita el número de reprogramaciones (D8).
    * El cruce de horario NO se verifica aquí, porque la cita no conoce a su
    * psicólogo: es una regla del servicio de B7, que debe llamar a
    * `Psicologo.estaDisponible(fechaHora)` antes de reprogramar (ER R05).
    */
-  reprogramar(fechaHora: Date): void {
+  reprogramar(fechaHora: Date, modalidad: Modalidad): void {
     this.#exigirNoCerrada();
     this.#fechaHora = new Date(fechaHora);
+    this.#modalidad = modalidad;
     this.#estado = EstadoCita.REPROGRAMADA;
   }
 

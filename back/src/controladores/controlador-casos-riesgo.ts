@@ -28,7 +28,7 @@ import {
   REPOSITORIO_REGISTRO_ACADEMICO,
 } from '../dominio/repositorios/tokens';
 import { ControladorBase } from './controlador-base';
-import { conPersistencia, MENSAJE_ERROR_CONSULTA } from './respuestas';
+import { conPersistencia, MENSAJE_ERROR_CONSULTA, regla } from './respuestas';
 import {
   antecedentes,
   casoJefe,
@@ -169,7 +169,7 @@ export class ControladorCasosRiesgo extends ControladorBase {
             if (jefePrograma === null) {
               throw new ConflictException(MENSAJES_CASOS.sinJefe);
             }
-            recargado.canalizar(ruta);
+            regla(() => recargado.canalizar(ruta));
             await repos.casos.guardar(recargado);
             return {
               caso: recargado,

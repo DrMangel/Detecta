@@ -109,12 +109,22 @@ describe('RegistroAcademico (ER Tabla 2)', () => {
 });
 
 describe('Cita y Asesoria (sd_CUD06, CUD08)', () => {
-  it('reprogramar cambia la fecha y deja la cita REPROGRAMADA', () => {
+  it('reprogramar cambia la fecha y la modalidad y deja la cita REPROGRAMADA (B7, respuesta 8)', () => {
     const cita = citaProgramada();
     const nueva = new Date(2026, 10, 21, 10);
-    cita.reprogramar(nueva);
+    cita.reprogramar(nueva, Modalidad.VIRTUAL);
     expect(cita.estado).toBe(EstadoCita.REPROGRAMADA);
     expect(cita.fechaHora.getTime()).toBe(nueva.getTime());
+    expect(cita.modalidad).toBe(Modalidad.VIRTUAL);
+  });
+
+  it('reprogramar puede cambiar solo la modalidad', () => {
+    const cita = citaProgramada();
+    const misma = cita.fechaHora;
+    cita.reprogramar(misma, Modalidad.VIRTUAL);
+    expect(cita.fechaHora.getTime()).toBe(misma.getTime());
+    expect(cita.modalidad).toBe(Modalidad.VIRTUAL);
+    expect(cita.estado).toBe(EstadoCita.REPROGRAMADA);
   });
 
   it('generarAsesoria crea la asesoría y cierra la cita, aun sin asistencia', () => {
@@ -143,7 +153,9 @@ describe('Cita y Asesoria (sd_CUD06, CUD08)', () => {
       false,
       false,
     );
-    expect(() => cita.reprogramar(new Date())).toThrow(/cerrada/);
+    expect(() => cita.reprogramar(new Date(), Modalidad.PRESENCIAL)).toThrow(
+      /cerrada/,
+    );
     expect(() =>
       cita.generarAsesoria(
         TipoAsesoria.SEGUIMIENTO,

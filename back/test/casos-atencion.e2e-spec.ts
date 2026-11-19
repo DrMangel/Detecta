@@ -13,6 +13,8 @@ import { AppModule } from '../src/app.module';
 import { configurarAplicacion } from '../src/configurar-aplicacion';
 import type {
   CasoDto,
+  CasoPsicologoDto,
+  CitaDto,
   DetalleDto,
 } from '../src/controladores/respuestas-casos';
 import { Psicologo } from '../src/dominio/entidades/psicologo';
@@ -56,6 +58,11 @@ type CuerpoGeneral = {
   message?: string;
   mensaje?: string;
   caso?: CasoDto;
+  cita?: CitaDto;
+  aviso?: string;
+  estado?: string;
+  requiereConsentimiento?: boolean;
+  pregunta?: string;
 };
 
 interface Respuesta<T> {
@@ -438,5 +445,456 @@ describe('B7b: pertinencia y cita (R05, CUD07)', () => {
       mensaje: 'Caso archivado / reorientado',
       estado: 'REORIENTADO',
     });
+  });
+});
+
+describe('B7c: caso de riesgo de punta a punta (criterio de cierre)', () => {
+  const RESULTADO = {
+    tipo: 'ORIENTACION',
+    observaciones: 'Se acordaron estrategias de manejo del tiempo',
+    acuerdos: 'Seguimiento en dos semanas',
+    asistencia: true,
+    requiereSeguimiento: false,
+    presentaRiesgoCritico: false,
+  };
+
+  it('mayor de edad: alerta → canalización psicológica → evaluación → cita → resultado → cierre', async () => {
+    const { caso } = await casoDeAlerta(
+      repos,
+      esc.d1,
+      esc.r1,
+      'Ansiedad en clase',
+    );
+    expect(
+      (
+        await pedir(
+          'j1@ejemplo.edu.co',
+          'POST',
+          `/casos/${caso.idCaso}/canalizacion`,
+          { ruta: 'PSICOLOGICA' },
+        )
+      ).estado,
+    ).toBe(200);
+    expect(
+      (
+        await pedir(
+          'ps1@ejemplo.edu.co',
+          'POST',
+          `/pertinencia/${caso.idCaso}`,
+          { pertinente: true, justificacion: 'Pertinente' },
+        )
+      ).cuerpo.mensaje,
+    ).toBe('Caso aprobado. Programe la cita');
+
+    correo.enviados.length = 0;
+    const cita = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${caso.idCaso}/citas`,
+      {
+        fechaHora: '2026-11-20T09:00:00-05:00',
+        modalidad: 'PRESENCIAL',
+      },
+    );
+    expect(cita.estado).toBe(201);
+    expect(cita.cuerpo).toMatchObject({ mensaje: 'Cita programada' });
+    expect(cita.cuerpo.aviso).toBeUndefined();
+    await esperarCorreos();
+    expect(correo.enviados.map((c) => [c.destino, c.asunto])).toEqual([
+      ['e1@ejemplo.edu.co', 'DETECTA: cita programada'],
+    ]);
+    expect(correo.enviados[0]?.cuerpo).not.toMatch(/consentimiento|psic/i);
+
+    // El docente ya ve ATENDIDA (el caso está CITADO).
+    const emitidas = await pedir<
+      { idAlerta: string; estadoAtencion: string }[]
+    >('d1@ejemplo.edu.co', 'GET', `/alertas/emitidas?periodo=${PERIODO}`);
+    expect(
+      emitidas.cuerpo.find((a) => a.idAlerta === caso.origen.idOrigen)
+        ?.estadoAtencion,
+    ).toBe('ATENDIDA');
+
+    const idCita = cita.cuerpo.cita?.idCita ?? '';
+    const cerrarAntes = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/cierre`,
+    );
+    expect(cerrarAntes).toMatchObject({
+      estado: 409,
+      cuerpo: { message: 'Diligencie las observaciones de la asesoría' },
+    });
+
+    const resultado = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/citas/${idCita}/resultado`,
+      RESULTADO,
+    );
+    expect(resultado).toMatchObject({
+      estado: 201,
+      cuerpo: { mensaje: 'Resultado registrado', cita: { estado: 'CERRADA' } },
+    });
+
+    const cierre = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/cierre`,
+    );
+    expect(cierre).toMatchObject({
+      estado: 200,
+      cuerpo: { mensaje: 'Caso cerrado' },
+    });
+
+    const expediente = await pedir<DetalleDto<CasoPsicologoDto>>(
+      'ps1@ejemplo.edu.co',
+      'GET',
+      `/atencion/casos/${caso.idCaso}`,
+    );
+    expect(expediente.cuerpo.caso).toMatchObject({
+      estado: 'CERRADO',
+      citas: [{ asesoria: { observaciones: RESULTADO.observaciones } }],
+    });
+
+    // El Jefe ve el estado, nunca el expediente.
+    const vistaJefe = await pedir<DetalleDto<CasoDto>>(
+      'j1@ejemplo.edu.co',
+      'GET',
+      `/casos/${caso.idCaso}`,
+    );
+    expect(vistaJefe.cuerpo.caso.estado).toBe('CERRADO');
+    expect(JSON.stringify(vistaJefe.cuerpo)).not.toMatch(
+      /estrategias|Seguimiento en dos semanas|citas/,
+    );
+  });
+
+  it('menor de edad: aviso y requisito en el correo; el resultado se bloquea hasta confirmar el consentimiento', async () => {
+    const { caso } = await casoDeSolicitud(
+      repos,
+      esc.e2,
+      RutaAtencion.PSICOLOGICA,
+    ); // E2 nació en 2010
+    await pedir('ps2@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+      pertinente: true,
+      justificacion: 'Pertinente',
+    });
+    correo.enviados.length = 0;
+    const cita = await pedir(
+      'ps2@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${caso.idCaso}/citas`,
+      {
+        fechaHora: '2026-11-21T10:00:00-05:00',
+        modalidad: 'VIRTUAL',
+      },
+    );
+    expect(cita.cuerpo.aviso).toBe(
+      'La atención requiere el consentimiento informado del acudiente',
+    );
+    await esperarCorreos();
+    expect(correo.enviados[0]?.cuerpo).toContain(
+      'Antes de la cita debe presentar el consentimiento informado firmado por su acudiente.',
+    );
+    expect(correo.enviados[0]?.cuerpo).not.toMatch(/psic/i);
+
+    const idCita = cita.cuerpo.cita?.idCita ?? '';
+    const bloqueado = await pedir(
+      'ps2@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/citas/${idCita}/resultado`,
+      RESULTADO,
+    );
+    expect(bloqueado).toMatchObject({
+      estado: 409,
+      cuerpo: {
+        message: 'No se puede registrar la atención sin consentimiento',
+        requiereConsentimiento: true,
+        pregunta: '¿El acudiente otorgó el consentimiento informado?',
+      },
+    });
+
+    expect(
+      (
+        await pedir(
+          'ps2@ejemplo.edu.co',
+          'POST',
+          `/atencion/casos/${caso.idCaso}/consentimiento`,
+        )
+      ).estado,
+    ).toBe(200);
+    const [traza] = await fuente.query<
+      { id_psicologo_consentimiento: string; fecha_consentimiento: Date }[]
+    >(
+      'SELECT id_psicologo_consentimiento, fecha_consentimiento FROM caso_riesgo WHERE id_caso = $1',
+      [caso.idCaso],
+    );
+    expect(traza?.id_psicologo_consentimiento).toBe('PS2');
+    expect(traza?.fecha_consentimiento).toBeInstanceOf(Date);
+
+    const registrado = await pedir(
+      'ps2@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/citas/${idCita}/resultado`,
+      RESULTADO,
+    );
+    expect(registrado.estado).toBe(201);
+    expect(
+      (
+        await pedir(
+          'ps2@ejemplo.edu.co',
+          'POST',
+          `/atencion/casos/${caso.idCaso}/cierre`,
+        )
+      ).estado,
+    ).toBe(200);
+  });
+
+  it('confirmar el consentimiento de un mayor de edad: 409', async () => {
+    const { caso } = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    await pedir('ps1@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+      pertinente: true,
+      justificacion: 'Pertinente',
+    });
+    expect(
+      await pedir(
+        'ps1@ejemplo.edu.co',
+        'POST',
+        `/atencion/casos/${caso.idCaso}/consentimiento`,
+      ),
+    ).toMatchObject({
+      estado: 409,
+      cuerpo: {
+        message: 'El estudiante no requiere consentimiento informado.',
+      },
+    });
+  });
+
+  it('reprogramar: con cruce 409; solo la modalidad 200; idéntica 400; seguimiento 201; correo de cita reprogramada', async () => {
+    const { caso } = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    await pedir('ps1@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+      pertinente: true,
+      justificacion: 'Pertinente',
+    });
+    const cita = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${caso.idCaso}/citas`,
+      {
+        fechaHora: '2026-12-01T09:00:00-05:00',
+        modalidad: 'PRESENCIAL',
+      },
+    );
+    const idCita = cita.cuerpo.cita?.idCita ?? '';
+    const seguimiento = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/atencion/casos/${caso.idCaso}/seguimiento`,
+      {
+        fechaHora: '2026-12-02T09:00:00-05:00',
+        modalidad: 'VIRTUAL',
+      },
+    );
+    expect(seguimiento.estado).toBe(201);
+
+    expect(
+      await pedir(
+        'ps1@ejemplo.edu.co',
+        'POST',
+        `/atencion/citas/${idCita}/reprogramacion`,
+        {
+          fechaHora: '2026-12-02T09:00:00-05:00',
+          modalidad: 'PRESENCIAL',
+        },
+      ),
+    ).toMatchObject({
+      estado: 409,
+      cuerpo: { message: 'Cruce de horario. Seleccione otra hora' },
+    });
+    expect(
+      await pedir(
+        'ps1@ejemplo.edu.co',
+        'POST',
+        `/atencion/citas/${idCita}/reprogramacion`,
+        {
+          fechaHora: '2026-12-01T14:00:00Z',
+          modalidad: 'VIRTUAL',
+        },
+      ),
+    ).toMatchObject({
+      estado: 200,
+      cuerpo: { cita: { estado: 'REPROGRAMADA', modalidad: 'VIRTUAL' } },
+    });
+    expect(
+      (
+        await pedir(
+          'ps1@ejemplo.edu.co',
+          'POST',
+          `/atencion/citas/${idCita}/reprogramacion`,
+          {
+            fechaHora: '2026-12-01T09:00:00-05:00',
+            modalidad: 'VIRTUAL',
+          },
+        )
+      ).estado,
+    ).toBe(400);
+    correo.enviados.length = 0;
+    const reprogramada = await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/atencion/citas/${idCita}/reprogramacion`,
+      {
+        fechaHora: '2026-12-03T09:00:00-05:00',
+        modalidad: 'VIRTUAL',
+      },
+    );
+    expect(reprogramada.estado).toBe(200);
+    await esperarCorreos();
+    expect(correo.enviados.map((c) => [c.destino, c.asunto])).toEqual([
+      ['e1@ejemplo.edu.co', 'DETECTA: cita reprogramada'],
+    ]);
+    expect(
+      (
+        await pedir(
+          'ps1@ejemplo.edu.co',
+          'POST',
+          `/atencion/citas/${idCita}/reprogramacion`,
+          {
+            fechaHora: '2026-11-17T09:00:00-05:00',
+            modalidad: 'VIRTUAL',
+          },
+        )
+      ).cuerpo.message,
+    ).toBe('La fecha de la cita debe ser posterior a la actual.');
+  });
+
+  it('D18 por HTTP: quién ve el motivo de cada solicitud (detalle del Jefe y expediente del psicólogo)', async () => {
+    const academica = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.ACADEMICA,
+    );
+    const psicosocial = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const motivoVisible = (cuerpo: unknown) =>
+      JSON.stringify(cuerpo).includes('Necesito apoyo');
+
+    // Académica sin canalizar: el Jefe sí; los psicólogos no (403).
+    expect(
+      motivoVisible(
+        (
+          await pedir(
+            'j1@ejemplo.edu.co',
+            'GET',
+            `/casos/${academica.caso.idCaso}`,
+          )
+        ).cuerpo,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await pedir(
+          'ps1@ejemplo.edu.co',
+          'GET',
+          `/atencion/casos/${academica.caso.idCaso}`,
+        )
+      ).estado,
+    ).toBe(403);
+    // Psicosocial: el Jefe nunca (403); un psicólogo sí mientras no esté asignada a otro.
+    expect(
+      (
+        await pedir(
+          'j1@ejemplo.edu.co',
+          'GET',
+          `/casos/${psicosocial.caso.idCaso}`,
+        )
+      ).estado,
+    ).toBe(403);
+    expect(
+      motivoVisible(
+        (
+          await pedir(
+            'ps2@ejemplo.edu.co',
+            'GET',
+            `/atencion/casos/${psicosocial.caso.idCaso}`,
+          )
+        ).cuerpo,
+      ),
+    ).toBe(true);
+    await pedir(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${psicosocial.caso.idCaso}`,
+      { pertinente: true, justificacion: 'Pertinente' },
+    );
+    expect(
+      (
+        await pedir(
+          'ps2@ejemplo.edu.co',
+          'GET',
+          `/atencion/casos/${psicosocial.caso.idCaso}`,
+        )
+      ).estado,
+    ).toBe(403);
+    // Académica canalizada a psicología: el Jefe pierde el motivo; el psicólogo lo ve.
+    await pedir(
+      'j1@ejemplo.edu.co',
+      'POST',
+      `/casos/${academica.caso.idCaso}/canalizacion`,
+      { ruta: 'PSICOLOGICA' },
+    );
+    expect(
+      motivoVisible(
+        (
+          await pedir(
+            'j1@ejemplo.edu.co',
+            'GET',
+            `/casos/${academica.caso.idCaso}`,
+          )
+        ).cuerpo,
+      ),
+    ).toBe(false);
+    expect(
+      motivoVisible(
+        (
+          await pedir(
+            'ps1@ejemplo.edu.co',
+            'GET',
+            `/atencion/casos/${academica.caso.idCaso}`,
+          )
+        ).cuerpo,
+      ),
+    ).toBe(true);
+  });
+
+  it('bandejas del Jefe y del psicólogo: tiempo de respuesta', async () => {
+    for (let i = 0; i < 3; i++) {
+      const lista = await pedir<CasoPsicologoDto[]>(
+        'ps1@ejemplo.edu.co',
+        'GET',
+        '/atencion/casos',
+        undefined,
+        'bandeja',
+      );
+      expect(lista.estado).toBe(200);
+      await pedir<CasoDto[]>(
+        'j1@ejemplo.edu.co',
+        'GET',
+        '/casos/pendientes',
+        undefined,
+        'bandeja',
+      );
+    }
+    expect(Math.max(...(tiempos['bandeja'] ?? [Infinity]))).toBeLessThan(2000);
   });
 });

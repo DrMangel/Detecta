@@ -206,3 +206,19 @@ export async function conPersistencia<T>(
     throw new ServiceUnavailableException(mensaje);
   }
 }
+
+/**
+ * Ejecuta una regla del dominio (B7): si la entidad rechaza la operación
+ * (estado terminal, cita cerrada...), responde 409 con el mensaje del dominio
+ * (textos de B1), en lugar de dejar que se convierta en un 503.
+ */
+export function regla<T>(operacion: () => T): T {
+  try {
+    return operacion();
+  } catch (error) {
+    if (error instanceof HttpException || !(error instanceof Error)) {
+      throw error;
+    }
+    throw new ConflictException(error.message);
+  }
+}

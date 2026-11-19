@@ -1,6 +1,10 @@
 import type { DataSource } from 'typeorm';
 import { BloqueoAgotadoError } from '../../src/aplicacion/contratos/unidad-trabajo';
+import { EstadoCita } from '../../src/dominio/entidades/estado-cita';
+import { Modalidad } from '../../src/dominio/entidades/modalidad';
 import { RutaAtencion } from '../../src/dominio/entidades/ruta-atencion';
+import { TipoAsesoria } from '../../src/dominio/entidades/tipo-asesoria';
+import { RepositorioPersistenteCasoRiesgo } from '../../src/persistencia/repositorios-persistentes';
 import { UnidadTrabajoPersistente } from '../../src/persistencia/unidad-trabajo-persistente';
 import {
   casoDeAlerta,
@@ -12,6 +16,7 @@ import {
 } from './escenario';
 import {
   abrirFuenteAplicacion,
+  ContadorConsultas,
   migrarBasePruebas,
   vaciarBasePruebas,
 } from './soporte';
@@ -245,5 +250,66 @@ describe('Bloqueos con espera (respuesta 7, ajuste B)', () => {
     ).resolves.toBe('ok');
     liberar();
     await sincronizacion;
+  });
+});
+
+describe('Cita y asesoría en una transacción (B7c)', () => {
+  it('si falla después de guardar la cita y la asesoría, se revierten ambas', async () => {
+    const { caso } = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    caso.asignarPsicologo(esc.ps1);
+    caso.aprobar();
+    const cita = caso.programarCita(
+      new Date('2027-01-10T15:00:00Z'),
+      Modalidad.VIRTUAL,
+    );
+    await repos.casos.guardar(caso);
+
+    await expect(
+      unidad.ejecutar(async (r) => {
+        const recargado = await r.casos.buscarPorId(caso.idCaso);
+        const actual = recargado?.citas.find((c) => c.idCita === cita.idCita);
+        const asesoria = actual!.generarAsesoria(
+          TipoAsesoria.ORIENTACION,
+          'Obs',
+          '',
+          true,
+          false,
+          false,
+        );
+        await r.citas.guardar(actual!);
+        await r.asesorias.guardar(asesoria);
+        throw new Error('fallo forzado');
+      }),
+    ).rejects.toThrow('fallo forzado');
+
+    const recargada = await repos.citas.buscarPorId(cita.idCita);
+    expect(recargada?.estado).toBe(EstadoCita.PROGRAMADA);
+    expect(recargada?.asesoria).toBeNull();
+  });
+});
+
+describe('Bandeja del psicólogo sin N+1 (B7c)', () => {
+  it('el número de consultas no depende del número de casos', async () => {
+    const contador = new ContadorConsultas();
+    const contada = await abrirFuenteAplicacion(contador);
+    try {
+      const casos = new RepositorioPersistenteCasoRiesgo(contada);
+      contador.total = 0;
+      await casos.listarPendientesRutaPsicologica();
+      const antes = contador.total;
+      for (let i = 0; i < 12; i++) {
+        await casoDeSolicitud(repos, esc.e2, RutaAtencion.PSICOLOGICA);
+      }
+      contador.total = 0;
+      const lista = await casos.listarPendientesRutaPsicologica();
+      expect(lista.length).toBeGreaterThanOrEqual(12);
+      expect(contador.total).toBeLessThanOrEqual(Math.max(antes, 15));
+    } finally {
+      await contada.destroy();
+    }
   });
 });

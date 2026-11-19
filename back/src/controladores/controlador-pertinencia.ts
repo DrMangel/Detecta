@@ -27,7 +27,7 @@ import type { Persona } from '../dominio/entidades/persona';
 import { Psicologo } from '../dominio/entidades/psicologo';
 import { RutaAtencion } from '../dominio/entidades/ruta-atencion';
 import { ControladorBase } from './controlador-base';
-import { conPersistencia } from './respuestas';
+import { conPersistencia, regla } from './respuestas';
 import { citaDto, type CitaDto } from './respuestas-casos';
 import { UsuarioSesion } from './sesion';
 import {
@@ -142,15 +142,17 @@ export class ControladorPertinencia extends ControladorBase {
             if (!recargado.asignarPsicologo(psicologo)) {
               throw new ConflictException(MENSAJES_PERTINENCIA.tomadoPorOtro);
             }
-            if (!pertinente) {
-              if (reorientar) {
-                recargado.reorientar(justificacion);
+            regla(() => {
+              if (!pertinente) {
+                if (reorientar) {
+                  recargado.reorientar(justificacion);
+                } else {
+                  recargado.archivar(justificacion);
+                }
               } else {
-                recargado.archivar(justificacion);
+                recargado.aprobar();
               }
-            } else {
-              recargado.aprobar();
-            }
+            });
             await repos.casos.guardar(recargado);
             return recargado;
           },
@@ -204,7 +206,9 @@ export class ControladorPertinencia extends ControladorBase {
             if (!asignado.psicologo?.estaDisponible(fechaHora)) {
               throw new ConflictException(MENSAJES_PERTINENCIA.cruceHorario);
             }
-            const nueva = asignado.programarCita(fechaHora, modalidad);
+            const nueva = regla(() =>
+              asignado.programarCita(fechaHora, modalidad),
+            );
             await repos.casos.guardar(asignado);
             await repos.citas.guardar(nueva);
             return {
