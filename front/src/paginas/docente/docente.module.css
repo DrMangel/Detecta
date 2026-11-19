@@ -90,20 +90,6 @@
   overflow-wrap: anywhere;
 }
 
-.seccion {
-  margin-top: var(--espacio-4);
-}
-
-.seccion h2 {
-  font-size: 1.25rem;
-  margin: 0 0 var(--espacio-2);
-}
-
-.seccion:focus {
-  outline: 3px solid var(--color-foco);
-  outline-offset: 4px;
-}
-
 .panel {
   display: flex;
   flex-direction: column;

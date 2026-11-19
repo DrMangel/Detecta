@@ -53,15 +53,6 @@
   color: var(--color-texto-suave);
 }
 
-.seccion {
-  margin-top: var(--espacio-4);
-}
-
-.seccion h2 {
-  font-size: 1.25rem;
-  margin: 0 0 var(--espacio-2);
-}
-
 .lista {
   display: grid;
   grid-template-columns: 1fr;

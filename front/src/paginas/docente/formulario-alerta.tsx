@@ -22,6 +22,7 @@ import {
   buscarAlertaRegistrada,
   type AlertaEnviada,
 } from './conciliacion-alerta';
+import controles from '../../componentes/controles.module.css';
 import estilos from './docente.module.css';
 import {
   ROTULOS_DOCENTE,
@@ -138,7 +139,7 @@ export function FormularioAlerta({
       ref={seccion}
       tabIndex={-1}
       aria-labelledby={idTitulo}
-      className={estilos['seccion']}
+      className={controles['seccion']}
     >
       <h2 id={idTitulo}>{ROTULOS_DOCENTE.emitirAlerta}</h2>
       <form className={estilos['panel']} onSubmit={enviar} noValidate>

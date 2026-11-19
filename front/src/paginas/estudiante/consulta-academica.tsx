@@ -16,6 +16,7 @@ import {
   type AlertaEstudiante,
   type RegistrosEstudiante,
 } from '../../servicios-api/estudiante';
+import controles from '../../componentes/controles.module.css';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
@@ -81,7 +82,7 @@ function ResultadoConsulta({ resultado }: { resultado: Resultado }) {
   const { alertas } = resultado;
   return (
     <>
-      <section className={estilos['seccion']}>
+      <section className={controles['seccion']}>
         {registros.length === 0 ? (
           <MensajeInformativo
             mensaje={
@@ -112,7 +113,7 @@ function ResultadoConsulta({ resultado }: { resultado: Resultado }) {
         )}
       </section>
 
-      <section className={estilos['seccion']}>
+      <section className={controles['seccion']}>
         <h2>{ROTULOS_ESTUDIANTE.alertas}</h2>
         {alertas.length === 0 ? (
           <p>{TEXTO_SIN_ALERTAS}</p>
