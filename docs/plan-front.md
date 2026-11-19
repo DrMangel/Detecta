@@ -27,6 +27,15 @@ El mismo del backend:
 - Cada fase cierra con build, lint, format, typecheck y pruebas en verde.
 - Los archivos se agregan a Git de forma explícita (nunca `git add -A`) y `.claude/` no entra en ningún commit.
 
+## Convenciones del front
+
+Vigentes desde F1b; el código nuevo de F3, F4 y F5 nace con ellas, sin una pasada de corrección posterior.
+
+- **Reutilización primero.** Antes de escribir un componente, hook o función se busca en `componentes/` y `servicios-api/`: `pedir` y `errorDeRespuesta` (cliente), `limites`, `etiquetas`, `formato` (es-CO), `buscarNueva` y `enviarConConciliacion` (conciliación del envío), `useEnvio`, `useConsulta`, `CampoTexto`, `GrupoOpciones`, `FormularioPeriodo` y `.seccion` de `controles.module.css`. Se usa; no se copia.
+- **Compartido nuevo con TDD.** Si hace falta un módulo compartido nuevo, primero la prueba en rojo y luego el código mínimo, dentro de esas dos carpetas y sin carpetas nuevas.
+- **Forma del código.** Cláusulas de guarda y retorno anticipado (máximo 2 niveles de anidación), sin `else` tras `return`, tablas de correspondencia en lugar de cadenas `if/else`, funciones de una sola responsabilidad y de menos de 80 líneas, máximo 3 parámetros (objeto de opciones si hacen falta más), sin código muerto, sin comentarios que repitan el código y sin abstracciones de un solo uso. Los comentarios que se conservan citan el requisito, el diagrama o el caso de uso, o explican el porqué.
+- **Plan e informe.** El plan de cada fase lleva una sección «Reutilización» (módulos existentes que usa y compartidos nuevos con su prueba). Antes del informe se revisan los archivos tocados con oxlint y una configuración temporal `-c` con los valores aprobados, sin modificar `.oxlintrc.json`; el informe da una línea con el resultado y solo los totales de las verificaciones.
+
 ## Fases
 
 | Fase | Qué se construye | Carpetas | Cierre |
