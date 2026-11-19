@@ -15,7 +15,11 @@ const BASE = import.meta.env.VITE_URL_API ?? '/api';
 
 type Metodo = 'GET' | 'POST';
 
-export interface OpcionesPeticion {
+/** Petición a la API (F1b: un objeto en vez de cuatro argumentos). */
+export interface Peticion {
+  metodo: Metodo;
+  ruta: string;
+  cuerpo?: unknown;
   /** false en las rutas públicas y en la consulta inicial de la sesión. */
   sesionRequerida?: boolean;
   /** Textos de 403 del backend que esta ruta muestra (ver errorDeRespuesta). */
@@ -44,41 +48,47 @@ async function leerCuerpo(respuesta: Response): Promise<unknown> {
   }
 }
 
-export async function pedir<T>(
-  metodo: Metodo,
-  ruta: string,
-  cuerpo?: unknown,
-  { sesionRequerida = true, textos403 = [] }: OpcionesPeticion = {},
-): Promise<T> {
-  let respuesta: Response;
-  try {
-    respuesta = await fetch(`${BASE}${ruta}`, {
+function opcionesFetch(metodo: Metodo, cuerpo: unknown): RequestInit {
+  if (cuerpo === undefined) {
+    return {
       method: metodo,
       credentials: 'same-origin',
-      headers:
-        cuerpo === undefined
-          ? { Accept: 'application/json' }
-          : {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-            },
-      ...(cuerpo === undefined ? {} : { body: JSON.stringify(cuerpo) }),
-    });
+      headers: { Accept: 'application/json' },
+    };
+  }
+  return {
+    method: metodo,
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(cuerpo),
+  };
+}
+
+async function enviar(peticion: Peticion): Promise<Response> {
+  try {
+    return await fetch(
+      `${BASE}${peticion.ruta}`,
+      opcionesFetch(peticion.metodo, peticion.cuerpo),
+    );
   } catch {
     throw errorDeRed();
   }
+}
+
+export async function pedir<T>(peticion: Peticion): Promise<T> {
+  const respuesta = await enviar(peticion);
   const datos = await leerCuerpo(respuesta);
-  if (!respuesta.ok) {
-    const error = errorDeRespuesta(
-      respuesta.status,
-      datos,
-      respuesta.headers.get('Retry-After'),
-      textos403,
-    );
-    if (error.estado === 401 && sesionRequerida) {
-      alSesionInvalida?.(error.message);
-    }
-    throw error;
+  if (respuesta.ok) {
+    return datos as T;
   }
-  return datos as T;
+  const error = errorDeRespuesta({
+    estado: respuesta.status,
+    cuerpo: datos,
+    retryAfter: respuesta.headers.get('Retry-After'),
+    textos403: peticion.textos403,
+  });
+  if (error.estado === 401 && peticion.sesionRequerida !== false) {
+    alSesionInvalida?.(error.message);
+  }
+  throw error;
 }

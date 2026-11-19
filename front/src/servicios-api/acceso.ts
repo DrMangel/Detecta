@@ -15,17 +15,21 @@ export function iniciarSesion(
   correo: string,
   contrasena: string,
 ): Promise<DatosSesion> {
-  return pedir<DatosSesion>(
-    'POST',
-    '/acceso/iniciar-sesion',
-    { correo, contrasena },
-    PUBLICA,
-  );
+  return pedir<DatosSesion>({
+    metodo: 'POST',
+    ruta: '/acceso/iniciar-sesion',
+    cuerpo: { correo, contrasena },
+    ...PUBLICA,
+  });
 }
 
 /** POST /acceso/cerrar-sesion → 204: expira la cookie. */
 export async function cerrarSesion(): Promise<void> {
-  await pedir<null>('POST', '/acceso/cerrar-sesion', undefined, PUBLICA);
+  await pedir<null>({
+    metodo: 'POST',
+    ruta: '/acceso/cerrar-sesion',
+    ...PUBLICA,
+  });
 }
 
 /**
@@ -36,12 +40,12 @@ export async function cerrarSesion(): Promise<void> {
 export function solicitarActivacion(
   correo: string,
 ): Promise<{ mensaje: string }> {
-  return pedir<{ mensaje: string }>(
-    'POST',
-    '/acceso/solicitar-activacion',
-    { correo },
-    PUBLICA,
-  );
+  return pedir<{ mensaje: string }>({
+    metodo: 'POST',
+    ruta: '/acceso/solicitar-activacion',
+    cuerpo: { correo },
+    ...PUBLICA,
+  });
 }
 
 /** POST /acceso/activar → 204; el token va en el cuerpo, nunca en la URL. */
@@ -49,7 +53,12 @@ export async function activarCuenta(
   token: string,
   contrasena: string,
 ): Promise<void> {
-  await pedir<null>('POST', '/acceso/activar', { token, contrasena }, PUBLICA);
+  await pedir<null>({
+    metodo: 'POST',
+    ruta: '/acceso/activar',
+    cuerpo: { token, contrasena },
+    ...PUBLICA,
+  });
 }
 
 /**
@@ -58,7 +67,9 @@ export async function activarCuenta(
  */
 export async function consultarSesion(): Promise<DatosSesion | null> {
   try {
-    return await pedir<DatosSesion>('GET', '/acceso/sesion', undefined, {
+    return await pedir<DatosSesion>({
+      metodo: 'GET',
+      ruta: '/acceso/sesion',
       sesionRequerida: false,
     });
   } catch (error) {
