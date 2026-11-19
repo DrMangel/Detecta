@@ -329,6 +329,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D33 | Estado compartido del conector (`omisionesUltimaLectura` y el último resultado) | B9 | Aceptada como limitación (19/11/2026). Es seguro solo mientras el bloqueo impida dos sincronizaciones a la vez |
 | D34 | Consulta del registro de trazabilidad | B9 | Aceptada como limitación (19/11/2026). No hay consulta ni endpoint de auditoría: `evento_caso` solo se verifica en la base de datos |
 | D35 | Inicios de sesión simultáneos masivos | B9 | Aceptada como limitación (19/11/2026). Con bcrypt de costo 12, los hashes se encolan en los hilos de libuv: rinden unos (hilos ÷ 0,4 s) inicios por segundo. Medido: 20 simultáneos con p95 de 1,8 a 2,7 s con 4 hilos; 200 simultáneos, p95 de 21 a 32 s (informativo). Subir `UV_THREADPOOL_SIZE` según los núcleos del servidor |
+| D36 | Pool de conexiones agotado antes del guard de sesión | B9 | Aceptada como limitación (19/11/2026). Si la base no entrega una conexión al guard dentro de `BD_DETECTA_CONEXION_ESPERA_MS`, la respuesta es un 500 genérico (`{"statusCode":500,"message":"Internal server error"}`, verificado: sin mensajes de `pg`, trazas ni nombres de tablas), dentro del plazo y sin colgarse. Solo las rutas responden 503 con su texto |
 
 **Notas de B9 sobre el §8:**
 - **ECONNRESET aislado:** apareció una sola vez, bajo sobrecarga extrema (escenario de estrés, pool 30, 200 usuarios con 5 s de reflexión y el event loop bloqueado hasta 3,4 s). El intento dedicado de reproducirlo (cliente keep-alive y pausa de 5,1 s) no lo reprodujo, así que `keepAliveTimeout` no se cambió. Causa probable, no confirmada: una carrera de keep-alive.
@@ -339,7 +340,9 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
   - R6 (filtro del informe en SQL): el informe tiene un p95 de 278 ms, por debajo del umbral de 2,5 s;
   - R8 (b), guard con consultas propias: p50 de 25 ms o menos, por debajo de 50 ms;
   - R1, R3 y R5: un curso sincroniza en menos de 1 s (meta 10 s); `listarPorRol(PSICOLOGO)` tarda menos de 100 ms y `reprogramarCita`, 110 ms.
-- **Pool lleno antes del guard (pregunta abierta):** si la base no entrega una conexión al guard de sesión, la respuesta es un 500 genérico dentro del plazo de espera, sin colgarse; solo las rutas responden 503 con su texto.
+- **Pool de conexiones:** el barrido realista (10, 20 y 30) fue inválido: M4 corrió sin los datos del escenario y sus respuestas fueron 401. El pool se mantiene en 10 por falta de evidencia a favor de otro valor (sección 11).
+- **Evidencia de rendimiento válida:** los registros anteriores a la remedición final no guardaban los estados HTTP, así que la remedición final (sección 11) es la evidencia válida.
+- **Fallo e2e intermitente de la sub-etapa 1:** quedó sin identificar (una prueba falló una vez, 68 de 69, y el registro solo guardó los totales). No se reprodujo en 20 corridas: 10 en `048b019` (69/69) y 10 en `aaa6b45` (73/73).
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 
@@ -362,8 +365,8 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
 - **Máquina:** AMD Ryzen 5 3500U, 8 núcleos lógicos, 10 GB de RAM, Windows 11, Node v26.13.1, PostgreSQL 18 en Docker local. `UV_THREADPOOL_SIZE` = 4 y pool de 10 conexiones (valores por defecto).
 - **Escenario realista (ER 3.4.1 c):** 25 programas de unos 80 estudiantes (2000), 75 docentes, 25 jefes y 3 psicólogos; 6000 alertas y casos, 1000 planes y 400 casos psicológicos con cita.
 - **Supuestos de M4 (no son cifras del ER):** 200 usuarios virtuales (150 estudiantes, 30 docentes, 17 jefes y 3 psicólogos), cada uno con una petición y luego un tiempo de reflexión de unos 10 s, o de unos 5 s en la variante exigente (±50 %), durante 60 s, con `sincronizarTodo` en curso.
-- **Validez:** cada corrida cuenta los estados HTTP y es INVÁLIDA si hay respuestas no esperadas. La corrida final fue VÁLIDA: 100 % de 2xx y sin errores de red.
-- **Estado del equipo:** carga de CPU de 29 a 49 % antes y de 28 a 46 % después, con Discord abierto.
+- **Validez:** cada corrida cuenta los estados HTTP y es INVÁLIDA si hay respuestas no esperadas. La corrida final fue VÁLIDA: 100 % de 2xx y sin errores de red. Los registros anteriores a esta remedición no guardaban los estados HTTP: la remedición final es la evidencia válida.
+- **Estado del equipo:** la remedición se hizo con el equipo **no en reposo**: carga de CPU de 28 a 49 % (29 a 49 % antes y 28 a 46 % después), con Discord abierto.
 - **El estrés no se remidió tras la sub-etapa 4:** sus cifras son anteriores a la sub-etapa 4 y a la trazabilidad.
 
 **Escenario realista, 19/11/2026 (M4 con 3 repeticiones; el resto con 1 corrida; M5 con 10 peticiones):**
@@ -371,7 +374,7 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
 | Id | Medición | Resultado | Meta del ER |
 |---|---|---|---|
 | M4 | 200 usuarios, reflexión de 10 s: p95 de todas las peticiones (mediana y rango) | 841 ms (284–1034) | < 2 s ✔ |
-| M4 | 200 usuarios, reflexión de 5 s | 3206 ms (2294–5232) | < 2 s ✘; pico de 4 s: en mediana ✔, no en el máximo |
+| M4 | 200 usuarios, reflexión de 5 s (supuesto propio del escenario, no del ER) | Mediana 3206 ms (rango 2294–5232) | Supera los 2 s normales; dentro de los 4 s de pico en la mediana, pero no en el máximo |
 | M4 | Una petición de cada tipo, sin concurrencia (p95) | 32 a 65 ms (bandeja del Jefe 57 ms, 48 kB) | ✔ |
 | M4 | Ráfaga de 200 a la vez (informativa) | p95 6424 ms | — |
 | M1 | Inicio de sesión, bcrypt de costo 12: en serie / 20 a la vez (p95) | 702 ms / 2697 ms | — (D35) |
@@ -392,4 +395,4 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
 | M5 | p95 de 1301 ms |
 | M7 | Casos del psicólogo / reprogramar: p95 de 161 / 276 ms |
 
-**Pool de conexiones:** se mantiene en 10. Barrido de 10, 20 y 30 con una repetición: el control salió fuera de rango en los dos escenarios y no hubo mejora demostrable. Las corridas realistas de ese barrido se descartaron como INVÁLIDAS: corrieron sin los datos del escenario y sus respuestas fueron 401.
+**Pool de conexiones:** se mantiene en 10 por falta de evidencia a favor de otro valor. El barrido realista (10, 20 y 30, una repetición) fue inválido: M4 corrió sin los datos del escenario y sus respuestas fueron 401. En estrés, el control salió fuera de rango y no hubo mejora demostrable.
