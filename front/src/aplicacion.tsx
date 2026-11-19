@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import {
   Inicio,
@@ -16,12 +17,46 @@ import { MisSolicitudes } from './paginas/estudiante/mis-solicitudes';
 import { PaginaSolicitarAcompanamiento } from './paginas/estudiante/solicitar-acompanamiento';
 import { EspacioJefeDepartamento } from './paginas/jefe-departamento/espacio-jefe-departamento';
 import { EspacioPsicologo } from './paginas/psicologo/espacio-psicologo';
+import type { Rol } from './servicios-api/tipos';
 
 /*
- * Rutas del front (plan de F0 aprobado). /activar la fija el enlace que envía
- * el backend (`${URL_FRONTEND}/activar#token=…`). Va dentro de un enrutador
- * (BrowserRouter en main.tsx; MemoryRouter en las pruebas).
+ * Rutas del front (plan de F0 aprobado; F1, F2). /activar la fija el enlace
+ * que envía el backend (`${URL_FRONTEND}/activar#token=…`). Va dentro de un
+ * enrutador (BrowserRouter en main.tsx; MemoryRouter en las pruebas).
  */
+
+/** Rutas de cada rol (tabla de correspondencias, convenciones de F1b). */
+const RUTAS_PROTEGIDAS: readonly {
+  ruta: string;
+  rol: Rol;
+  pantalla: ReactNode;
+}[] = [
+  { ruta: '/estudiante', rol: 'ESTUDIANTE', pantalla: <ConsultaAcademica /> },
+  {
+    ruta: '/estudiante/solicitudes',
+    rol: 'ESTUDIANTE',
+    pantalla: <MisSolicitudes />,
+  },
+  {
+    ruta: '/estudiante/solicitudes/nueva',
+    rol: 'ESTUDIANTE',
+    pantalla: <PaginaSolicitarAcompanamiento />,
+  },
+  { ruta: '/docente', rol: 'DOCENTE', pantalla: <ConsultaCurso /> },
+  {
+    ruta: '/docente/cursos/:idCurso',
+    rol: 'DOCENTE',
+    pantalla: <PaginaListadoCurso />,
+  },
+  { ruta: '/docente/alertas', rol: 'DOCENTE', pantalla: <AlertasEmitidas /> },
+  {
+    ruta: '/jefe-departamento',
+    rol: 'JEFE_DEPARTAMENTO',
+    pantalla: <EspacioJefeDepartamento />,
+  },
+  { ruta: '/psicologo', rol: 'PSICOLOGO', pantalla: <EspacioPsicologo /> },
+];
+
 export function Aplicacion() {
   return (
     <ProveedorSesion>
@@ -44,72 +79,13 @@ export function Aplicacion() {
           }
         />
         <Route path="/activar" element={<PaginaActivar />} />
-        {/* Espacio del Estudiante (F1, respuesta 2). */}
-        <Route
-          path="/estudiante"
-          element={
-            <RutaProtegida rol="ESTUDIANTE">
-              <ConsultaAcademica />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/estudiante/solicitudes"
-          element={
-            <RutaProtegida rol="ESTUDIANTE">
-              <MisSolicitudes />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/estudiante/solicitudes/nueva"
-          element={
-            <RutaProtegida rol="ESTUDIANTE">
-              <PaginaSolicitarAcompanamiento />
-            </RutaProtegida>
-          }
-        />
-        {/* Espacio del Docente (plan de F2, §1). */}
-        <Route
-          path="/docente"
-          element={
-            <RutaProtegida rol="DOCENTE">
-              <ConsultaCurso />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/docente/cursos/:idCurso"
-          element={
-            <RutaProtegida rol="DOCENTE">
-              <PaginaListadoCurso />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/docente/alertas"
-          element={
-            <RutaProtegida rol="DOCENTE">
-              <AlertasEmitidas />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/jefe-departamento"
-          element={
-            <RutaProtegida rol="JEFE_DEPARTAMENTO">
-              <EspacioJefeDepartamento />
-            </RutaProtegida>
-          }
-        />
-        <Route
-          path="/psicologo"
-          element={
-            <RutaProtegida rol="PSICOLOGO">
-              <EspacioPsicologo />
-            </RutaProtegida>
-          }
-        />
+        {RUTAS_PROTEGIDAS.map(({ ruta, rol, pantalla }) => (
+          <Route
+            key={ruta}
+            path={ruta}
+            element={<RutaProtegida rol={rol}>{pantalla}</RutaProtegida>}
+          />
+        ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ProveedorSesion>
