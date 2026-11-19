@@ -8,6 +8,12 @@ Reúne lo que el agente de codificación necesita saber y no puede inferir de lo
 1. Diagramas en `docs/diagramas/` (vigentes y aprobados por Ivan el 16/11/2026).
 2. Este documento.
 3. ER (v1.4, 04/11/2026) y Manual del sistema (v1.2, 30/10/2026) en `docs/referencias/` (`ER_6.docx` y `Manual del sistema_6.docx`). La versión del ER en el repositorio ya incluye `fecha_nacimiento` en la Tabla 2 (D5) y la redacción del 3.5.5 sobre el origen del caso (D7), aunque su tabla de control sigue en la v1.4.
+   - Ajuste por D18 (18/11/2026), sin cambio de nombre (el `_6` es el número del grupo, no la versión):
+     - ER: 3.5.3, 3.5.6, 3.6 "Funciones de control", 3.7 c y R02. R02 incluye ahora el aviso al estudiante, antes del envío, de quién podrá ver su solicitud: el Psicólogo si es psicosocial o el Jefe de Departamento de Programa si es académica.
+     - Manual: CUD02 (paso del aviso al estudiante y regla de visibilidad) y 2.1.2 c (expediente psicológico solo para psicología; cada solicitud solo para el destinatario que elige el estudiante).
+   - SHA-256 de los archivos vigentes:
+     - `ER_6.docx`: `466F1A44DB8E7AF68725E03ED9FE785B1860918036B04548A2EE16C3D96E7E5A`
+     - `Manual del sistema_6.docx`: `29ED9A2FC9BC1BA28D33BE14574D049B2D682D66E39F9DF5B2B593B0543A361F`
 4. `docs/plan-backend.md`.
 
 Ante una contradicción no resuelta aquí: detenerse y preguntar.
