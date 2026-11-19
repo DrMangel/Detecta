@@ -115,4 +115,15 @@ describe('Plantillas de correo (B5, ER Tabla 1)', () => {
       'Se registró un plan de nivelación académica para usted.',
     );
   });
+
+  it('cita con requiereConsentimiento: agrega la línea genérica, sin mencionar psicología (B7, respuesta 3)', () => {
+    const con = plantillaCita('Ana', cita(EstadoCita.PROGRAMADA), URL, true);
+    expect(con.cuerpoHtml).toContain(
+      '<p>Antes de la cita debe presentar el consentimiento informado firmado por su acudiente.</p>',
+    );
+    expect(problemasHtml(con.cuerpoHtml)).toEqual([]);
+    expect(`${con.asunto} ${con.cuerpoHtml}`).not.toMatch(/psic|caso|asesor/i);
+    const sin = plantillaCita('Ana', cita(EstadoCita.PROGRAMADA), URL);
+    expect(sin.cuerpoHtml).not.toContain('consentimiento');
+  });
 });

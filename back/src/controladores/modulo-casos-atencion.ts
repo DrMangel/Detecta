@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ControladorCasosRiesgo } from './controlador-casos-riesgo';
+import { ControladorPertinencia } from './controlador-pertinencia';
 import { ModuloAcceso } from './modulo-acceso';
 import { ModuloNotificacion } from './modulo-notificacion';
 
@@ -11,6 +12,6 @@ import { ModuloNotificacion } from './modulo-notificacion';
  */
 @Module({
   imports: [ModuloAcceso, ModuloNotificacion],
-  controllers: [ControladorCasosRiesgo],
+  controllers: [ControladorCasosRiesgo, ControladorPertinencia],
 })
 export class ModuloCasosAtencion {}

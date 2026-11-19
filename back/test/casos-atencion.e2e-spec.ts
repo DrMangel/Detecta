@@ -15,6 +15,7 @@ import type {
   CasoDto,
   DetalleDto,
 } from '../src/controladores/respuestas-casos';
+import { Psicologo } from '../src/dominio/entidades/psicologo';
 import { RutaAtencion } from '../src/dominio/entidades/ruta-atencion';
 import { validarEntorno } from '../src/validacion-entorno';
 import {
@@ -127,6 +128,15 @@ beforeAll(async () => {
   fuente = await abrirFuenteAplicacion();
   repos = crearRepositorios(fuente);
   esc = await crearEscenario(repos);
+  await repos.personas.guardar(
+    new Psicologo({
+      id: 'PS2',
+      nombre: 'Psicólogo Dos',
+      correo: 'ps2@ejemplo.edu.co',
+      contrasenaHash: 'x',
+      citas: [],
+    }),
+  );
   await fuente.query('UPDATE persona SET contrasena_hash = $1', [
     await hashContrasenas.generar(CONTRASENA, 10),
   ]);
@@ -257,8 +267,9 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
     expect(respuesta.estado).toBe(200);
     expect(respuesta.cuerpo.mensaje).toBe('Caso remitido a psicología');
     await esperarCorreos();
-    expect(correo.enviados.map((c) => c.destino)).toEqual([
+    expect(correo.enviados.map((c) => c.destino).sort()).toEqual([
       'ps1@ejemplo.edu.co',
+      'ps2@ejemplo.edu.co',
     ]);
 
     const detalle = await pedir<DetalleDto<CasoDto>>(
@@ -326,5 +337,106 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
         )
       ).estado,
     ).toBe(403);
+  });
+});
+
+describe('B7b: pertinencia y cita (R05, CUD07)', () => {
+  it('dos psicólogos evalúan a la vez: uno toma el caso y el otro recibe «El caso ya fue tomado por otro psicólogo»', async () => {
+    const { caso } = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const [a, b] = await Promise.all([
+      pedir('ps1@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+        pertinente: true,
+        justificacion: 'Pertinente',
+      }),
+      pedir('ps2@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+        pertinente: true,
+        justificacion: 'Pertinente',
+      }),
+    ]);
+    expect([a.estado, b.estado].sort((x, y) => x - y)).toEqual([200, 409]);
+    expect([a, b].find((r) => r.estado === 409)?.cuerpo.message).toBe(
+      'El caso ya fue tomado por otro psicólogo',
+    );
+  });
+
+  it('el mismo psicólogo programa dos citas a la misma hora a la vez: una se registra y la otra recibe el cruce', async () => {
+    const casos: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const { caso } = await casoDeSolicitud(
+        repos,
+        esc.e2,
+        RutaAtencion.PSICOLOGICA,
+      );
+      expect(
+        (
+          await pedir(
+            'ps1@ejemplo.edu.co',
+            'POST',
+            `/pertinencia/${caso.idCaso}`,
+            { pertinente: true, justificacion: 'Pertinente' },
+          )
+        ).estado,
+      ).toBe(200);
+      casos.push(caso.idCaso);
+    }
+    const cuerpo = {
+      fechaHora: '2026-11-25T14:00:00-05:00',
+      modalidad: 'PRESENCIAL',
+    };
+    const [a, b] = await Promise.all(
+      casos.map((id) =>
+        pedir('ps1@ejemplo.edu.co', 'POST', `/pertinencia/${id}/citas`, cuerpo),
+      ),
+    );
+    expect([a?.estado ?? 0, b?.estado ?? 0].sort((x, y) => x - y)).toEqual([
+      201, 409,
+    ]);
+    expect([a, b].find((r) => r?.estado === 409)?.cuerpo.message).toBe(
+      'Cruce de horario. Seleccione otra hora',
+    );
+  });
+
+  it('no pertinente: archiva o reorienta con la justificación', async () => {
+    const archivar = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const reorientar = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const r1 = await pedir<{ mensaje: string; estado: string }>(
+      'ps2@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${archivar.caso.idCaso}`,
+      {
+        pertinente: false,
+        justificacion: 'No amerita orientación',
+      },
+    );
+    const r2 = await pedir<{ mensaje: string; estado: string }>(
+      'ps2@ejemplo.edu.co',
+      'POST',
+      `/pertinencia/${reorientar.caso.idCaso}`,
+      {
+        pertinente: false,
+        reorientar: true,
+        justificacion: 'Corresponde a Bienestar',
+      },
+    );
+    expect(r1.cuerpo).toEqual({
+      mensaje: 'Caso archivado / reorientado',
+      estado: 'ARCHIVADO',
+    });
+    expect(r2.cuerpo).toEqual({
+      mensaje: 'Caso archivado / reorientado',
+      estado: 'REORIENTADO',
+    });
   });
 });
