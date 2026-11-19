@@ -339,6 +339,9 @@ describe('B8b: informes de riesgo por asignatura (R07, CUD10)', () => {
     expect(pdf.cabeceras.get('content-disposition')).toBe(
       'attachment; filename="informe-riesgo.pdf"',
     );
+    // B9 (ajuste E): el PDF no se guarda en caché y lleva las cabeceras de seguridad.
+    expect(pdf.cabeceras.get('cache-control')).toBe('no-store');
+    expect(pdf.cabeceras.get('x-content-type-options')).toBe('nosniff');
     const texto = pdf.bytes.toString('latin1');
     expect(texto.startsWith('%PDF-1.4')).toBe(true);
     expect(texto.endsWith('%%EOF\n')).toBe(true);

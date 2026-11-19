@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { middlewareCabeceras } from './cabeceras-seguridad';
 import type { VariablesEntorno } from './validacion-entorno';
 
 /**
@@ -25,6 +26,13 @@ export function configurarAplicacion(app: INestApplication): void {
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
   });
+  // B9 (S7): sin X-Powered-By y con las cabeceras de seguridad; HSTS solo
+  // con COOKIE_SEGURA=true.
+  const express = app.getHttpAdapter().getInstance() as {
+    disable(opcion: string): void;
+  };
+  express.disable('x-powered-by');
+  app.use(middlewareCabeceras(config.get('COOKIE_SEGURA', { infer: true })));
   // Cierra las conexiones a la base de datos al detener el proceso.
   app.enableShutdownHooks();
 }
