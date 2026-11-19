@@ -1,17 +1,19 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { formatearAsistencia, formatearNota } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
+import { useEnvio } from '../../componentes/use-envio';
+import {
+  enviarConConciliacion,
+  type PasosEnvio,
+} from '../../servicios-api/conciliacion';
 import {
   consultarAlertasEmitidas,
   emitirAlerta,
+  type AlertaEmitida,
   type ConsultaCurso,
+  type DatosAlerta,
   type RegistroCurso,
 } from '../../servicios-api/docente';
-import {
-  ErrorApi,
-  mensajeDeError,
-  TEXTO_ERROR_RED,
-} from '../../servicios-api/errores';
 import type { NivelRiesgo } from '../../servicios-api/estudiante';
 import { LIMITES } from '../../servicios-api/limites';
 import {
@@ -49,8 +51,30 @@ import { NOMBRE_NIVEL_RIESGO } from '../../componentes/etiquetas';
 
 const NIVELES: readonly NivelRiesgo[] = ['BAJO', 'MEDIO', 'ALTO'];
 
-function esSesionVencida(fallo: unknown): boolean {
-  return fallo instanceof ErrorApi && fallo.estado === 401;
+/**
+ * Pasos del envío con conciliación (§5 del plan de F2): la lista de alertas
+ * emitidas en el periodo del curso, antes y después, dice si quedó registrada.
+ */
+function pasosAlerta(
+  periodo: string,
+  datos: DatosAlerta,
+  enviada: AlertaEnviada,
+): PasosEnvio<AlertaEmitida> {
+  return {
+    consultarPrevias: async () =>
+      new Set(
+        (await consultarAlertasEmitidas(periodo)).map(
+          (alerta) => alerta.idAlerta,
+        ),
+      ),
+    enviar: async () => (await emitirAlerta(datos)).alerta,
+    buscar: async (previas) =>
+      buscarAlertaRegistrada(
+        previas,
+        await consultarAlertasEmitidas(periodo),
+        enviada,
+      ),
+  };
 }
 
 export function FormularioAlerta({
@@ -70,99 +94,43 @@ export function FormularioAlerta({
   const idContador = useId();
   const idErrorCampos = useId();
   const seccion = useRef<HTMLElement>(null);
-  const enCurso = useRef(false);
   const [nivelRiesgo, setNivelRiesgo] = useState<NivelRiesgo | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [errorCampos, setErrorCampos] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  // 401: ProveedorSesion ya llevó al inicio de sesión; el borrador no se
+  // conserva.
+  const { enviando, error, ponerError, ejecutar } = useEnvio();
 
   // Ajuste B: al abrir (o al cambiar de estudiante) el foco pasa al formulario.
   useEffect(() => {
     seccion.current?.focus();
   }, [registro.idRegistro]);
 
-  /** idAlerta ya emitidas en el periodo; null si no se pudo consultar. */
-  const alertasPrevias = async (): Promise<Set<string> | null> => {
-    try {
-      const lista = await consultarAlertasEmitidas(curso.periodo);
-      return new Set(lista.map((alerta) => alerta.idAlerta));
-    } catch (fallo) {
-      if (esSesionVencida(fallo)) {
-        throw fallo;
-      }
-      return null;
-    }
-  };
-
-  const conciliar = async (
-    previas: Set<string> | null,
-    enviada: AlertaEnviada,
-  ) => {
-    if (previas === null) {
-      setError(TEXTO_ALERTA_INCIERTA);
-      return;
-    }
-    try {
-      const registrada = buscarAlertaRegistrada(
-        previas,
-        await consultarAlertasEmitidas(curso.periodo),
-        enviada,
-      );
-      if (registrada === null) {
-        setError(TEXTO_ERROR_RED);
-      } else {
-        alEmitir();
-      }
-    } catch (fallo) {
-      if (!esSesionVencida(fallo)) {
-        setError(TEXTO_ALERTA_INCIERTA);
-      }
-    }
-  };
-
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
-    if (enCurso.current) {
-      return;
-    }
     if (nivelRiesgo === null || descripcion.trim() === '') {
       setErrorCampos(TEXTO_CAMPOS_VACIOS);
       return;
     }
     setErrorCampos(null);
-    setError(null);
-    enCurso.current = true;
-    setEnviando(true);
+    const datos = { idRegistro: registro.idRegistro, nivelRiesgo, descripcion };
     const enviada: AlertaEnviada = {
       idCurso: curso.idCurso,
       idEstudiante: registro.estudiante.id,
       nivelRiesgo,
       descripcion,
     };
-    try {
-      const previas = await alertasPrevias();
-      try {
-        await emitirAlerta({
-          idRegistro: registro.idRegistro,
-          nivelRiesgo,
-          descripcion,
-        });
-        alEmitir();
-      } catch (fallo) {
-        if (fallo instanceof ErrorApi && fallo.estado === null) {
-          await conciliar(previas, enviada);
-        } else if (!esSesionVencida(fallo)) {
-          setError(mensajeDeError(fallo));
-        }
-      }
-    } catch {
-      // 401 en la consulta previa: ProveedorSesion ya llevó al inicio de
-      // sesión; el borrador no se conserva.
-    } finally {
-      enCurso.current = false;
-      setEnviando(false);
+    const resultado = await ejecutar(() =>
+      enviarConConciliacion(pasosAlerta(curso.periodo, datos, enviada)),
+    );
+    if (resultado === undefined) {
+      return;
     }
+    if (resultado.tipo === 'incierto') {
+      ponerError(TEXTO_ALERTA_INCIERTA);
+      return;
+    }
+    alEmitir();
   };
 
   const vacio = errorCampos !== null;
