@@ -63,6 +63,23 @@ SELECT
   round((40 + (n % 60))::numeric, 2),
   1, 3, 'ACTIVA', 'DOC-CARGA', 'Docente de Carga'
 FROM generate_series(1, 2040) AS n;
+
+-- Variante «realista» (ajuste 2 de Ivan; ER 3.4.1 c): 2000 estudiantes
+-- (ER0001 a ER2000) en 25 programas de 80 (PR01 a PR25, enlazados por
+-- idPrograma); 3 cursos por programa (REAL-PP-1 a 3) y cada estudiante en 2
+-- de ellos: ~53 estudiantes por curso, 4000 matrículas.
+INSERT INTO matricula_institucional
+SELECT
+  'ER' || lpad(n::text, 4, '0'),
+  'Estudiante Realista ' || translate(lpad(n::text, 4, '0'), '0123456789', 'ABCDEFGHIJ'),
+  'real' || n || '@ejemplo.invalid',
+  date '2000-01-01' + (n % 3000),
+  'PR' || lpad((((n - 1) / 80) + 1)::text, 2, '0'),
+  'REAL-' || lpad((((n - 1) / 80) + 1)::text, 2, '0') || '-' || ((n + k) % 3 + 1),
+  round((1 + (n % 400) / 100.0)::numeric, 2),
+  round((40 + (n % 60))::numeric, 2),
+  1, 3, 'ACTIVA', 'DOC-REAL', 'Docente Realista'
+FROM generate_series(1, 2000) AS n, generate_series(0, 1) AS k;
 COMMIT;
 
 SELECT count(*) AS matriculas_sinteticas FROM matricula_institucional;
