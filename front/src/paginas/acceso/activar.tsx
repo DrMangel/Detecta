@@ -13,8 +13,8 @@ import {
   TEXTO_CONTRASENA_FIJADA,
   TITULOS,
 } from '../../componentes/textos';
+import { useEnvio } from '../../componentes/use-envio';
 import { activarCuenta } from '../../servicios-api/acceso';
-import { mensajeDeError } from '../../servicios-api/errores';
 
 /*
  * Fijar la contraseña con el enlace de activación (D6; nota para F0 de la
@@ -41,8 +41,7 @@ export function PaginaActivar() {
   const token = useRef<string | null>(null);
   const [leido, setLeido] = useState(false);
   const [contrasena, setContrasena] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const { enviando, error, ponerError, ejecutar } = useEnvio();
 
   useEffect(() => {
     if (token.current === null) {
@@ -56,29 +55,24 @@ export function PaginaActivar() {
       );
     }
     if (token.current === null) {
-      setError(TEXTO_ENLACE_INVALIDO);
+      ponerError(TEXTO_ENLACE_INVALIDO);
     }
     setLeido(true);
   }, []);
 
   const enviar = async () => {
-    if (token.current === null) {
-      setError(TEXTO_ENLACE_INVALIDO);
+    const vigente = token.current;
+    if (vigente === null) {
+      ponerError(TEXTO_ENLACE_INVALIDO);
       return;
     }
-    setError(null);
-    setEnviando(true);
-    try {
-      await activarCuenta(token.current, contrasena);
+    await ejecutar(async () => {
+      await activarCuenta(vigente, contrasena);
       token.current = null;
       setContrasena('');
       anunciar({ texto: TEXTO_CONTRASENA_FIJADA, tipo: 'confirmacion' });
       void navegar('/iniciar-sesion', { replace: true });
-    } catch (causa) {
-      setError(mensajeDeError(causa));
-    } finally {
-      setEnviando(false);
-    }
+    });
   };
 
   return (
