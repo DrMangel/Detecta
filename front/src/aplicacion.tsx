@@ -9,7 +9,9 @@ import { PaginaActivar } from './paginas/acceso/activar';
 import { PaginaIniciarSesion } from './paginas/acceso/iniciar-sesion';
 import { PaginaSolicitarActivacion } from './paginas/acceso/solicitar-activacion';
 import { EspacioDocente } from './paginas/docente/espacio-docente';
-import { EspacioEstudiante } from './paginas/estudiante/espacio-estudiante';
+import { ConsultaAcademica } from './paginas/estudiante/consulta-academica';
+import { MisSolicitudes } from './paginas/estudiante/mis-solicitudes';
+import { PaginaSolicitarAcompanamiento } from './paginas/estudiante/solicitar-acompanamiento';
 import { EspacioJefeDepartamento } from './paginas/jefe-departamento/espacio-jefe-departamento';
 import { EspacioPsicologo } from './paginas/psicologo/espacio-psicologo';
 
@@ -40,11 +42,28 @@ export function Aplicacion() {
           }
         />
         <Route path="/activar" element={<PaginaActivar />} />
+        {/* Espacio del Estudiante (F1, respuesta 2). */}
         <Route
           path="/estudiante"
           element={
             <RutaProtegida rol="ESTUDIANTE">
-              <EspacioEstudiante />
+              <ConsultaAcademica />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/estudiante/solicitudes"
+          element={
+            <RutaProtegida rol="ESTUDIANTE">
+              <MisSolicitudes />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/estudiante/solicitudes/nueva"
+          element={
+            <RutaProtegida rol="ESTUDIANTE">
+              <PaginaSolicitarAcompanamiento />
             </RutaProtegida>
           }
         />
