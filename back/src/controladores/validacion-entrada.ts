@@ -102,3 +102,49 @@ export function leerPeriodo(valor: unknown): string {
   }
   return valor;
 }
+
+/** Texto nuevo aprobado en el plan de B7 (respuesta 11). */
+export const MENSAJE_FECHA_PASADA =
+  'La fecha de la cita debe ser posterior a la actual.';
+
+/** Booleano JSON; ausente devuelve null; cualquier otro tipo es 400. */
+export function leerBooleano(
+  campos: Record<string, unknown>,
+  campo: string,
+): boolean | null {
+  const valor = campos[campo];
+  if (valor === undefined || valor === null) {
+    return null;
+  }
+  if (typeof valor !== 'boolean') {
+    throw new BadRequestException(MENSAJE_SOLICITUD_NO_VALIDA);
+  }
+  return valor;
+}
+
+/** ISO 8601 con zona horaria explícita (Z o ±HH:MM), ajuste C del plan de B7. */
+const ISO_8601_CON_ZONA =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * `fechaHora` obligatoria, en ISO 8601 con zona; debe ser posterior a
+ * `ahora` (reloj inyectable) al programar, reprogramar o hacer seguimiento.
+ */
+export function leerFechaHoraFutura(
+  campos: Record<string, unknown>,
+  campo: string,
+  ahora: Date,
+): Date {
+  const valor = campos[campo];
+  if (typeof valor !== 'string' || !ISO_8601_CON_ZONA.test(valor)) {
+    throw new BadRequestException(MENSAJE_SOLICITUD_NO_VALIDA);
+  }
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) {
+    throw new BadRequestException(MENSAJE_SOLICITUD_NO_VALIDA);
+  }
+  if (fecha.getTime() <= ahora.getTime()) {
+    throw new BadRequestException(MENSAJE_FECHA_PASADA);
+  }
+  return fecha;
+}

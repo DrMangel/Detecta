@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { CasoRiesgo } from '../../dominio/entidades/caso-riesgo';
+import { JefeDepartamento } from '../../dominio/entidades/jefe-departamento';
 import type { Persona } from '../../dominio/entidades/persona';
 import { Rol } from '../../dominio/entidades/rol';
 import { RutaAtencion } from '../../dominio/entidades/ruta-atencion';
+import { SolicitudAcompanamiento } from '../../dominio/entidades/solicitud-acompanamiento';
 
 /**
  * Matriz de permisos aprobada en el plan de B3. Las acciones son las cadenas
@@ -64,18 +66,35 @@ export class ControlAcceso {
   }
 
   /**
-   * Contenido confidencial del caso (reporte confidencial y expediente):
-   * solo psicología (ER 3.7 c, ER 3.5.3), solo casos de la ruta PSICOLOGICA,
-   * y solo si el caso no tiene psicólogo o lo tiene asignado a este usuario
-   * (Manual CU_12; respuesta 9 de Ivan).
+   * Contenido confidencial del caso (motivo y disponibilidad de la solicitud;
+   * expediente psicológico).
+   *
+   * - Psicólogo (D19): casos de la ruta PSICOLOGICA sin psicólogo o asignados
+   *   a él (ER 3.7 c, ER 3.5.3; Manual CU_12). Incluye la solicitud académica
+   *   que el Jefe canalizó a psicología (D18, respuesta 1 del plan de B7).
+   * - Jefe de Departamento (D18; ER 3.5.3, 3.7 c y "Funciones de control";
+   *   Manual CUD02): el motivo y la disponibilidad de una solicitud ACADEMICA
+   *   de un estudiante del programa que dirige, mientras el caso no se
+   *   canalice a la ruta psicológica. Nunca el expediente: una solicitud
+   *   académica sin ruta psicológica no tiene citas.
    */
   puedeVerContenidoConfidencial(usuario: Persona, caso: CasoRiesgo): boolean {
-    if (usuario.obtenerRol() !== Rol.PSICOLOGO) {
-      return false;
+    if (usuario.obtenerRol() === Rol.PSICOLOGO) {
+      if (caso.ruta !== RutaAtencion.PSICOLOGICA) {
+        return false;
+      }
+      return caso.psicologo === null || caso.psicologo.id === usuario.id;
     }
-    if (caso.ruta !== RutaAtencion.PSICOLOGICA) {
-      return false;
+    if (usuario instanceof JefeDepartamento) {
+      return (
+        caso.confidencialidad &&
+        caso.origen instanceof SolicitudAcompanamiento &&
+        caso.origen.tipoApoyo === RutaAtencion.ACADEMICA &&
+        caso.ruta !== RutaAtencion.PSICOLOGICA &&
+        caso.obtenerEstudiante().obtenerPrograma().idPrograma ===
+          usuario.programa.idPrograma
+      );
     }
-    return caso.psicologo === null || caso.psicologo.id === usuario.id;
+    return false;
   }
 }

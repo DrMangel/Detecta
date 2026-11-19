@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ESQUEMAS } from './persistencia/esquemas';
 import { ModuloAcceso } from './controladores/modulo-acceso';
 import { ModuloAlertasSolicitudes } from './controladores/modulo-alertas-solicitudes';
+import { ModuloCasosAtencion } from './controladores/modulo-casos-atencion';
 import { ModuloSincronizacion } from './controladores/modulo-sincronizacion';
 import { ModuloIntegracion } from './integracion/modulo-integracion';
 import { ModuloNotificacion } from './controladores/modulo-notificacion';
@@ -81,6 +82,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
     ModuloSincronizacion,
     ModuloNotificacion,
     ModuloAlertasSolicitudes,
+    ModuloCasosAtencion,
   ],
 })
 export class AppModule {}

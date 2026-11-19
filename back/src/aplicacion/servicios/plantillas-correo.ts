@@ -12,7 +12,9 @@ import { Modalidad } from '../../dominio/entidades/modalidad';
  * - Alerta: solo el nombre del curso (sin nivel ni descripción).
  * - Caso remitido: sin motivo ni estudiante.
  * - Cita: "programada"/"reprogramada", fecha, hora y modalidad; sin mencionar
- *   psicología ni el caso (respuesta 2 de Ivan).
+ *   psicología ni el caso (respuesta 2 de Ivan). Si el estudiante es menor y
+ *   falta el consentimiento, una línea genérica de requisitos previos (R05
+ *   paso 6; respuesta 3 del plan de B7), también sin mencionar psicología.
  * - Plan: genérico (el Manual no confirma explícitamente que los cursos no
  *   sean confidenciales; respuesta 2).
  *
@@ -103,10 +105,15 @@ export function plantillaCasoRemitido(
   };
 }
 
+/** Requisito previo genérico (respuesta 3 del plan de B7). */
+export const LINEA_CONSENTIMIENTO =
+  'Antes de la cita debe presentar el consentimiento informado firmado por su acudiente.';
+
 export function plantillaCita(
   nombre: string,
   cita: Cita,
   urlFrontend: string,
+  requiereConsentimiento = false,
 ): MensajeCorreo {
   const tipo =
     cita.estado === EstadoCita.REPROGRAMADA ? 'reprogramada' : 'programada';
@@ -118,6 +125,7 @@ export function plantillaCita(
       nombre,
       [
         `Tiene una cita ${tipo} para el ${escaparHtml(fecha)} a las ${escaparHtml(hora)}, modalidad ${escaparHtml(MODALIDADES[cita.modalidad])}.`,
+        ...(requiereConsentimiento ? [LINEA_CONSENTIMIENTO] : []),
       ],
       urlFrontend,
     ),

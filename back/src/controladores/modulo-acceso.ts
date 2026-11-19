@@ -66,6 +66,7 @@ type Configuracion = ConfigService<VariablesEntorno, true>;
     },
     { provide: RELOJ, useValue: (() => new Date()) satisfies Reloj },
   ],
-  exports: [ServicioAutenticacion, ControlAcceso, JwtModule],
+  // RELOJ: B7 lo reutiliza (reloj inyectable, ajuste C del plan de B7).
+  exports: [ServicioAutenticacion, ControlAcceso, JwtModule, RELOJ],
 })
 export class ModuloAcceso {}

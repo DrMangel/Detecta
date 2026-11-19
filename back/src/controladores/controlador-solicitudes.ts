@@ -19,7 +19,12 @@ import type { Persona } from '../dominio/entidades/persona';
 import { Rol } from '../dominio/entidades/rol';
 import { RutaAtencion } from '../dominio/entidades/ruta-atencion';
 import { ControladorBase } from './controlador-base';
-import { conPersistencia, solicitud, type SolicitudDto } from './respuestas';
+import {
+  conPersistencia,
+  recienCreado,
+  solicitud,
+  type SolicitudDto,
+} from './respuestas';
 import { UsuarioSesion } from './sesion';
 import {
   leerCuerpo,
@@ -143,6 +148,6 @@ export class ControladorSolicitudes extends ControladorBase {
     } else {
       void this.notificacion.notificarCasoRemitido(caso, destinatarios);
     }
-    return solicitud(origen, caso.estado);
+    return solicitud(origen, recienCreado(caso.estado));
   }
 }

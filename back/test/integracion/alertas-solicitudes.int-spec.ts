@@ -148,13 +148,18 @@ describe('listarEstadosPorOrigen: estado derivado del caso (ajuste A)', () => {
       cerrado.alerta.idOrigen,
       'SIN-CASO',
     ]);
-    expect(estados.get(pendiente.solicitud.idOrigen)).toBe(
-      EstadoCaso.PENDIENTE,
-    );
-    expect(estados.get(canalizado.solicitud.idOrigen)).toBe(
-      EstadoCaso.EN_NIVELACION,
-    );
-    expect(estados.get(cerrado.alerta.idOrigen)).toBe(EstadoCaso.CERRADO);
+    expect(estados.get(pendiente.solicitud.idOrigen)).toEqual({
+      estado: EstadoCaso.PENDIENTE,
+      canalizado: false,
+    });
+    expect(estados.get(canalizado.solicitud.idOrigen)).toEqual({
+      estado: EstadoCaso.EN_NIVELACION,
+      canalizado: true,
+    });
+    expect(estados.get(cerrado.alerta.idOrigen)).toEqual({
+      estado: EstadoCaso.CERRADO,
+      canalizado: false,
+    });
     expect(estados.has('SIN-CASO')).toBe(false);
     // El estado guardado del origen no cambia (regla de B1).
     const [fila] = await fuente.query<{ estado: string }[]>(
@@ -162,6 +167,33 @@ describe('listarEstadosPorOrigen: estado derivado del caso (ajuste A)', () => {
       [pendiente.solicitud.idOrigen],
     );
     expect(fila?.estado).toBe('ATENDIDO');
+  });
+
+  it('D27: canalizada a psicología sigue PENDIENTE en el caso pero se informa canalizada; la psicosocial nace sin canalización', async () => {
+    const academica = await casoDeSolicitud(
+      repos,
+      esc.e2,
+      RutaAtencion.ACADEMICA,
+    );
+    academica.caso.canalizar(RutaAtencion.PSICOLOGICA);
+    await repos.casos.guardar(academica.caso);
+    const psicosocial = await casoDeSolicitud(
+      repos,
+      esc.e2,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const estados = await repos.casos.listarEstadosPorOrigen([
+      academica.solicitud.idOrigen,
+      psicosocial.solicitud.idOrigen,
+    ]);
+    expect(estados.get(academica.solicitud.idOrigen)).toEqual({
+      estado: EstadoCaso.PENDIENTE,
+      canalizado: true,
+    });
+    expect(estados.get(psicosocial.solicitud.idOrigen)).toEqual({
+      estado: EstadoCaso.PENDIENTE,
+      canalizado: false,
+    });
   });
 
   it('sin N+1: una sola consulta, sea cual sea el número de orígenes', async () => {

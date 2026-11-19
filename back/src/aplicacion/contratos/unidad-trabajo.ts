@@ -1,3 +1,5 @@
+import type { Asesoria } from '../../dominio/entidades/asesoria';
+import type { Cita } from '../../dominio/entidades/cita';
 import type { Curso } from '../../dominio/entidades/curso';
 import type { Repositorio } from '../../dominio/repositorios/repositorio';
 import type { RepositorioAlerta } from '../../dominio/repositorios/repositorio-alerta';
@@ -28,6 +30,9 @@ export interface RepositoriosTransaccionales {
   alertas: RepositorioAlerta;
   solicitudes: RepositorioSolicitud;
   casos: RepositorioCasoRiesgo;
+  /** B7: la cita y su asesoría se guardan junto con el caso. */
+  citas: Repositorio<Cita>;
+  asesorias: Repositorio<Asesoria>;
 }
 
 export interface OpcionesUnidadTrabajo {
@@ -37,6 +42,14 @@ export interface OpcionesUnidadTrabajo {
    * esperar (ajuste A de Ivan en el plan de B4).
    */
   bloqueoExclusivo?: string;
+  /**
+   * B7 (respuesta 7 y ajuste B de Ivan): bloqueos CON ESPERA
+   * (pg_advisory_xact_lock), tomados en el orden dado (el caso primero y la
+   * agenda del psicólogo después, para evitar interbloqueos), en un espacio
+   * de claves distinto del de `bloqueoExclusivo`. Si la espera supera el
+   * `lock_timeout`, `ejecutar` lanza `BloqueoAgotadoError`.
+   */
+  bloqueos?: readonly string[];
 }
 
 export interface UnidadTrabajo {
@@ -53,5 +66,13 @@ export class RecursoOcupadoError extends Error {
   constructor(mensaje: string) {
     super(mensaje);
     this.name = 'RecursoOcupadoError';
+  }
+}
+
+/** Venció el tiempo de espera de un bloqueo (`lock_timeout`). */
+export class BloqueoAgotadoError extends Error {
+  constructor() {
+    super('Venció la espera de un bloqueo');
+    this.name = 'BloqueoAgotadoError';
   }
 }

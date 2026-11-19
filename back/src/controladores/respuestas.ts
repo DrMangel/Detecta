@@ -1,10 +1,13 @@
 import {
+  ConflictException,
   HttpException,
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { BloqueoAgotadoError } from '../aplicacion/contratos/unidad-trabajo';
 import type { Alerta } from '../dominio/entidades/alerta';
 import { EstadoCaso } from '../dominio/entidades/estado-caso';
+import type { EstadoCasoDeOrigen } from '../dominio/repositorios/repositorio-caso-riesgo';
 import type { NivelRiesgo } from '../dominio/entidades/nivel-riesgo';
 import type { RegistroAcademico } from '../dominio/entidades/registro-academico';
 import type { RutaAtencion } from '../dominio/entidades/ruta-atencion';
@@ -17,23 +20,37 @@ import type { SolicitudAcompanamiento } from '../dominio/entidades/solicitud-aco
 
 /** sd_CUD01, flujo 4.a: sin datos sincronizados (ER 3.3.1). */
 export const MENSAJE_INFORMACION_NO_DISPONIBLE = 'Información no disponible';
+/**
+ * Texto nuevo (B7, ajuste B): venció la espera del bloqueo del caso o de la
+ * agenda porque otra sesión lo está modificando.
+ */
+export const MENSAJE_BLOQUEO_AGOTADO =
+  'Otra sesión está modificando este caso. Intente de nuevo.';
 /** sd_CUD01, flujo *.a. */
 export const MENSAJE_ERROR_CONSULTA = 'Error al consultar la información';
 
 /**
- * Estado de atención que ven el estudiante y el docente (respuesta 4 de
- * Ivan): se deriva del caso al leer. PENDIENTE mientras el caso esté
- * PENDIENTE; ATENDIDA en cualquier otro estado. No se muestra ruta, avance
+ * Estado de atención que ven el estudiante y el docente (D27, ajustada al
+ * aprobar B7): se deriva del caso al leer. ATENDIDA si el caso salió de
+ * PENDIENTE o si el Jefe ya lo canalizó (`fecha_canalizacion`); PENDIENTE en
+ * otro caso. Una solicitud psicosocial nace con ruta pero sin canalización:
+ * sigue PENDIENTE hasta que un psicólogo la toma. No se muestra ruta, avance
  * ni resultado. El estado guardado del origen no cambia (regla de B1).
  */
 export type EstadoAtencion = 'PENDIENTE' | 'ATENDIDA';
 
 export function estadoAtencion(
-  estadoCaso: EstadoCaso | undefined,
+  caso: EstadoCasoDeOrigen | undefined,
 ): EstadoAtencion {
-  return estadoCaso === undefined || estadoCaso === EstadoCaso.PENDIENTE
+  return caso === undefined ||
+    (caso.estado === EstadoCaso.PENDIENTE && !caso.canalizado)
     ? 'PENDIENTE'
     : 'ATENDIDA';
+}
+
+/** Caso recién creado (B6): aún sin canalizar. */
+export function recienCreado(estado: EstadoCaso): EstadoCasoDeOrigen {
+  return { estado, canalizado: false };
 }
 
 export interface RegistroCursoDto {
@@ -142,7 +159,7 @@ export function alertaEstudiante(alerta: Alerta): AlertaEstudianteDto {
 
 export function alertaEmitida(
   alerta: Alerta,
-  estadoCaso: EstadoCaso | undefined,
+  estadoCaso: EstadoCasoDeOrigen | undefined,
 ): AlertaEmitidaDto {
   const estudiante = alerta.obtenerEstudiante();
   return {
@@ -161,7 +178,7 @@ export function alertaEmitida(
 
 export function solicitud(
   origen: SolicitudAcompanamiento,
-  estadoCaso: EstadoCaso | undefined,
+  estadoCaso: EstadoCasoDeOrigen | undefined,
 ): SolicitudDto {
   return {
     codigo: origen.idOrigen,
@@ -189,9 +206,28 @@ export async function conPersistencia<T>(
     if (error instanceof HttpException) {
       throw error;
     }
+    if (error instanceof BloqueoAgotadoError) {
+      throw new ConflictException(MENSAJE_BLOQUEO_AGOTADO);
+    }
     registro.error(
       `${mensaje}: ${error instanceof Error ? error.name : 'error'}`,
     );
     throw new ServiceUnavailableException(mensaje);
+  }
+}
+
+/**
+ * Ejecuta una regla del dominio (B7): si la entidad rechaza la operación
+ * (estado terminal, cita cerrada...), responde 409 con el mensaje del dominio
+ * (textos de B1), en lugar de dejar que se convierta en un 503.
+ */
+export function regla<T>(operacion: () => T): T {
+  try {
+    return operacion();
+  } catch (error) {
+    if (error instanceof HttpException || !(error instanceof Error)) {
+      throw error;
+    }
+    throw new ConflictException(error.message);
   }
 }

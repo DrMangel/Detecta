@@ -6,6 +6,15 @@ import type { Repositorio } from './repositorio';
  * Contrato `RepositorioCasoRiesgo` (diagrama de clases v3). `codigoPrograma`
  * se implementa como `idPrograma` (línea base §4).
  */
+/**
+ * Estado del caso de un origen y si el Jefe ya lo canalizó (B6/B7, D27
+ * ajustada: la canalización cuenta aunque el caso siga PENDIENTE).
+ */
+export interface EstadoCasoDeOrigen {
+  estado: EstadoCaso;
+  canalizado: boolean;
+}
+
 export interface RepositorioCasoRiesgo extends Repositorio<CasoRiesgo> {
   /** Bandeja del Jefe (sd_CUD04): casos PENDIENTE sin ruta del programa. */
   listarPendientesPorPrograma(idPrograma: string): Promise<CasoRiesgo[]>;
@@ -20,12 +29,23 @@ export interface RepositorioCasoRiesgo extends Repositorio<CasoRiesgo> {
    */
   listarPorPeriodo(periodo: string, idPrograma: string): Promise<CasoRiesgo[]>;
   /**
-   * Estado del caso generado por cada origen, en UNA consulta para todos los
+   * Estado del caso generado por cada origen (y si fue canalizado por el
+   * Jefe: `fecha_canalizacion` no nula), en UNA consulta para todos los
    * orígenes (B6, respuesta 4 de Ivan: el estado que ven el estudiante y el
    * docente se deriva del caso al leer). NO está en el diagrama de clases
    * v3: se reporta como diferencia. Los orígenes sin caso no aparecen.
    */
+  /**
+   * Caso visible para el Jefe de Departamento (B7, ajuste A de Ivan; NO está
+   * en el diagrama): del programa que dirige y NUNCA de una solicitud
+   * psicosocial (ruta psicológica desde su nacimiento). La exclusión se hace
+   * en la consulta. Devuelve null si el caso no existe o no es visible.
+   */
+  buscarParaPrograma(
+    idCaso: string,
+    idPrograma: string,
+  ): Promise<CasoRiesgo | null>;
   listarEstadosPorOrigen(
     idsOrigen: readonly string[],
-  ): Promise<Map<string, EstadoCaso>>;
+  ): Promise<Map<string, EstadoCasoDeOrigen>>;
 }

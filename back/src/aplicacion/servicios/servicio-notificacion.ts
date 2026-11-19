@@ -101,8 +101,16 @@ export class ServicioNotificacion implements OnApplicationShutdown {
     });
   }
 
-  /** (b) Cita de asesoría programada o reprogramada (destinatario: quien llama). */
-  notificarCita(cita: Cita, destinatario: Persona): Promise<void> {
+  /**
+   * (b) Cita de asesoría programada o reprogramada. Destinatario: el
+   * estudiante (D26). `requiereConsentimiento` agrega el requisito previo
+   * genérico (B7; parámetro fuera del diagrama).
+   */
+  notificarCita(
+    cita: Cita,
+    destinatario: Persona,
+    requiereConsentimiento = false,
+  ): Promise<void> {
     return this.#rastrear('cita', () =>
       this.#intentarEnvio(
         'cita',
@@ -111,6 +119,7 @@ export class ServicioNotificacion implements OnApplicationShutdown {
           destinatario.nombre,
           cita,
           this.configuracion.urlFrontend,
+          requiereConsentimiento,
         ),
       ),
     );

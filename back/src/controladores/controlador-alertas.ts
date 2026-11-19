@@ -36,6 +36,7 @@ import {
   alertaEmitida,
   conPersistencia,
   fechaIso,
+  recienCreado,
   MENSAJE_ERROR_CONSULTA,
   MENSAJE_INFORMACION_NO_DISPONIBLE,
   registroCurso,
@@ -223,7 +224,7 @@ export class ControladorAlertas extends ControladorBase {
     }
     return {
       mensaje: MENSAJES_ALERTAS.emitida,
-      alerta: alertaEmitida(alerta, caso.estado),
+      alerta: alertaEmitida(alerta, recienCreado(caso.estado)),
     };
   }
 

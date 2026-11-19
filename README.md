@@ -122,6 +122,29 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 - La alerta o la solicitud y su caso se guardan en una sola transacción. Los correos se envían después y no retrasan la respuesta; si el programa no tiene jefe, el caso se guarda igual y solo se omite ese correo.
 - Errores: 400 por campos vacíos o inválidos, 403 por rol o recurso ajeno, 503 si la base de datos falla.
 
+## Casos, pertinencia y atención psicológica (B7)
+
+| Ruta | Rol | Respuesta |
+|---|---|---|
+| `GET /casos/pendientes` | Jefe | Bandeja del programa que dirige: casos pendientes sin ruta (alertas y solicitudes académicas) |
+| `GET /casos/:idCaso` | Jefe | Detalle con antecedentes académicos; nunca expediente psicológico |
+| `POST /casos/:idCaso/canalizacion` `{ruta}` | Jefe | 200; psicológica: correo a los psicólogos; 409 si ya fue canalizado |
+| `POST /pertinencia/:idCaso` `{pertinente, justificacion, reorientar?}` | Psicólogo | 200; toma el caso y lo aprueba, archiva o reorienta |
+| `POST /pertinencia/:idCaso/citas` `{fechaHora, modalidad}` | Psicólogo | 201; primera cita; correo al estudiante |
+| `GET /atencion/casos` | Psicólogo | Casos por evaluar y asignados, con su expediente |
+| `GET /atencion/casos/:idCaso` | Psicólogo | Expediente con antecedentes académicos |
+| `POST /atencion/citas/:idCita/reprogramacion` `{fechaHora, modalidad}` | Psicólogo | 200; correo al estudiante |
+| `POST /atencion/casos/:idCaso/citas/:idCita/resultado` `{tipo, observaciones, acuerdos, asistencia, requiereSeguimiento, presentaRiesgoCritico}` | Psicólogo | 201; 409 con `requiereConsentimiento` si es menor sin consentimiento |
+| `POST /atencion/casos/:idCaso/consentimiento` | Psicólogo | 200; solo para menores de edad |
+| `POST /atencion/casos/:idCaso/seguimiento` `{fechaHora, modalidad}` | Psicólogo | 201; correo al estudiante |
+| `POST /atencion/casos/:idCaso/cierre` | Psicólogo | 200; 409 si la última asesoría no tiene observaciones |
+
+- **Visibilidad (D18, D19):** el Jefe ve el motivo de una solicitud académica de su programa mientras no se canalice a psicología; nunca ve una solicitud psicosocial ni el expediente. Solo el psicólogo asignado (o cualquiera, si el caso aún no tiene psicólogo) ve el expediente.
+- **`fechaHora`:** ISO 8601 con zona horaria (por ejemplo `2026-11-20T09:00:00-05:00`), posterior a la hora actual. El cruce de horario es por fecha y hora exactas (D9).
+- **Concurrencia:** las escrituras bloquean el caso y, al programar o reprogramar, la agenda del psicólogo; si la espera supera 5 s se responde 409.
+- **Correos de cita:** solo al estudiante (D26); si es menor sin consentimiento, incluyen el requisito del consentimiento firmado por el acudiente.
+- **Migración nueva:** `npm run build` y `npm run bd:migrar` (fecha de canalización y trazabilidad del consentimiento).
+
 ## Notificaciones por correo (B5)
 
 - **Proveedor:** Brevo por SMTP (`smtp-relay.brevo.com:587`) con STARTTLS obligatorio, TLS 1.2 como mínimo y verificación del certificado siempre activa. Plazo global de 5 s por envío (ER Tabla 1).
