@@ -259,7 +259,7 @@ describe('Mis solicitudes (CUD01 2.b, D27)', () => {
     ).toBeInTheDocument();
   });
 
-  it('503: «Error al consultar la información»; 403: el texto de F0', async () => {
+  it('503: «Error al consultar la información»', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
       'GET /consulta/solicitudes': {
