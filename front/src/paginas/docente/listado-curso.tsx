@@ -14,7 +14,7 @@ import {
   type ConsultaCurso,
   type RegistroCurso,
 } from '../../servicios-api/docente';
-import { mensajeDeError } from '../../servicios-api/errores';
+import { useConsulta } from '../../componentes/use-consulta';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
 import { PlantillaDocente } from './plantilla-docente';
@@ -48,28 +48,14 @@ export function PaginaListadoCurso() {
 }
 
 function ListadoCurso({ idCurso }: { idCurso: string }) {
-  const [consulta, setConsulta] = useState<ConsultaCurso | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { datos: consulta, error } = useConsulta(
+    () => consultarCurso(idCurso),
+    idCurso,
+  );
   const [seleccionado, setSeleccionado] = useState<RegistroCurso | null>(null);
   const [confirmacion, setConfirmacion] = useState<string | null>(null);
   const disparador = useRef<HTMLButtonElement | null>(null);
   const devolverFoco = useRef(false);
-
-  useEffect(() => {
-    let vigente = true;
-    consultarCurso(idCurso).then(
-      (datos) => {
-        if (vigente) setConsulta(datos);
-      },
-      (fallo: unknown) => {
-        // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-        if (vigente) setError(mensajeDeError(fallo));
-      },
-    );
-    return () => {
-      vigente = false;
-    };
-  }, [idCurso]);
 
   useEffect(() => {
     if (seleccionado === null && devolverFoco.current) {
