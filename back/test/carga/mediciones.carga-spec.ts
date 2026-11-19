@@ -137,6 +137,46 @@ const ids = {
 };
 const erroresDeRed = new Map<string, number>();
 
+/**
+ * Control de calidad de M4 (condición 1 del informe parcial 2): estado HTTP
+ * esperado por tipo de petición. Una respuesta con otro estado (401 sin
+ * cookie, 403, 429, 5xx o error de red) vuelve INVÁLIDA la corrida: sus
+ * tiempos no miden la ruta, sino el rechazo.
+ */
+const ESTADO_ESPERADO: Readonly<Record<string, number>> = {
+  consultaRegistros: 200,
+  consultaAlertas: 200,
+  radicarSolicitud: 201,
+  alertasEmitidas: 200,
+  bandejaJefe: 200,
+  bandejaPsicologo: 200,
+};
+
+/** Conteo por clase de estado: 2xx, 3xx, 4xx, 5xx y red (estado 0). */
+function clasesDeEstado(
+  resultados: readonly { tipo: string; estado: number }[],
+) {
+  const clases: Record<string, number> = {};
+  const noEsperadas: Record<string, number> = {};
+  for (const { tipo, estado } of resultados) {
+    const clase = estado === 0 ? 'red' : `${Math.floor(estado / 100)}xx`;
+    clases[clase] = (clases[clase] ?? 0) + 1;
+    if (estado !== ESTADO_ESPERADO[tipo]) {
+      const clave = `${tipo}:${estado}`;
+      noEsperadas[clave] = (noEsperadas[clave] ?? 0) + 1;
+    }
+  }
+  const totalNoEsperadas = Object.values(noEsperadas).reduce(
+    (a, b) => a + b,
+    0,
+  );
+  return {
+    clases,
+    noEsperadas,
+    validez: totalNoEsperadas === 0 ? 'VALIDA' : 'INVALIDA',
+  } as const;
+}
+
 async function medir<T>(trabajo: () => Promise<T>) {
   contador.total = 0;
   const inicio = performance.now();
@@ -156,6 +196,31 @@ function resumen(valores: readonly number[]) {
     min: orden[0] ?? 0,
     max: orden.at(-1) ?? 0,
   };
+}
+
+/**
+ * M4 necesita los usuarios del escenario. Si los datos no se cargaron (por
+ * ejemplo, M4 sola con -t y sin CARGA_REUTILIZAR=1, que vacía la base sin
+ * llenar `ids`), cada petición saldría sin cookie y mediría un 401: la
+ * corrida se marca INVÁLIDA y la prueba falla antes de medir.
+ */
+function exigirDatosCargados(): void {
+  const vacios = Object.entries(ids)
+    .filter(
+      ([clave, lista]) => clave !== 'casosPsicologo0' && lista.length === 0,
+    )
+    .map(([clave]) => clave);
+  if (ids.estudiantes.length < 150 || vacios.length > 0) {
+    reportar('M4-VALIDEZ', {
+      corrida: 'INVALIDA',
+      motivo: 'datos del escenario no cargados',
+      estudiantes: ids.estudiantes.length,
+      vacios,
+    });
+    throw new Error(
+      'M4 INVÁLIDA: datos del escenario no cargados (use CARGA_REUTILIZAR=1 o la corrida completa)',
+    );
+  }
 }
 
 async function cookieDe(id: string): Promise<string> {
@@ -678,7 +743,9 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
       ['bandejaJefe', 'GET', '/casos/pendientes', ids.jefes[0]!],
       ['bandejaPsicologo', 'GET', '/atencion/casos', ids.psicologos[0]!],
     ];
+    exigirDatosCargados();
     const resultados: Record<string, unknown> = {};
+    const estadosIndividual: { tipo: string; estado: number }[] = [];
     for (const [tipo, metodo, ruta, id, cuerpo] of casos) {
       const cookie = await cookieDe(id);
       const p95: number[] = [];
@@ -689,6 +756,7 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
           const x = await pedir(metodo, ruta, cookie, cuerpo);
           tiempos.push(x.ms);
           ultimo = x;
+          estadosIndividual.push({ tipo, estado: x.estado });
         }
         p95.push(estadistica(tiempos).p95);
       }
@@ -703,10 +771,13 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
        JOIN persona j ON j.id_programa_dirigido = e.id_programa WHERE j.id = $1 AND c.estado = 'PENDIENTE' AND c.ruta IS NULL`,
       [ids.jefes[0]],
     );
+    const calidad = clasesDeEstado(estadosIndividual);
     reportar('M4-individual', {
       pendientesBandejaJefe: Number(pendientes?.total),
+      estados: calidad,
       ...resultados,
     });
+    expect(calidad.validez).toBe('VALIDA');
   });
 
   it('M4: 200 usuarios virtuales con tiempo de reflexión (10 s y 5 s), con sincronización en curso; ráfaga informativa', async () => {
@@ -818,6 +889,7 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
       clearInterval(muestreo);
       retraso.disable();
       const porTipo: Record<string, unknown> = {};
+      const estados = clasesDeEstado(resultados);
       for (const tipo of new Set(resultados.map((r) => r.tipo))) {
         const deTipo = resultados.filter((r) => r.tipo === tipo);
         porTipo[tipo] = {
@@ -829,6 +901,7 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
       return {
         peticiones: resultados.length,
         porSegundo: Math.round(resultados.length / (duracionMs / 1000)),
+        estados,
         todas: estadistica(resultados.map((r) => r.ms)),
         porTipo,
         diagnostico: {
@@ -848,10 +921,16 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
       headersTimeoutMs: servidor.headersTimeout,
       requestTimeoutMs: servidor.requestTimeout,
     });
+    exigirDatosCargados();
+    const invalidas: string[] = [];
     for (const reflexion of [10_000, 5_000]) {
       const rondas = [];
       for (let r = 0; r < REPETICIONES; r++) {
-        rondas.push(await ronda(reflexion, 60_000));
+        const resultado = await ronda(reflexion, 60_000);
+        if (resultado.estados.validez !== 'VALIDA') {
+          invalidas.push(`reflexion-${reflexion / 1000}s-ronda-${r + 1}`);
+        }
+        rondas.push(resultado);
       }
       reportar(`M4-reflexion-${reflexion / 1000}s`, {
         p95TodasMs: resumen(rondas.map((x) => x.todas.p95)),
@@ -865,9 +944,19 @@ describe(`Mediciones de B9 (escenario ${ESCENARIO})`, () => {
         return { tipo: p.tipo, ...(await p.hacer()) };
       }),
     );
+    const estadosRafaga = clasesDeEstado(rafaga);
+    if (estadosRafaga.validez !== 'VALIDA') {
+      invalidas.push('rafaga-informativa');
+    }
     reportar('M4-rafaga-informativa', {
+      estados: estadosRafaga,
       todas: estadistica(rafaga.map((r) => r.ms)),
       errores: rafaga.filter((r) => r.estado === 0).length,
     });
+    reportar('M4-VALIDEZ', {
+      corrida: invalidas.length === 0 ? 'VALIDA' : 'INVALIDA',
+      invalidas,
+    });
+    expect(invalidas).toEqual([]);
   }, 3_600_000);
 });
