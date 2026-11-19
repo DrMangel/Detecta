@@ -23,6 +23,7 @@ import {
   ControladorPlanNivelacion,
   MENSAJES_PLAN,
 } from './controlador-plan-nivelacion';
+import { MENSAJE_BLOQUEO_AGOTADO } from './respuestas';
 import {
   MENSAJE_LONGITUD_EXCEDIDA,
   MENSAJE_SOLICITUD_NO_VALIDA,
@@ -251,6 +252,18 @@ describe('ControladorPlanNivelacion.estructurarPlan (CUD05)', () => {
       estado: 409,
       mensaje: 'El plan de nivelación requiere un caso con ruta ACADEMICA',
     });
+  });
+
+  it('bloqueo vencido del caso: 409 con el texto aprobado en B7 (el bloqueo es del caso); sin correo', async () => {
+    const caso = casoAcademico();
+    const { controlador, unidad, correo } = preparar(caso);
+    unidad.ejecutar = () => Promise.reject(new BloqueoAgotadoError());
+    expect(
+      await errorDe(
+        controlador.estructurarPlan(jefe, { ...CUERPO, idCaso: caso.idCaso }),
+      ),
+    ).toEqual({ estado: 409, mensaje: MENSAJE_BLOQUEO_AGOTADO });
+    expect(correo.notificarPlanNivelacion).not.toHaveBeenCalled();
   });
 
   it('error de persistencia: 503 con el texto aprobado; sin correo', async () => {
