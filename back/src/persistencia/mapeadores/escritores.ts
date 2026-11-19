@@ -488,15 +488,25 @@ export async function escribirPlan(
 /**
  * Escribe el informe y en cascada sus asociaciones "resume" con casos y
  * planes (agrega las que falten). No escribe el curso, los casos ni los
- * planes. Las columnas del actor que lo genera se agregan en B8.
+ * planes. B8: con `autoria`, escribe también el programa y el autor (un Jefe
+ * o un Psicólogo); sin ella, no toca esas columnas (un informe nuevo sin
+ * autoría lo rechaza la BD: id_programa NOT NULL).
  */
+export interface AutoriaInforme {
+  idPrograma: string;
+  idJefe: string | null;
+  idPsicologo: string | null;
+}
+
 export async function escribirInforme(
   m: EntityManager,
   informe: InformeRiesgo,
+  autoria?: AutoriaInforme,
 ): Promise<void> {
   await m.upsert(
     EsquemaInformeRiesgo,
     {
+      ...autoria,
       idInforme: informe.idInforme,
       fecha: informe.fecha,
       periodo: informe.periodo,

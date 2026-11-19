@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { GeneradorInformeRiesgo } from '../aplicacion/servicios/generador-informe-riesgo';
+import { ControladorInformes } from './controlador-informes';
 import { ControladorPlanNivelacion } from './controlador-plan-nivelacion';
 import { ModuloAcceso } from './modulo-acceso';
 import { ModuloNotificacion } from './modulo-notificacion';
@@ -11,6 +13,7 @@ import { ModuloNotificacion } from './modulo-notificacion';
  */
 @Module({
   imports: [ModuloAcceso, ModuloNotificacion],
-  controllers: [ControladorPlanNivelacion],
+  controllers: [ControladorPlanNivelacion, ControladorInformes],
+  providers: [GeneradorInformeRiesgo],
 })
 export class ModuloPlanesInformes {}

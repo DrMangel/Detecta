@@ -65,6 +65,9 @@ export interface FilaInformeRiesgo {
   resumen: string;
   /** Curso del que reporta ("reporta", 1). */
   idCurso: string;
+  idPrograma?: string | null;
+  idJefe?: string | null;
+  idPsicologo?: string | null;
 }
 
 export const EsquemaInformeRiesgo = new EntitySchema<FilaInformeRiesgo>({
@@ -84,6 +87,20 @@ export const EsquemaInformeRiesgo = new EntitySchema<FilaInformeRiesgo>({
     totalPlanes: { name: 'total_planes', type: 'integer' },
     resumen: { type: 'text' },
     idCurso: { name: 'id_curso', type: 'varchar', length: 36 },
+    // B8: programa y autor (asociación "genera"); los escribe guardarConAutor.
+    idPrograma: {
+      name: 'id_programa',
+      type: 'varchar',
+      length: 36,
+      nullable: true,
+    },
+    idJefe: { name: 'id_jefe', type: 'varchar', length: 36, nullable: true },
+    idPsicologo: {
+      name: 'id_psicologo',
+      type: 'varchar',
+      length: 36,
+      nullable: true,
+    },
   },
 });
 

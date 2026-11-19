@@ -2,7 +2,10 @@ import type { Asesoria } from '../dominio/entidades/asesoria';
 import type { Cita } from '../dominio/entidades/cita';
 import type { Curso } from '../dominio/entidades/curso';
 import type { InformeRiesgo } from '../dominio/entidades/informe-riesgo';
+import type { Persona } from '../dominio/entidades/persona';
 import type { Programa } from '../dominio/entidades/programa';
+import { Rol } from '../dominio/entidades/rol';
+import type { RepositorioInformeRiesgo } from '../dominio/repositorios/repositorio-informe-riesgo';
 import {
   EsquemaAsesoria,
   EsquemaCita,
@@ -88,17 +91,55 @@ export function crearRepositorioAsesoria(
 }
 
 /**
- * guardar(informe): escribe el informe y en cascada sus asociaciones
- * "resume" con casos y planes. No escribe el curso, los casos ni los planes.
+ * Adaptador de `RepositorioInformeRiesgo` (B8). guardar(informe) escribe el
+ * informe y en cascada sus asociaciones "resume"; guardarConAutor agrega el
+ * programa y el autor. No escribe el curso, los casos ni los planes.
  */
+export class RepositorioPersistenteInformeRiesgo
+  extends RepositorioPersistente<InformeRiesgo>
+  implements RepositorioInformeRiesgo
+{
+  constructor(fuente: FuenteDatos) {
+    super(fuente, {
+      objetivo: EsquemaInformeRiesgo,
+      propiedadId: 'idInforme',
+      criterios: { periodo: 'periodo' },
+      cargar: (cargador, ids) => cargador.informes(ids),
+      escribir: (m, informe) => escribirInforme(m, informe),
+    });
+  }
+
+  async guardarConAutor(
+    informe: InformeRiesgo,
+    idPrograma: string,
+    autor: Persona,
+  ): Promise<void> {
+    const rol = autor.obtenerRol();
+    if (rol !== Rol.JEFE_DEPARTAMENTO && rol !== Rol.PSICOLOGO) {
+      throw new Error(
+        'Solo un Jefe de Departamento o un Psicólogo genera informes',
+      );
+    }
+    await this.acceso.transaccion((manager) =>
+      escribirInforme(manager, informe, {
+        idPrograma,
+        idJefe: rol === Rol.JEFE_DEPARTAMENTO ? autor.id : null,
+        idPsicologo: rol === Rol.PSICOLOGO ? autor.id : null,
+      }),
+    );
+  }
+
+  async buscarProgramaDelInforme(idInforme: string): Promise<string | null> {
+    const [fila] = await this.acceso.query<{ id_programa: string }[]>(
+      'SELECT id_programa FROM informe_riesgo WHERE id_informe = $1',
+      [idInforme],
+    );
+    return fila?.id_programa ?? null;
+  }
+}
+
 export function crearRepositorioInformeRiesgo(
   fuente: FuenteDatos,
-): RepositorioPersistente<InformeRiesgo> {
-  return new RepositorioPersistente<InformeRiesgo>(fuente, {
-    objetivo: EsquemaInformeRiesgo,
-    propiedadId: 'idInforme',
-    criterios: { periodo: 'periodo' },
-    cargar: (cargador, ids) => cargador.informes(ids),
-    escribir: escribirInforme,
-  });
+): RepositorioPersistenteInformeRiesgo {
+  return new RepositorioPersistenteInformeRiesgo(fuente);
 }

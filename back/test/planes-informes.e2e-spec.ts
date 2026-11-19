@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
@@ -11,7 +12,11 @@ import { RELOJ } from '../src/aplicacion/servicios/servicio-autenticacion';
 import { ServicioNotificacion } from '../src/aplicacion/servicios/servicio-notificacion';
 import { AppModule } from '../src/app.module';
 import { configurarAplicacion } from '../src/configurar-aplicacion';
+import type { InformeDto } from '../src/controladores/controlador-informes';
 import type { PlanDto } from '../src/controladores/controlador-plan-nivelacion';
+import { Curso } from '../src/dominio/entidades/curso';
+import { Docente } from '../src/dominio/entidades/docente';
+import { RegistroAcademico } from '../src/dominio/entidades/registro-academico';
 import { RutaAtencion } from '../src/dominio/entidades/ruta-atencion';
 import { validarEntorno } from '../src/validacion-entorno';
 import {
@@ -19,6 +24,8 @@ import {
   casoDeSolicitud,
   crearEscenario,
   crearRepositorios,
+  estudiante,
+  PERIODO,
   type Escenario,
   type Repositorios,
 } from './integracion/escenario';
@@ -298,4 +305,190 @@ describe('B8a: plan de nivelación (R04, CUD05)', () => {
       ).estado,
     ).toBe(403);
   });
+});
+
+describe('B8b: informes de riesgo por asignatura (R07, CUD10)', () => {
+  it('el Jefe genera el informe de su programa; lo exporta en PDF con nombre fijo y solo datos agregados', async () => {
+    const respuesta = await pedir<{ informe: InformeDto }>(
+      'j1@ejemplo.edu.co',
+      'POST',
+      '/informes',
+      {
+        periodo: PERIODO,
+        idCurso: 'C1',
+      },
+      'informe',
+    );
+    expect(respuesta.estado).toBe(201);
+    expect(respuesta.cuerpo.informe).toMatchObject({
+      idPrograma: 'P1',
+      periodo: PERIODO,
+      curso: { idCurso: 'C1' },
+    });
+    expect(respuesta.cuerpo.informe.totalPlanes).toBeGreaterThan(0);
+
+    const pdf = await pedir(
+      'j1@ejemplo.edu.co',
+      'GET',
+      `/informes/${respuesta.cuerpo.informe.idInforme}/pdf`,
+      undefined,
+      'exportacion',
+    );
+    expect(pdf.estado).toBe(200);
+    expect(pdf.cabeceras.get('content-type')).toBe('application/pdf');
+    expect(pdf.cabeceras.get('content-disposition')).toBe(
+      'attachment; filename="informe-riesgo.pdf"',
+    );
+    const texto = pdf.bytes.toString('latin1');
+    expect(texto.startsWith('%PDF-1.4')).toBe(true);
+    expect(texto.endsWith('%%EOF\n')).toBe(true);
+    expect(texto).toContain('solo los casos cerrados o archivados');
+    expect(texto).not.toMatch(
+      /Estudiante E1|e1@ejemplo|Necesito apoyo|Bajo rendimiento|Tutor Uno/,
+    );
+    // Copia local para que Ivan lo abra en un lector (fuera del repositorio).
+    if (process.env['DETECTA_PDF_MUESTRA']) {
+      writeFileSync(process.env['DETECTA_PDF_MUESTRA'], pdf.bytes);
+    }
+  });
+
+  it('el Psicólogo indica el programa (obligatorio) y exporta cualquier informe; el Jefe no exporta el de otro programa', async () => {
+    const otro = await casoDeAlerta(repos, esc.d1, esc.r3); // E3 cursa P2
+    void otro;
+    const delPsicologo = await pedir<{ informe: InformeDto }>(
+      'ps1@ejemplo.edu.co',
+      'POST',
+      '/informes',
+      {
+        periodo: PERIODO,
+        idPrograma: 'P2',
+        idCurso: 'C1',
+      },
+    );
+    expect(delPsicologo.estado).toBe(201);
+    expect(delPsicologo.cuerpo.informe.idPrograma).toBe('P2');
+    const id = delPsicologo.cuerpo.informe.idInforme;
+    expect(
+      (await pedir('ps1@ejemplo.edu.co', 'GET', `/informes/${id}/pdf`)).estado,
+    ).toBe(200);
+    expect(
+      (await pedir('j1@ejemplo.edu.co', 'GET', `/informes/${id}/pdf`)).estado,
+    ).toBe(403);
+    expect(
+      await pedir('ps1@ejemplo.edu.co', 'POST', '/informes', {
+        periodo: PERIODO,
+        idCurso: 'C1',
+      }),
+    ).toMatchObject({
+      estado: 400,
+      cuerpo: { message: 'La solicitud no es válida.' },
+    });
+    expect(
+      await pedir('j1@ejemplo.edu.co', 'POST', '/informes', {
+        periodo: PERIODO,
+        idPrograma: 'P2',
+        idCurso: 'C1',
+      }),
+    ).toMatchObject({
+      estado: 400,
+      cuerpo: { message: 'La solicitud no es válida.' },
+    });
+  });
+
+  it('periodo sin datos: 200 con el mensaje de sd_CUD10 y nada guardado', async () => {
+    const [antes] = await fuente.query<{ total: string }[]>(
+      'SELECT count(*) AS total FROM informe_riesgo',
+    );
+    const respuesta = await pedir('j1@ejemplo.edu.co', 'POST', '/informes', {
+      periodo: '1999-1',
+      idCurso: 'C1',
+    });
+    expect(respuesta).toMatchObject({
+      estado: 200,
+      cuerpo: { mensaje: 'No hay datos para el periodo seleccionado' },
+    });
+    const [despues] = await fuente.query<{ total: string }[]>(
+      'SELECT count(*) AS total FROM informe_riesgo',
+    );
+    expect(despues?.total).toBe(antes?.total);
+  });
+
+  it('rendimiento: curso de 60 estudiantes con unas 200 alertas, casos y planes; el informe se genera en menos de 5 s (ER 3.4.2)', async () => {
+    const curso = new Curso({
+      idCurso: 'C7',
+      nombre: 'Estructuras de datos',
+      periodo: PERIODO,
+      ultimaSincronizacion: null,
+      estudiantes: [],
+    });
+    const docente = new Docente({
+      id: 'D7',
+      nombre: 'Docente Siete',
+      correo: 'd7@ejemplo.edu.co',
+      contrasenaHash: 'x',
+      cursos: [curso],
+    });
+    await repos.personas.guardar(docente);
+    const registros: RegistroAcademico[] = [];
+    for (let i = 0; i < 60; i++) {
+      const alumno = estudiante(`EP${i}`, esc.p1);
+      await repos.personas.guardar(alumno);
+      const registro = new RegistroAcademico({
+        idRegistro: `RP${i}`,
+        nota: 2,
+        porcentajeAsistencia: 50,
+        estudiante: alumno,
+        curso,
+      });
+      await repos.registros.guardar(registro);
+      registros.push(registro);
+    }
+    let planes = 0;
+    for (let i = 0; i < 200; i++) {
+      const { caso } = await casoDeAlerta(
+        repos,
+        docente,
+        registros[i % 60]!,
+        'Alerta de carga',
+      );
+      if (i % 2 === 0) {
+        await fuente.query(
+          `UPDATE caso_riesgo SET estado = $2 WHERE id_caso = $1`,
+          [caso.idCaso, i % 4 === 0 ? 'CERRADO' : 'ARCHIVADO'],
+        );
+      } else {
+        caso.canalizar(RutaAtencion.ACADEMICA);
+        await repos.casos.guardar(caso);
+        for (let k = 0; k < 2; k++) {
+          await repos.planes.guardar(
+            esc.j1.estructurarPlanNivelacion(caso, [curso], 'Tutor', 'T', ''),
+          );
+          planes += 1;
+        }
+      }
+    }
+    for (let i = 0; i < 3; i++) {
+      const respuesta = await pedir<{ informe: InformeDto }>(
+        'j1@ejemplo.edu.co',
+        'POST',
+        '/informes',
+        { periodo: PERIODO, idCurso: 'C7' },
+        'informe',
+      );
+      expect(respuesta.estado).toBe(201);
+      expect(respuesta.cuerpo.informe).toMatchObject({
+        totalAlertas: 200,
+        totalCasos: 100,
+        totalPlanes: planes,
+      });
+      await pedir(
+        'j1@ejemplo.edu.co',
+        'GET',
+        `/informes/${respuesta.cuerpo.informe.idInforme}/pdf`,
+        undefined,
+        'exportacion',
+      );
+    }
+    expect(Math.max(...(tiempos['informe'] ?? [Infinity]))).toBeLessThan(5000);
+  }, 300_000);
 });

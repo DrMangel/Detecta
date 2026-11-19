@@ -562,7 +562,8 @@ describe('InformeRiesgo', () => {
       alertas: [caso.origen as Alerta],
     });
     informe.consolidar();
-    await repos.informes.guardar(informe);
+    // B8: un informe nuevo exige programa y autor (migración AutoriaInforme).
+    await repos.informes.guardarConAutor(informe, 'P1', esc.j1);
 
     const leido = await repos.informes.buscarPorId('I1');
     expect(leido?.totalAlertas).toBe(1);
