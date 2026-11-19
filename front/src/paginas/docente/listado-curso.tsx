@@ -15,6 +15,7 @@ import {
   type RegistroCurso,
 } from '../../servicios-api/docente';
 import { useConsulta } from '../../componentes/use-consulta';
+import tabla from '../../componentes/tabla.module.css';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
 import { PlantillaDocente } from './plantilla-docente';
@@ -147,14 +148,14 @@ function TablaCurso({
 }) {
   const prefijo = useId();
   return (
-    <table className={estilos['tabla']}>
+    <table className={tabla['tabla']}>
       <thead>
         <tr>
           <th scope="col">{ROTULOS_DOCENTE.estudiante}</th>
           <th scope="col">{ROTULOS_DOCENTE.nota}</th>
           <th scope="col">{ROTULOS_DOCENTE.asistencia}</th>
           <th scope="col">
-            <span className={estilos['oculto']}>
+            <span className={tabla['oculto']}>
               {ROTULOS_DOCENTE.emitirAlerta}
             </span>
           </th>
@@ -171,18 +172,18 @@ function TablaCurso({
                 {registro.estudiante.nombre}
               </th>
               <td
-                className={estilos['numero']}
+                className={tabla['numero']}
                 data-rotulo={ROTULOS_DOCENTE.nota}
               >
                 {formatearNota(registro.nota)}
               </td>
               <td
-                className={estilos['numero']}
+                className={tabla['numero']}
                 data-rotulo={ROTULOS_DOCENTE.asistencia}
               >
                 {formatearAsistencia(registro.porcentajeAsistencia)}
               </td>
-              <td className={estilos['accion']}>
+              <td className={tabla['accion']}>
                 <button
                   type="button"
                   className={estilos['botonSecundario']}
