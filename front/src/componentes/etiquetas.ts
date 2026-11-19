@@ -37,3 +37,12 @@ export const NOMBRE_NIVEL_RIESGO: Readonly<Record<NivelRiesgo, string>> = {
 
 /** leerPeriodo (validacion-entrada.ts): el mismo texto antes de enviar. */
 export const TEXTO_INDIQUE_PERIODO = 'Indique el periodo académico.';
+
+/* ---------- Nuevos compartidos (provisionales, planes de F1 y F2) ---------- */
+
+/** Consulta por periodo (FormularioPeriodo) y rótulos que la acompañan. */
+export const ROTULOS_PERIODO = {
+  periodo: 'Periodo académico',
+  ayuda: 'Por ejemplo: 2026-2',
+  consultar: 'Consultar',
+} as const;

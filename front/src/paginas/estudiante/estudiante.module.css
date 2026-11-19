@@ -5,14 +5,6 @@
  * una rejilla. Usa los tokens de estilos/base.css.
  */
 
-.formulario {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-  max-width: 40rem;
-  margin-bottom: var(--espacio-4);
-}
-
 .grupo legend {
   font-weight: 600;
 }
@@ -59,23 +51,6 @@
 .caracter {
   margin: 0 0 var(--espacio-3);
   color: var(--color-texto-suave);
-}
-
-.boton {
-  align-self: flex-start;
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-4);
-  border: none;
-  border-radius: var(--radio);
-  background: var(--color-primario);
-  color: var(--color-primario-texto);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.boton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .seccion {

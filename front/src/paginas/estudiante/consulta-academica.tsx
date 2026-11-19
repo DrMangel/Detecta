@@ -1,6 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { CampoTexto } from '../../componentes/campo-texto';
-import { useEsperaReintento } from '../../componentes/espera-reintento';
+import { useState } from 'react';
+import { FormularioPeriodo } from '../../componentes/formulario-periodo';
 import {
   formatearAsistencia,
   formatearFecha,
@@ -10,14 +9,13 @@ import {
   MensajeError,
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
-import { ErrorApi, mensajeDeError } from '../../servicios-api/errores';
+import { useEnvio } from '../../componentes/use-envio';
 import {
   consultarAlertas,
   consultarRegistros,
   type AlertaEstudiante,
   type RegistrosEstudiante,
 } from '../../servicios-api/estudiante';
-import { LIMITES } from '../../servicios-api/limites';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
@@ -27,14 +25,12 @@ import {
 } from './textos';
 import {
   NOMBRE_NIVEL_RIESGO,
-  TEXTO_INDIQUE_PERIODO,
   TEXTO_INFORMACION_NO_DISPONIBLE,
 } from '../../componentes/etiquetas';
 
 /*
  * Consulta académica del Estudiante (CUD01; sd_CUD01, rama del estudiante).
- * El estudiante escribe el periodo (texto libre de hasta 20 caracteres, como
- * lo valida el backend) y ve sus notas, su asistencia y la fecha de la
+ * El estudiante escribe el periodo (FormularioPeriodo) y ve sus notas, su asistencia y la fecha de la
  * última sincronización de cada curso, más las alertas emitidas sobre él en
  * el periodo (2.a). Sin registros, el backend responde «Información no
  * disponible» (4.a); el front no asume ningún valor (ER 3.3.1).
@@ -49,68 +45,31 @@ interface Resultado {
 }
 
 export function ConsultaAcademica() {
-  const [periodo, setPeriodo] = useState('');
-  const [consultando, setConsultando] = useState(false);
-  const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
-  const { enEspera, esperar } = useEsperaReintento();
+  const { enviando, enEspera, error, ejecutar } = useEnvio();
 
-  const consultar = async (evento: FormEvent) => {
-    evento.preventDefault();
-    if (consultando) {
-      return;
-    }
-    const buscado = periodo.trim();
-    if (buscado === '') {
-      setErrorPeriodo(TEXTO_INDIQUE_PERIODO);
-      return;
-    }
-    setErrorPeriodo(null);
-    setError(null);
-    setConsultando(true);
-    try {
-      const [registros, alertas] = await Promise.all([
-        consultarRegistros(buscado),
-        consultarAlertas(buscado),
-      ]);
-      setResultado({ periodo: buscado, registros, alertas });
-    } catch (fallo) {
-      // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-      setResultado(null);
-      setError(mensajeDeError(fallo));
-      if (fallo instanceof ErrorApi && fallo.estado === 429) {
-        esperar(fallo.esperaSegundos);
-      }
-    } finally {
-      setConsultando(false);
-    }
+  const consultar = async (periodo: string) => {
+    const datos = await ejecutar(() =>
+      Promise.all([consultarRegistros(periodo), consultarAlertas(periodo)]),
+    );
+    // Si falla, el error queda a la vista y no se muestra el resultado anterior.
+    setResultado(
+      datos === undefined
+        ? null
+        : { periodo, registros: datos[0], alertas: datos[1] },
+    );
   };
 
   return (
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.consulta}>
-      <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <CampoTexto
-          rotulo={ROTULOS_ESTUDIANTE.periodo}
-          valor={periodo}
-          alCambiar={setPeriodo}
-          maximo={LIMITES.periodo}
-          requerido
-          ayuda={ROTULOS_ESTUDIANTE.ayudaPeriodo}
-          error={errorPeriodo}
-          clase={estilos['campo']}
-        />
-        <button
-          type="submit"
-          className={estilos['boton']}
-          disabled={consultando || enEspera}
-        >
-          {ROTULOS_ESTUDIANTE.consultar}
-        </button>
-      </form>
+      <FormularioPeriodo
+        alConsultar={(periodo) => void consultar(periodo)}
+        ocupado={enviando || enEspera}
+        claseCampo={estilos['campo']}
+      />
 
       <MensajeError mensaje={error} />
-      <div aria-busy={consultando}>
+      <div aria-busy={enviando}>
         {resultado !== null && <ResultadoConsulta resultado={resultado} />}
       </div>
     </PlantillaEstudiante>

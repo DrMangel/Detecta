@@ -21,6 +21,7 @@ import {
 } from '../../servicios-api/estudiante';
 import { LIMITES } from '../../servicios-api/limites';
 import { buscarRegistrada } from './conciliacion';
+import controles from '../../componentes/controles.module.css';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
@@ -144,7 +145,7 @@ function SolicitarAcompanamiento() {
   return (
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
       <p className={estilos['caracter']}>{TEXTO_ASESORIA_EDUCATIVA}</p>
-      <form className={estilos['formulario']} onSubmit={enviar} noValidate>
+      <form className={controles['formulario']} onSubmit={enviar} noValidate>
         <GrupoOpciones
           leyenda={ROTULOS_ESTUDIANTE.tipoApoyo}
           opciones={TIPOS}
@@ -187,7 +188,7 @@ function SolicitarAcompanamiento() {
         <MensajeError mensaje={error} />
         <button
           type="submit"
-          className={estilos['boton']}
+          className={controles['boton']}
           disabled={tipoApoyo === null || enviando || enEspera}
         >
           {ROTULOS_ESTUDIANTE.enviar}

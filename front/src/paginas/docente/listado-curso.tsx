@@ -23,7 +23,10 @@ import {
   TEXTO_ALERTA_EMITIDA,
   TITULOS_DOCENTE,
 } from './textos';
-import { TEXTO_INFORMACION_NO_DISPONIBLE } from '../../componentes/etiquetas';
+import {
+  ROTULOS_PERIODO,
+  TEXTO_INFORMACION_NO_DISPONIBLE,
+} from '../../componentes/etiquetas';
 
 /*
  * Listado del curso del Docente (CUD01 pasos 3 y 4, rama Docente; sd_CUD01
@@ -120,7 +123,7 @@ function DatosCurso({ curso }: { curso: ConsultaCurso['curso'] }) {
     <dl className={estilos['curso']}>
       <dt>{ROTULOS_DOCENTE.curso}</dt>
       <dd>{curso.nombre}</dd>
-      <dt>{ROTULOS_DOCENTE.periodo}</dt>
+      <dt>{ROTULOS_PERIODO.periodo}</dt>
       <dd>{curso.periodo}</dd>
       <dt>{ROTULOS_DOCENTE.ultimaSincronizacion}</dt>
       <dd>

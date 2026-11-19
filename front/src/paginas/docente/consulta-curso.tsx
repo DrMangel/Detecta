@@ -2,6 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { CampoTexto } from '../../componentes/campo-texto';
 import { useNavigate } from 'react-router';
 import { LIMITES } from '../../servicios-api/limites';
+import controles from '../../componentes/controles.module.css';
+import { ROTULOS_PERIODO } from '../../componentes/etiquetas';
 import estilos from './docente.module.css';
 import { PlantillaDocente, RUTAS_DOCENTE } from './plantilla-docente';
 import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
@@ -28,7 +30,7 @@ export function ConsultaCurso() {
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.consultaCurso}>
-      <form className={estilos['formulario']} onSubmit={consultar} noValidate>
+      <form className={controles['formulario']} onSubmit={consultar} noValidate>
         <CampoTexto
           rotulo={ROTULOS_DOCENTE.codigoCurso}
           valor={codigo}
@@ -43,7 +45,7 @@ export function ConsultaCurso() {
           className={estilos['boton']}
           disabled={buscado === ''}
         >
-          {ROTULOS_DOCENTE.consultar}
+          {ROTULOS_PERIODO.consultar}
         </button>
       </form>
     </PlantillaDocente>

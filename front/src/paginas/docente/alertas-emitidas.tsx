@@ -1,13 +1,12 @@
-import { useState, type FormEvent } from 'react';
-import { CampoTexto } from '../../componentes/campo-texto';
+import { useState } from 'react';
+import { FormularioPeriodo } from '../../componentes/formulario-periodo';
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
 import {
   consultarAlertasEmitidas,
   type AlertaEmitida,
 } from '../../servicios-api/docente';
-import { mensajeDeError } from '../../servicios-api/errores';
-import { LIMITES } from '../../servicios-api/limites';
+import { useEnvio } from '../../componentes/use-envio';
 import estilos from './docente.module.css';
 import { PlantillaDocente } from './plantilla-docente';
 import {
@@ -18,7 +17,6 @@ import {
 import {
   NOMBRE_ESTADO,
   NOMBRE_NIVEL_RIESGO,
-  TEXTO_INDIQUE_PERIODO,
 } from '../../componentes/etiquetas';
 
 /*
@@ -31,60 +29,24 @@ import {
  */
 
 export function AlertasEmitidas() {
-  const [periodo, setPeriodo] = useState('');
-  const [consultando, setConsultando] = useState(false);
-  const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [alertas, setAlertas] = useState<AlertaEmitida[] | null>(null);
+  const { enviando, enEspera, error, ejecutar } = useEnvio();
 
-  const consultar = async (evento: FormEvent) => {
-    evento.preventDefault();
-    if (consultando) {
-      return;
-    }
-    const buscado = periodo.trim();
-    if (buscado === '') {
-      setErrorPeriodo(TEXTO_INDIQUE_PERIODO);
-      return;
-    }
-    setErrorPeriodo(null);
-    setError(null);
-    setConsultando(true);
-    try {
-      setAlertas(await consultarAlertasEmitidas(buscado));
-    } catch (fallo) {
-      // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-      setAlertas(null);
-      setError(mensajeDeError(fallo));
-    } finally {
-      setConsultando(false);
-    }
+  const consultar = async (periodo: string) => {
+    const lista = await ejecutar(() => consultarAlertasEmitidas(periodo));
+    setAlertas(lista ?? null);
   };
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.alertasEmitidas}>
-      <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <CampoTexto
-          rotulo={ROTULOS_DOCENTE.periodo}
-          valor={periodo}
-          alCambiar={setPeriodo}
-          maximo={LIMITES.periodo}
-          requerido
-          ayuda={ROTULOS_DOCENTE.ayudaPeriodo}
-          error={errorPeriodo}
-          clase={estilos['campo']}
-        />
-        <button
-          type="submit"
-          className={estilos['boton']}
-          disabled={consultando}
-        >
-          {ROTULOS_DOCENTE.consultar}
-        </button>
-      </form>
+      <FormularioPeriodo
+        alConsultar={(periodo) => void consultar(periodo)}
+        ocupado={enviando || enEspera}
+        claseCampo={estilos['campo']}
+      />
 
       <MensajeError mensaje={error} />
-      <div aria-busy={consultando}>
+      <div aria-busy={enviando}>
         {alertas !== null &&
           (alertas.length === 0 ? (
             <p>{TEXTO_SIN_ALERTAS_EMITIDAS}</p>

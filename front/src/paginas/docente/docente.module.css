@@ -6,14 +6,6 @@
  * estilos/base.css.
  */
 
-.formulario {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-  max-width: 40rem;
-  margin-bottom: var(--espacio-4);
-}
-
 .grupo legend {
   font-weight: 600;
 }

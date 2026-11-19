@@ -23,9 +23,6 @@ export const TITULOS_ESTUDIANTE = {
 } as const;
 
 export const ROTULOS_ESTUDIANTE = {
-  periodo: 'Periodo académico',
-  ayudaPeriodo: 'Por ejemplo: 2026-2',
-  consultar: 'Consultar',
   asignatura: 'Asignatura',
   nota: 'Nota',
   asistencia: 'Asistencia',

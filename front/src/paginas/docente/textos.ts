@@ -25,10 +25,7 @@ export const TITULOS_DOCENTE = {
 
 export const ROTULOS_DOCENTE = {
   codigoCurso: 'Código del curso',
-  consultar: 'Consultar',
   curso: 'Curso',
-  periodo: 'Periodo académico',
-  ayudaPeriodo: 'Por ejemplo: 2026-2',
   ultimaSincronizacion: 'Última sincronización',
   estudiante: 'Estudiante',
   nota: 'Nota',
