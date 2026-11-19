@@ -101,7 +101,10 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 
 - Un menor sin consentimiento no puede registrar el resultado de la sesión (ER R06, situación 2): lo aplica el servicio de B7 con `habilitadoParaAtencion`, porque `Cita` no conoce a su caso.
 - El cruce de horario al reprogramar una cita lo verifica el servicio de B7 (`Cita` no conoce al psicólogo).
-- Qué ve el Jefe de una solicitud académica confidencial (D18): se define en el plan de B6.
+- Qué ve el Jefe de una solicitud académica confidencial y la aplicación de `puedeVerContenidoConfidencial` (D18): se definen en el plan de B7.
+- Requisitos de B7 (desde B6):
+  - canalizar exige que el programa tenga jefe; si no lo hay, el sistema responde con un mensaje claro (hoy el adaptador lanza un error al derivar `id_jefe`);
+  - un caso de un programa sin jefe se guarda con `id_jefe` NULL y es visible por programa: aparece en la bandeja en cuanto se configura el jefe (D17).
 - Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
 - Para B9 (sincronización):
   - medir `sincronizarTodo` con unos 2000 estudiantes: unas 14 000 consultas en una sola transacción, con el bloqueo exclusivo retenido mientras dura;
@@ -109,6 +112,13 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 - Para B9 (correo y dependencias):
   - revisar los avisos de `npm audit` (D25) sin `--force`;
   - los correos de alerta de B6 no deben bloquear la operación de negocio (ER Tabla 1: menos de 5 s).
+- Para B9 (desde B6):
+  - `listarPorRol(PSICOLOGO)` carga la agenda completa de cada psicólogo para notificarle una solicitud psicosocial;
+  - los envíos en segundo plano se pierden si el proceso muere antes de terminarlos (D24);
+  - los tiempos medidos en B6 (consultas de 98 ms como máximo, radicación de 101 ms) son indicativos: se miden con carga en B9.
+- Para F1 (frontend):
+  - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar;
+  - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso.
 
 **Estado de las fases**
 
@@ -117,8 +127,9 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B0, B1, B2 y B3 | Cerradas (17/11/2026) |
 | B4 | Cerrada (17/11/2026): 181 pruebas unitarias, 83 de integración y 33 e2e |
 | B5 | Cerrada (17/11/2026): 221 pruebas unitarias, 89 de integración y 37 e2e. Verificación del correo real con Brevo pendiente de Ivan |
-| B6 | Siguiente |
-| B7 a B9 | Pendientes |
+| B6 | Cerrada (18/11/2026): 277 pruebas unitarias, 96 de integración y 48 e2e |
+| B7 | Siguiente |
+| B8 y B9 | Pendientes |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -202,6 +213,22 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Adaptador | Parámetro `ca` de `ProveedorCorreoExterno` (solo pruebas); `onModuleDestroy` cierra el pool |
 | Comportamiento de B3 | `solicitarActivacion` no espera el envío; `ServicioAutenticacion.onApplicationShutdown()` espera los envíos pendientes |
 
+### Diferencias introducidas en la implementación (B6)
+
+| Tipo | Elemento |
+|---|---|
+| Método | `RepositorioCasoRiesgo.listarEstadosPorOrigen(idsOrigen)`: estado del caso de cada origen en una sola consulta (D27) |
+| Contrato | `RepositoriosTransaccionales` ampliado con `alertas`, `solicitudes` y `casos`: el origen y su caso se guardan en una transacción, primero el origen (D7) |
+| Servicio | `ServicioNotificacion` registra los envíos en curso, los espera en `onApplicationShutdown()` y sus promesas nunca se rechazan; los controladores lanzan los correos después del commit sin esperarlos |
+| Adaptador | Criterio `idEstudiante` en `listar` del adaptador de registros académicos (D21), sin cambiar el contrato |
+| Pieza de NestJS | `ModuloAlertasSolicitudes` |
+| Soporte de controladores | `respuestas.ts` (DTOs, `estadoAtencion` y `conPersistencia`: errores de la base de datos como 503 sin datos) y `validacion-entrada.ts` |
+| Rutas | `GET /alertas/cursos/:idCurso`, `GET /alertas/emitidas?periodo=`, `POST /alertas`, `GET /consulta/registros?periodo=`, `GET /consulta/alertas?periodo=`, `GET /consulta/solicitudes`, `POST /solicitudes`; códigos 400, 403, 503 y 201; un recurso inexistente responde 403 como uno ajeno |
+| Campos de respuesta | Fecha y curso en las alertas del estudiante (sin el docente); `estadoAtencion` en las alertas del docente y `estado` en las solicitudes (D27); `codigo` = `idOrigen` (D28) |
+| Flujo | `radicarSolicitud` usa el estudiante ya cargado por la sesión (con `buscarPorId`) en lugar de una segunda búsqueda |
+| Flujo | El jefe y los psicólogos destinatarios se buscan dentro de la transacción, no después del commit |
+| Textos nuevos (no vienen del ER) | "No se encontró una matrícula activa asociada a su cuenta." (403); "El texto excede la longitud permitida." (400); "La solicitud no es válida." (400); "Indique el periodo académico." (400) |
+
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
@@ -213,7 +240,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D7 | Docente obligatorio en un caso de riesgo (ER 3.5.5) | Antes de B2 | Resuelta (16/11/2026). Sin docente obligatorio; un caso tiene motivo, estudiante y exactamente un origen (Alerta o SolicitudAcompanamiento); prevalece sobre el ER 3.5.5 |
 | D8 | Reglas sin definir y fuera de los diagramas: tiempo máximo de canalización, si se notifica al estudiante la canalización, máximo de reprogramaciones de una cita | No implementar | Sin decisión |
 | D9 | Duración de una cita; hoy el cruce es solo misma fecha y hora exactas | Antes de B7 | Abierta |
-| D10 | Contenido de `PlanNivelacion.descripcion`; hoy queda vacía | Antes de B6 | Abierta |
+| D10 | Contenido de `PlanNivelacion.descripcion`; hoy queda vacía | Antes del plan de B8 | Abierta |
 | D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | Antes de B7 | Abierta |
 | D12 | Periodo de un caso o plan | Antes de B7 | Resuelta (17/11/2026). El periodo de un caso o plan es el del curso; las solicitudes voluntarias quedan fuera de los informes por periodo; `listarPorPeriodo` de casos devuelve solo cerrados o archivados |
 | D13 | Carga de usuarios y configuración que no llegan por sincronización | B3 y B4 | Resuelta. Script de datos iniciales con archivo JSON: programas y usuarios en B3; cursos y asignación docente–curso en B4 |
@@ -221,15 +248,17 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D15 | Bloqueo por intentos fallidos | Antes de B9 | Abierta. No en B3; limitador en memoria en B9, junto con un limitador por IP para solicitudes de activación y revisión de `UV_THREADPOOL_SIZE` por el costo de bcrypt |
 | D16 | Vida del token de activación y límite de solicitudes | B3 | Resuelta. Token de activación de 30 minutos y 3 solicitudes por cuenta y por hora |
 | D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta |
-| D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c ("únicamente psicología") y el perfil del Estudiante (oculta a docentes y estudiantes) se contradicen | Antes del plan de B6 | Abierta |
+| D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c ("únicamente psicología") y el perfil del Estudiante (oculta a docentes y estudiantes) se contradicen | Antes del plan de B7 | Parcial. Hecho en B6: el caso de la solicitud nace confidencial, el correo al jefe o a los psicólogos es genérico y el estudiante ve su propio motivo. Abierto: qué ve el Jefe y la aplicación de `puedeVerContenidoConfidencial` |
 | D19 | Contenido confidencial | B3 | Resuelta. Psicólogo con ruta `PSICOLOGICA` y caso sin asignar o asignado a él |
 | D20 | Lo que deja de venir en la fuente institucional (estudiantes o registros) se conserva sin marca, porque no hay `DELETE` | Posterior | Abierta |
-| D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | Antes del plan de B6 | Abierta |
+| D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | B6 | Resuelta (18/11/2026). Matrícula activa = al menos un `RegistroAcademico` del estudiante, sin periodo vigente. Limitación: quien deja de venir en la fuente conserva sus registros (D20) |
 | D22 | `codigo_asignatura = Curso.idCurso`: un curso por asignatura; un periodo nuevo exige cursos nuevos con códigos nuevos | B4 | Aceptada como limitación |
 | D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta |
 | D24 | Entrega de correos sin cola ni reintentos | B5 | Aceptada como limitación. Un fallo se registra como "Error de envío" y no se reintenta; la entrega no está garantizada (ER Tabla 1) |
 | D25 | Avisos de `npm audit` en `picomatch` y `glob` (dependencias anteriores a B5) | B9 | Abierta |
 | D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | Antes del plan de B7 | Abierta |
+| D27 | Estado que ven el estudiante y el docente de una solicitud o alerta: la regla de B1 marca el origen ATENDIDO al generar el caso, y CUD02 dice que la solicitud queda pendiente | B6 | Resuelta (18/11/2026). Se deriva del caso al leer: `PENDIENTE` mientras el caso esté PENDIENTE y `ATENDIDA` en cualquier otro estado, sin ruta ni avance; el estado guardado del origen no cambia |
+| D28 | Código único de rastreo de la solicitud (R02) | B6 | Aceptada como limitación. Es `idOrigen` (UUID) |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 
