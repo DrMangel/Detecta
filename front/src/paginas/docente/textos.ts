@@ -52,8 +52,3 @@ export const TEXTO_SIN_ALERTAS_EMITIDAS =
 /** Error de red con resultado incierto (§5 del plan; como en F1). */
 export const TEXTO_ALERTA_INCIERTA =
   'No se pudo confirmar si la alerta fue registrada. Revise «Alertas emitidas» antes de emitirla de nuevo.';
-
-/** Contador de la justificación (ajuste A): «120 / 2000». */
-export function textoContador(usados: number, maximo: number): string {
-  return `${usados} / ${maximo}`;
-}

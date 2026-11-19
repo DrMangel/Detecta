@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { formatearAsistencia, formatearNota } from '../../componentes/formato';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useEnvio } from '../../componentes/use-envio';
 import {
@@ -25,7 +26,6 @@ import {
   ROTULOS_DOCENTE,
   TEXTO_ALERTA_INCIERTA,
   TEXTO_CAMPOS_VACIOS,
-  textoContador,
 } from './textos';
 import { NOMBRE_NIVEL_RIESGO } from '../../componentes/etiquetas';
 
@@ -90,8 +90,6 @@ export function FormularioAlerta({
 }) {
   const idTitulo = useId();
   const nombreNivel = useId();
-  const idJustificacion = useId();
-  const idContador = useId();
   const idErrorCampos = useId();
   const seccion = useRef<HTMLElement>(null);
   const [nivelRiesgo, setNivelRiesgo] = useState<NivelRiesgo | null>(null);
@@ -174,26 +172,18 @@ export function FormularioAlerta({
           ))}
         </fieldset>
 
-        <div className={estilos['campo']}>
-          <label htmlFor={idJustificacion}>
-            {ROTULOS_DOCENTE.justificacion}
-          </label>
-          <textarea
-            id={idJustificacion}
-            value={descripcion}
-            maxLength={LIMITES.descripcion}
-            required
-            autoComplete="off"
-            aria-invalid={vacio && descripcion.trim() === ''}
-            aria-describedby={
-              vacio ? `${idContador} ${idErrorCampos}` : idContador
-            }
-            onChange={(evento) => setDescripcion(evento.target.value)}
-          />
-          <p id={idContador} className={estilos['ayuda']}>
-            {textoContador(descripcion.length, LIMITES.descripcion)}
-          </p>
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_DOCENTE.justificacion}
+          valor={descripcion}
+          alCambiar={setDescripcion}
+          maximo={LIMITES.descripcion}
+          multilinea
+          requerido
+          contador
+          invalido={vacio && descripcion.trim() === ''}
+          descritoPor={vacio ? idErrorCampos : undefined}
+          clase={estilos['campo']}
+        />
 
         <MensajeError mensaje={errorCampos} id={idErrorCampos} />
         <MensajeError mensaje={error} />

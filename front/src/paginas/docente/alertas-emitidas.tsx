@@ -1,4 +1,5 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
 import {
@@ -30,9 +31,6 @@ import {
  */
 
 export function AlertasEmitidas() {
-  const idPeriodo = useId();
-  const idAyuda = useId();
-  const idError = useId();
   const [periodo, setPeriodo] = useState('');
   const [consultando, setConsultando] = useState(false);
   const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
@@ -66,26 +64,16 @@ export function AlertasEmitidas() {
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.alertasEmitidas}>
       <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <div className={estilos['campo']}>
-          <label htmlFor={idPeriodo}>{ROTULOS_DOCENTE.periodo}</label>
-          <input
-            id={idPeriodo}
-            type="text"
-            value={periodo}
-            maxLength={LIMITES.periodo}
-            required
-            autoComplete="off"
-            aria-invalid={errorPeriodo !== null}
-            aria-describedby={
-              errorPeriodo === null ? idAyuda : `${idAyuda} ${idError}`
-            }
-            onChange={(evento) => setPeriodo(evento.target.value)}
-          />
-          <p id={idAyuda} className={estilos['ayuda']}>
-            {ROTULOS_DOCENTE.ayudaPeriodo}
-          </p>
-          <MensajeError mensaje={errorPeriodo} id={idError} />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_DOCENTE.periodo}
+          valor={periodo}
+          alCambiar={setPeriodo}
+          maximo={LIMITES.periodo}
+          requerido
+          ayuda={ROTULOS_DOCENTE.ayudaPeriodo}
+          error={errorPeriodo}
+          clase={estilos['campo']}
+        />
         <button
           type="submit"
           className={estilos['boton']}

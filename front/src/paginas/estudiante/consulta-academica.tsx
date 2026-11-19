@@ -1,4 +1,5 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { useEsperaReintento } from '../../componentes/espera-reintento';
 import {
   formatearAsistencia,
@@ -48,9 +49,6 @@ interface Resultado {
 }
 
 export function ConsultaAcademica() {
-  const idPeriodo = useId();
-  const idAyuda = useId();
-  const idError = useId();
   const [periodo, setPeriodo] = useState('');
   const [consultando, setConsultando] = useState(false);
   const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
@@ -92,26 +90,16 @@ export function ConsultaAcademica() {
   return (
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.consulta}>
       <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <div className={estilos['campo']}>
-          <label htmlFor={idPeriodo}>{ROTULOS_ESTUDIANTE.periodo}</label>
-          <input
-            id={idPeriodo}
-            type="text"
-            value={periodo}
-            maxLength={LIMITES.periodo}
-            required
-            autoComplete="off"
-            aria-invalid={errorPeriodo !== null}
-            aria-describedby={
-              errorPeriodo === null ? idAyuda : `${idAyuda} ${idError}`
-            }
-            onChange={(evento) => setPeriodo(evento.target.value)}
-          />
-          <p id={idAyuda} className={estilos['ayuda']}>
-            {ROTULOS_ESTUDIANTE.ayudaPeriodo}
-          </p>
-          <MensajeError mensaje={errorPeriodo} id={idError} />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_ESTUDIANTE.periodo}
+          valor={periodo}
+          alCambiar={setPeriodo}
+          maximo={LIMITES.periodo}
+          requerido
+          ayuda={ROTULOS_ESTUDIANTE.ayudaPeriodo}
+          error={errorPeriodo}
+          clase={estilos['campo']}
+        />
         <button
           type="submit"
           className={estilos['boton']}

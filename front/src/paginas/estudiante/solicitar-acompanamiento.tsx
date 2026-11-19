@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { useLocation } from 'react-router';
 import { formatearFecha } from '../../componentes/formato';
 import {
@@ -82,9 +83,6 @@ function pasosSolicitud(datos: DatosSolicitud): PasosEnvio<Solicitud> {
 
 function SolicitarAcompanamiento() {
   const nombreTipo = useId();
-  const idMotivo = useId();
-  const idErrorMotivo = useId();
-  const idDisponibilidad = useId();
   const [tipoApoyo, setTipoApoyo] = useState<TipoApoyo | null>(null);
   const [motivo, setMotivo] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
@@ -173,33 +171,25 @@ function SolicitarAcompanamiento() {
           )}
         </div>
 
-        <div className={estilos['campo']}>
-          <label htmlFor={idMotivo}>{ROTULOS_ESTUDIANTE.motivo}</label>
-          <textarea
-            id={idMotivo}
-            value={motivo}
-            maxLength={LIMITES.motivo}
-            required
-            autoComplete="off"
-            aria-invalid={errorMotivo !== null}
-            aria-describedby={errorMotivo === null ? undefined : idErrorMotivo}
-            onChange={(evento) => setMotivo(evento.target.value)}
-          />
-          <MensajeError mensaje={errorMotivo} id={idErrorMotivo} />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_ESTUDIANTE.motivo}
+          valor={motivo}
+          alCambiar={setMotivo}
+          maximo={LIMITES.motivo}
+          multilinea
+          requerido
+          error={errorMotivo}
+          clase={estilos['campo']}
+        />
 
-        <div className={estilos['campo']}>
-          <label htmlFor={idDisponibilidad}>
-            {ROTULOS_ESTUDIANTE.disponibilidadOpcional}
-          </label>
-          <textarea
-            id={idDisponibilidad}
-            value={disponibilidad}
-            maxLength={LIMITES.disponibilidad}
-            autoComplete="off"
-            onChange={(evento) => setDisponibilidad(evento.target.value)}
-          />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_ESTUDIANTE.disponibilidadOpcional}
+          valor={disponibilidad}
+          alCambiar={setDisponibilidad}
+          maximo={LIMITES.disponibilidad}
+          multilinea
+          clase={estilos['campo']}
+        />
 
         <MensajeError mensaje={error} />
         <button

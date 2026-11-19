@@ -1,0 +1,35 @@
+/*
+ * Controles compartidos por las pantallas de los roles (F1b): solo las reglas
+ * que eran idénticas en los módulos del Estudiante y del Docente. Lo que
+ * difiere entre roles (alto de las áreas de texto, borde de error, grupos,
+ * botones) sigue en el módulo de cada rol y se aplica con la prop `clase`.
+ */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.campo label {
+  font-weight: 600;
+}
+
+/* :where() no suma especificidad: las reglas de cada rol (por ejemplo, el
+   alto de las áreas de texto) ganan sin depender del orden del CSS. */
+:where(.campo) input,
+:where(.campo) textarea {
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 0.875rem;
+}

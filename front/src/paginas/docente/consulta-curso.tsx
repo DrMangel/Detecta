@@ -1,4 +1,5 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { useNavigate } from 'react-router';
 import { LIMITES } from '../../servicios-api/limites';
 import estilos from './docente.module.css';
@@ -15,7 +16,6 @@ import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
 
 export function ConsultaCurso() {
   const navegar = useNavigate();
-  const idCodigo = useId();
   const [codigo, setCodigo] = useState('');
   const buscado = codigo.trim();
 
@@ -29,18 +29,14 @@ export function ConsultaCurso() {
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.consultaCurso}>
       <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <div className={estilos['campo']}>
-          <label htmlFor={idCodigo}>{ROTULOS_DOCENTE.codigoCurso}</label>
-          <input
-            id={idCodigo}
-            type="text"
-            value={codigo}
-            maxLength={LIMITES.identificador}
-            required
-            autoComplete="off"
-            onChange={(evento) => setCodigo(evento.target.value)}
-          />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_DOCENTE.codigoCurso}
+          valor={codigo}
+          alCambiar={setCodigo}
+          maximo={LIMITES.identificador}
+          requerido
+          clase={estilos['campo']}
+        />
         {/* Sin código no se consulta (no hay texto aprobado para el vacío). */}
         <button
           type="submit"
