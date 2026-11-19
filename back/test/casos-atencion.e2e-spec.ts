@@ -256,7 +256,7 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
     );
   });
 
-  it('canalizar a psicología notifica a los psicólogos; el Jefe deja de ver el motivo; el estudiante sigue viendo PENDIENTE (D27: canalizar a psicología deja el caso PENDIENTE)', async () => {
+  it('canalizar a psicología notifica a los psicólogos; el Jefe deja de ver el motivo; el estudiante ve ATENDIDA (D27 ajustada: la canalización cuenta)', async () => {
     const academica = await casoDeSolicitud(
       repos,
       esc.e2,
@@ -297,7 +297,7 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
     expect(
       propias.cuerpo.find((s) => s.codigo === academica.solicitud.idOrigen)
         ?.estado,
-    ).toBe('PENDIENTE');
+    ).toBe('ATENDIDA');
   });
 
   it('dos sesiones canalizan a la vez: una gana y la otra recibe «El caso ya fue canalizado»', async () => {
@@ -317,13 +317,11 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
     const emitidas = await pedir<
       { idAlerta: string; estadoAtencion: string }[]
     >('d1@ejemplo.edu.co', 'GET', `/alertas/emitidas?periodo=${PERIODO}`);
-    // D27: la ruta académica deja el caso EN_NIVELACION (ATENDIDA); la
-    // psicológica lo deja PENDIENTE hasta que un psicólogo lo tome.
-    const ganadora = [a, b].find((r) => r.estado === 200)?.cuerpo.caso?.ruta;
+    // D27 ajustada: canalizado por cualquier ruta, el docente ve ATENDIDA.
     expect(
       emitidas.cuerpo.find((x) => x.idAlerta === caso.origen.idOrigen)
         ?.estadoAtencion,
-    ).toBe(ganadora === 'ACADEMICA' ? 'ATENDIDA' : 'PENDIENTE');
+    ).toBe('ATENDIDA');
   });
 
   it('roles cruzados y caso de otro programa: 403', async () => {
@@ -405,6 +403,28 @@ describe('B7b: pertinencia y cita (R05, CUD07)', () => {
     expect([a, b].find((r) => r?.estado === 409)?.cuerpo.message).toBe(
       'Cruce de horario. Seleccione otra hora',
     );
+  });
+
+  it('D27: una solicitud psicosocial sigue PENDIENTE para el estudiante hasta que un psicólogo la toma', async () => {
+    const { solicitud, caso } = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    const estadoDe = async () =>
+      (
+        await pedir<{ codigo: string; estado: string }[]>(
+          'e1@ejemplo.edu.co',
+          'GET',
+          '/consulta/solicitudes',
+        )
+      ).cuerpo.find((s) => s.codigo === solicitud.idOrigen)?.estado;
+    expect(await estadoDe()).toBe('PENDIENTE');
+    await pedir('ps1@ejemplo.edu.co', 'POST', `/pertinencia/${caso.idCaso}`, {
+      pertinente: true,
+      justificacion: 'Pertinente',
+    });
+    expect(await estadoDe()).toBe('ATENDIDA');
   });
 
   it('no pertinente: archiva o reorienta con la justificación', async () => {

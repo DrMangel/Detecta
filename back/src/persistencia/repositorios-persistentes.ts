@@ -9,7 +9,10 @@ import type { Rol } from '../dominio/entidades/rol';
 import { RutaAtencion } from '../dominio/entidades/ruta-atencion';
 import { SolicitudAcompanamiento } from '../dominio/entidades/solicitud-acompanamiento';
 import type { RepositorioAlerta } from '../dominio/repositorios/repositorio-alerta';
-import type { RepositorioCasoRiesgo } from '../dominio/repositorios/repositorio-caso-riesgo';
+import type {
+  EstadoCasoDeOrigen,
+  RepositorioCasoRiesgo,
+} from '../dominio/repositorios/repositorio-caso-riesgo';
 import type { RepositorioPersona } from '../dominio/repositorios/repositorio-persona';
 import type { RepositorioPlanNivelacion } from '../dominio/repositorios/repositorio-plan-nivelacion';
 import type { RepositorioRegistroAcademico } from '../dominio/repositorios/repositorio-registro-academico';
@@ -168,20 +171,26 @@ export class RepositorioPersistenteCasoRiesgo
   /** Una sola consulta (unión origen–caso) para todos los orígenes (B6). */
   async listarEstadosPorOrigen(
     idsOrigen: readonly string[],
-  ): Promise<Map<string, EstadoCaso>> {
+  ): Promise<Map<string, EstadoCasoDeOrigen>> {
     if (idsOrigen.length === 0) {
       return new Map();
     }
     const filas = await this.acceso.query<
-      { id_origen: string; estado: EstadoCaso }[]
+      { id_origen: string; estado: EstadoCaso; canalizado: boolean }[]
     >(
-      `SELECT o.id_origen, c.estado
+      `SELECT o.id_origen, c.estado,
+              (c.fecha_canalizacion IS NOT NULL) AS canalizado
        FROM origen_riesgo o
        JOIN caso_riesgo c ON c.id_origen = o.id_origen
        WHERE o.id_origen = ANY($1::varchar[])`,
       [[...idsOrigen]],
     );
-    return new Map(filas.map((fila) => [fila.id_origen, fila.estado]));
+    return new Map(
+      filas.map((fila) => [
+        fila.id_origen,
+        { estado: fila.estado, canalizado: fila.canalizado },
+      ]),
+    );
   }
 
   /**

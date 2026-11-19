@@ -7,6 +7,7 @@ import {
 import { BloqueoAgotadoError } from '../aplicacion/contratos/unidad-trabajo';
 import type { Alerta } from '../dominio/entidades/alerta';
 import { EstadoCaso } from '../dominio/entidades/estado-caso';
+import type { EstadoCasoDeOrigen } from '../dominio/repositorios/repositorio-caso-riesgo';
 import type { NivelRiesgo } from '../dominio/entidades/nivel-riesgo';
 import type { RegistroAcademico } from '../dominio/entidades/registro-academico';
 import type { RutaAtencion } from '../dominio/entidades/ruta-atencion';
@@ -29,19 +30,27 @@ export const MENSAJE_BLOQUEO_AGOTADO =
 export const MENSAJE_ERROR_CONSULTA = 'Error al consultar la información';
 
 /**
- * Estado de atención que ven el estudiante y el docente (respuesta 4 de
- * Ivan): se deriva del caso al leer. PENDIENTE mientras el caso esté
- * PENDIENTE; ATENDIDA en cualquier otro estado. No se muestra ruta, avance
+ * Estado de atención que ven el estudiante y el docente (D27, ajustada al
+ * aprobar B7): se deriva del caso al leer. ATENDIDA si el caso salió de
+ * PENDIENTE o si el Jefe ya lo canalizó (`fecha_canalizacion`); PENDIENTE en
+ * otro caso. Una solicitud psicosocial nace con ruta pero sin canalización:
+ * sigue PENDIENTE hasta que un psicólogo la toma. No se muestra ruta, avance
  * ni resultado. El estado guardado del origen no cambia (regla de B1).
  */
 export type EstadoAtencion = 'PENDIENTE' | 'ATENDIDA';
 
 export function estadoAtencion(
-  estadoCaso: EstadoCaso | undefined,
+  caso: EstadoCasoDeOrigen | undefined,
 ): EstadoAtencion {
-  return estadoCaso === undefined || estadoCaso === EstadoCaso.PENDIENTE
+  return caso === undefined ||
+    (caso.estado === EstadoCaso.PENDIENTE && !caso.canalizado)
     ? 'PENDIENTE'
     : 'ATENDIDA';
+}
+
+/** Caso recién creado (B6): aún sin canalizar. */
+export function recienCreado(estado: EstadoCaso): EstadoCasoDeOrigen {
+  return { estado, canalizado: false };
 }
 
 export interface RegistroCursoDto {
@@ -150,7 +159,7 @@ export function alertaEstudiante(alerta: Alerta): AlertaEstudianteDto {
 
 export function alertaEmitida(
   alerta: Alerta,
-  estadoCaso: EstadoCaso | undefined,
+  estadoCaso: EstadoCasoDeOrigen | undefined,
 ): AlertaEmitidaDto {
   const estudiante = alerta.obtenerEstudiante();
   return {
@@ -169,7 +178,7 @@ export function alertaEmitida(
 
 export function solicitud(
   origen: SolicitudAcompanamiento,
-  estadoCaso: EstadoCaso | undefined,
+  estadoCaso: EstadoCasoDeOrigen | undefined,
 ): SolicitudDto {
   return {
     codigo: origen.idOrigen,

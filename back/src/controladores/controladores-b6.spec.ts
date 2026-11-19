@@ -439,8 +439,8 @@ describe('ControladorAlertas: consultas del docente (sd_CUD01)', () => {
     repos.alertas.listarPorDocente.mockResolvedValue([a1, a2] as never);
     repos.casos.listarEstadosPorOrigen.mockResolvedValue(
       new Map([
-        [a1.idOrigen, EstadoCaso.PENDIENTE],
-        [a2.idOrigen, EstadoCaso.EN_NIVELACION],
+        [a1.idOrigen, { estado: EstadoCaso.PENDIENTE, canalizado: false }],
+        [a2.idOrigen, { estado: EstadoCaso.EN_NIVELACION, canalizado: true }],
       ]) as never,
     );
     const respuesta = await controlador.consultarAlertasEmitidas(
@@ -669,9 +669,9 @@ describe('ControladorConsultaEstudiante (sd_CUD01, rama Estudiante)', () => {
     };
     repos.casos.listarEstadosPorOrigen.mockResolvedValue(
       new Map([
-        [s1.idOrigen, EstadoCaso.PENDIENTE],
-        [s2.idOrigen, EstadoCaso.EN_NIVELACION],
-        [s3.idOrigen, EstadoCaso.CERRADO],
+        [s1.idOrigen, { estado: EstadoCaso.PENDIENTE, canalizado: false }],
+        [s2.idOrigen, { estado: EstadoCaso.EN_NIVELACION, canalizado: true }],
+        [s3.idOrigen, { estado: EstadoCaso.CERRADO, canalizado: false }],
       ]) as never,
     );
     const { controlador } = consulta(repos as never);
@@ -697,12 +697,26 @@ describe('ControladorConsultaEstudiante (sd_CUD01, rama Estudiante)', () => {
   });
 });
 
-describe('estadoAtencion (respuesta 4)', () => {
-  it('PENDIENTE solo con el caso PENDIENTE; ATENDIDA en cualquier otro estado', () => {
+describe('estadoAtencion (D27 ajustada al aprobar B7)', () => {
+  it('ATENDIDA si el caso salió de PENDIENTE o fue canalizado; PENDIENTE en otro caso', () => {
     for (const estado of Object.values(EstadoCaso)) {
-      expect(estadoAtencion(estado)).toBe(
-        estado === EstadoCaso.PENDIENTE ? 'PENDIENTE' : 'ATENDIDA',
-      );
+      for (const canalizado of [false, true]) {
+        expect(estadoAtencion({ estado, canalizado })).toBe(
+          estado === EstadoCaso.PENDIENTE && !canalizado
+            ? 'PENDIENTE'
+            : 'ATENDIDA',
+        );
+      }
     }
+    expect(estadoAtencion(undefined)).toBe('PENDIENTE');
+  });
+
+  it('canalizado a psicología pero aún PENDIENTE: ATENDIDA; psicosocial recién nacida (con ruta, sin canalización): PENDIENTE', () => {
+    expect(
+      estadoAtencion({ estado: EstadoCaso.PENDIENTE, canalizado: true }),
+    ).toBe('ATENDIDA');
+    expect(
+      estadoAtencion({ estado: EstadoCaso.PENDIENTE, canalizado: false }),
+    ).toBe('PENDIENTE');
   });
 });
