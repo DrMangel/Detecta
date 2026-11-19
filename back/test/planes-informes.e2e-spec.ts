@@ -187,6 +187,14 @@ afterAll(async () => {
   process.stdout.write(`TIEMPOS_B8 ${JSON.stringify(resumen)}\n`);
 });
 
+/** Eventos de trazabilidad del plan (B9; ER 1.3.4, CUD04). */
+async function eventosDelPlan(idPlan: string) {
+  return fuente.query<{ tipo: string; id_caso: string; id_actor: string }[]>(
+    'SELECT tipo, id_caso, id_actor FROM evento_caso WHERE id_plan = $1',
+    [idPlan],
+  );
+}
+
 describe('B8a: plan de nivelación (R04, CUD05)', () => {
   it('estructura el plan sobre el caso EN_NIVELACION, notifica al estudiante y lo finaliza; el caso sigue EN_NIVELACION', async () => {
     const idCaso = await casoAcademico();
@@ -228,6 +236,10 @@ describe('B8a: plan de nivelación (R04, CUD05)', () => {
       estado: 409,
       cuerpo: { message: 'El plan de nivelación ya está finalizado' },
     });
+    // B9, trazabilidad: un solo evento, con el Jefe como autor.
+    expect(await eventosDelPlan(idPlan)).toEqual([
+      { tipo: 'PLAN_FINALIZADO', id_caso: idCaso, id_actor: 'J1' },
+    ]);
   });
 
   it('dos sesiones finalizan el mismo plan a la vez: una lo finaliza y la otra recibe 409', async () => {
@@ -244,6 +256,7 @@ describe('B8a: plan de nivelación (R04, CUD05)', () => {
       pedir('j1@ejemplo.edu.co', 'POST', `/planes/${idPlan}/finalizacion`),
     ]);
     expect([a.estado, b.estado].sort((x, y) => x - y)).toEqual([200, 409]);
+    expect(await eventosDelPlan(idPlan)).toHaveLength(1);
   });
 
   it('validaciones: tutor, cursos sin registro del estudiante, caso de otra ruta o de otro programa', async () => {

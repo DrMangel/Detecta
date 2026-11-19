@@ -1,3 +1,4 @@
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import { HttpException, Logger } from '@nestjs/common';
 import type {
   OpcionesUnidadTrabajo,
@@ -65,6 +66,7 @@ function preparar(caso: CasoRiesgo | null) {
       guardar: jest.fn(async () => undefined),
     },
     citas: { guardar: jest.fn(async () => undefined) },
+    eventos: { registrar: jest.fn(async () => undefined) },
   };
   const opciones: (OpcionesUnidadTrabajo | undefined)[] = [];
   const unidad: UnidadTrabajo = {
@@ -409,5 +411,80 @@ describe('ControladorPertinencia.programarCita (CUD07, pasos 3 a 6)', () => {
         }),
       ),
     ).toEqual({ estado: 503, mensaje: MENSAJES_PERTINENCIA.errorExpediente });
+  });
+});
+
+describe('Trazabilidad (B9; ER 1.3.4, CUD04): eventos del dictamen y de la cita', () => {
+  it.each([
+    [true, false, TipoEventoCaso.DICTAMEN_APROBADO],
+    [false, false, TipoEventoCaso.DICTAMEN_ARCHIVADO],
+    [false, true, TipoEventoCaso.DICTAMEN_REORIENTADO],
+  ])(
+    'pertinente=%s, reorientar=%s: un evento %s con autor, sin la justificación',
+    async (pertinente, reorientar, tipo) => {
+      const { ps1 } = psicologos();
+      const caso = casoPsicosocial();
+      const { controlador, repos } = preparar(caso);
+      await controlador.evaluarPertinencia(ps1, caso.idCaso, {
+        pertinente,
+        justificacion: 'Texto confidencial',
+        ...(reorientar ? { reorientar } : {}),
+      });
+      expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+      // toHaveBeenCalledWith exacto: solo identificadores y tipo.
+      expect(repos.eventos.registrar).toHaveBeenCalledWith({
+        tipo,
+        idCaso: caso.idCaso,
+        idActor: 'PS1',
+      });
+    },
+  );
+
+  it('dictamen rechazado (tomado por otro): sin evento', async () => {
+    const { ps1, ps2 } = psicologos();
+    const caso = casoPsicosocial();
+    caso.asignarPsicologo(ps1);
+    const { controlador, repos } = preparar(caso);
+    await errorDe(
+      controlador.evaluarPertinencia(ps2, caso.idCaso, {
+        pertinente: true,
+        justificacion: 'x',
+      }),
+    );
+    expect(repos.eventos.registrar).not.toHaveBeenCalled();
+  });
+
+  it('programarCita: un evento CITA_PROGRAMADA con la cita y el autor; con cruce, ninguno', async () => {
+    const { ps1 } = psicologos();
+    const caso = casoPsicosocial();
+    caso.asignarPsicologo(ps1);
+    caso.aprobar();
+    const { controlador, repos } = preparar(caso);
+    const respuesta = await controlador.programarCita(ps1, caso.idCaso, {
+      fechaHora: MANANA,
+      modalidad: 'PRESENCIAL',
+    });
+    expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+    expect(repos.eventos.registrar).toHaveBeenCalledWith({
+      tipo: TipoEventoCaso.CITA_PROGRAMADA,
+      idCaso: caso.idCaso,
+      idActor: 'PS1',
+      idCita: respuesta.cita.idCita,
+    });
+
+    // Misma hora en la agenda de PS1: cruce (409) y ningún evento.
+    const otro = casoPsicosocial();
+    otro.asignarPsicologo(ps1);
+    otro.aprobar();
+    const segunda = preparar(otro);
+    expect(
+      await errorDe(
+        segunda.controlador.programarCita(ps1, otro.idCaso, {
+          fechaHora: MANANA,
+          modalidad: 'VIRTUAL',
+        }),
+      ),
+    ).toEqual({ estado: 409, mensaje: MENSAJES_PERTINENCIA.cruceHorario });
+    expect(segunda.repos.eventos.registrar).not.toHaveBeenCalled();
   });
 });

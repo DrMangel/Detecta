@@ -185,6 +185,26 @@ afterAll(async () => {
   process.stdout.write(`TIEMPOS_B7 ${JSON.stringify(resumen)}\n`);
 });
 
+/** Eventos de trazabilidad del caso (B9; ER 1.3.4, CUD04), en orden. */
+async function eventosDe(idCaso: string) {
+  return fuente.query<
+    {
+      tipo: string;
+      id_actor: string;
+      id_cita: string | null;
+      fecha_hora_anterior: Date | null;
+      fecha_hora_nueva: Date | null;
+      modalidad_anterior: string | null;
+      modalidad_nueva: string | null;
+    }[]
+  >(
+    `SELECT tipo, id_actor, id_cita, fecha_hora_anterior, fecha_hora_nueva,
+            modalidad_anterior, modalidad_nueva
+     FROM evento_caso WHERE id_caso = $1 ORDER BY ocurrido_en`,
+    [idCaso],
+  );
+}
+
 describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
   it('la bandeja tiene la alerta y la solicitud académica (con su motivo), nunca la psicosocial; su detalle y su canalización dan 403', async () => {
     const alerta = await casoDeAlerta(repos, esc.d1, esc.r1);
@@ -586,6 +606,18 @@ describe('B7c: caso de riesgo de punta a punta (criterio de cierre)', () => {
     expect(JSON.stringify(vistaJefe.cuerpo)).not.toMatch(
       /estrategias|Seguimiento en dos semanas|citas/,
     );
+
+    // B9, trazabilidad: dictamen, cita y cierre con autor y fecha, sin
+    // contenido; la canalización y la asesoría ya tienen su propia traza.
+    const trazas = await eventosDe(caso.idCaso);
+    expect(trazas.map((e) => [e.tipo, e.id_actor])).toEqual([
+      ['DICTAMEN_APROBADO', 'PS1'],
+      ['CITA_PROGRAMADA', 'PS1'],
+      ['CASO_CERRADO', 'PS1'],
+    ]);
+    expect(JSON.stringify(trazas)).not.toMatch(
+      new RegExp(`${RESULTADO.observaciones}|${RESULTADO.acuerdos}`),
+    );
   });
 
   it('menor de edad: aviso y requisito en el correo; el resultado se bloquea hasta confirmar el consentimiento', async () => {
@@ -793,6 +825,35 @@ describe('B7c: caso de riesgo de punta a punta (criterio de cierre)', () => {
         )
       ).cuerpo.message,
     ).toBe('La fecha de la cita debe ser posterior a la actual.');
+
+    // B9, trazabilidad: historial completo de las reprogramaciones; los
+    // intentos rechazados (409 y 400) no dejan evento.
+    const trazas = await eventosDe(caso.idCaso);
+    expect(trazas.map((e) => e.tipo)).toEqual([
+      'DICTAMEN_APROBADO',
+      'CITA_PROGRAMADA',
+      'CITA_PROGRAMADA',
+      'CITA_REPROGRAMADA',
+      'CITA_REPROGRAMADA',
+    ]);
+    expect(trazas[1]?.id_cita).toBe(idCita);
+    expect(trazas[2]?.id_cita).toBe(seguimiento.cuerpo.cita?.idCita);
+    expect(trazas.slice(3)).toEqual([
+      expect.objectContaining({
+        id_cita: idCita,
+        fecha_hora_anterior: new Date('2026-12-01T14:00:00Z'),
+        fecha_hora_nueva: new Date('2026-12-01T14:00:00Z'),
+        modalidad_anterior: 'PRESENCIAL',
+        modalidad_nueva: 'VIRTUAL',
+      }),
+      expect.objectContaining({
+        id_cita: idCita,
+        fecha_hora_anterior: new Date('2026-12-01T14:00:00Z'),
+        fecha_hora_nueva: new Date('2026-12-03T14:00:00Z'),
+        modalidad_anterior: 'VIRTUAL',
+        modalidad_nueva: 'VIRTUAL',
+      }),
+    ]);
   });
 
   it('D18 por HTTP: quién ve el motivo de cada solicitud (detalle del Jefe y expediente del psicólogo)', async () => {

@@ -1,3 +1,4 @@
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import { HttpException, Logger } from '@nestjs/common';
 import type {
   OpcionesUnidadTrabajo,
@@ -79,6 +80,7 @@ function preparar(
     },
     citas: { guardar: jest.fn(async () => undefined) },
     asesorias: { guardar: jest.fn(async () => undefined) },
+    eventos: { registrar: jest.fn(async () => undefined) },
     registros: { listar: jest.fn(async () => []) },
   };
   const opciones: (OpcionesUnidadTrabajo | undefined)[] = [];
@@ -489,5 +491,91 @@ describe('programarSeguimiento y cerrarCaso (sd_CUD06, 6.a y 6.b)', () => {
         message: MENSAJES_PERTINENCIA.errorExpediente,
       }),
     });
+  });
+});
+
+describe('Trazabilidad (B9; ER 1.3.4, CUD04): reprogramación, seguimiento y cierre', () => {
+  it('reprogramar: un evento con fecha y modalidad anteriores y nuevas (la cita las sobrescribe)', async () => {
+    const { caso, cita, ps1 } = citado();
+    const { controlador, repos } = preparar(caso);
+    await controlador.reprogramarCita(ps1, cita.idCita, {
+      fechaHora: PASADO_MANANA,
+      modalidad: 'VIRTUAL',
+    });
+    expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+    expect(repos.eventos.registrar).toHaveBeenCalledWith({
+      tipo: TipoEventoCaso.CITA_REPROGRAMADA,
+      idCaso: caso.idCaso,
+      idActor: 'PS1',
+      idCita: cita.idCita,
+      fechaHoraAnterior: MANANA,
+      fechaHoraNueva: new Date(PASADO_MANANA),
+      modalidadAnterior: Modalidad.PRESENCIAL,
+      modalidadNueva: Modalidad.VIRTUAL,
+    });
+    expect(cita.fechaHora).toEqual(new Date(PASADO_MANANA));
+  });
+
+  it('reprogramación idéntica (400): sin evento', async () => {
+    const { caso, cita, ps1 } = citado();
+    const { controlador, repos } = preparar(caso);
+    await errorDe(
+      controlador.reprogramarCita(ps1, cita.idCita, {
+        fechaHora: MANANA.toISOString(),
+        modalidad: 'PRESENCIAL',
+      }),
+    );
+    expect(repos.eventos.registrar).not.toHaveBeenCalled();
+  });
+
+  it('seguimiento: un evento CITA_PROGRAMADA con la nueva cita', async () => {
+    const { caso, ps1 } = citado();
+    const { controlador, repos } = preparar(caso);
+    const respuesta = await controlador.programarSeguimiento(ps1, caso.idCaso, {
+      fechaHora: PASADO_MANANA,
+      modalidad: 'VIRTUAL',
+    });
+    expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+    expect(repos.eventos.registrar).toHaveBeenCalledWith({
+      tipo: TipoEventoCaso.CITA_PROGRAMADA,
+      idCaso: caso.idCaso,
+      idActor: 'PS1',
+      idCita: respuesta.cita.idCita,
+    });
+  });
+
+  it('cierre: un evento CASO_CERRADO solo cuando el cierre procede', async () => {
+    const { caso, cita, ps1 } = citado();
+    const { controlador, repos } = preparar(caso);
+    await errorDe(controlador.cerrarCaso(ps1, caso.idCaso));
+    expect(repos.eventos.registrar).not.toHaveBeenCalled();
+    cita.generarAsesoria(
+      TipoAsesoria.ORIENTACION,
+      'Observaciones confidenciales',
+      '',
+      true,
+      false,
+      false,
+    );
+    await controlador.cerrarCaso(ps1, caso.idCaso);
+    expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+    expect(repos.eventos.registrar).toHaveBeenCalledWith({
+      tipo: TipoEventoCaso.CASO_CERRADO,
+      idCaso: caso.idCaso,
+      idActor: 'PS1',
+    });
+  });
+
+  it('resultado y consentimiento no registran eventos: ya tienen autor y fecha (asesoria.fecha; B7)', async () => {
+    const { caso, cita, ps1 } = citado(menor);
+    const { controlador, repos } = preparar(caso);
+    await controlador.confirmarConsentimiento(ps1, caso.idCaso);
+    await controlador.registrarResultado(
+      ps1,
+      caso.idCaso,
+      cita.idCita,
+      RESULTADO,
+    );
+    expect(repos.eventos.registrar).not.toHaveBeenCalled();
   });
 });

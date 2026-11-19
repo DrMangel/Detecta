@@ -1,6 +1,7 @@
 import type { Asesoria } from '../../dominio/entidades/asesoria';
 import type { Cita } from '../../dominio/entidades/cita';
 import type { Curso } from '../../dominio/entidades/curso';
+import type { RegistroEventosCaso } from './registro-eventos-caso';
 import type { Repositorio } from '../../dominio/repositorios/repositorio';
 import type { RepositorioAlerta } from '../../dominio/repositorios/repositorio-alerta';
 import type { RepositorioCasoRiesgo } from '../../dominio/repositorios/repositorio-caso-riesgo';
@@ -36,6 +37,12 @@ export interface RepositoriosTransaccionales {
   asesorias: Repositorio<Asesoria>;
   /** B8: el plan de nivelación se guarda con bloqueo del caso o del plan. */
   planes: RepositorioPlanNivelacion;
+  /**
+   * B9 (trazabilidad, ER 1.3.4 y CUD04): el evento se inserta en la misma
+   * transacción que la acción que registra. Fuera del diagrama (diferencia
+   * aprobada).
+   */
+  eventos: RegistroEventosCaso;
 }
 
 export interface OpcionesUnidadTrabajo {

@@ -10,6 +10,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import {
   UNIDAD_TRABAJO,
   type UnidadTrabajo,
@@ -154,6 +155,16 @@ export class ControladorPertinencia extends ControladorBase {
               }
             });
             await repos.casos.guardar(recargado);
+            // B9, trazabilidad (ER 1.3.4): fecha y autor del dictamen.
+            await repos.eventos.registrar({
+              tipo: pertinente
+                ? TipoEventoCaso.DICTAMEN_APROBADO
+                : reorientar
+                  ? TipoEventoCaso.DICTAMEN_REORIENTADO
+                  : TipoEventoCaso.DICTAMEN_ARCHIVADO,
+              idCaso,
+              idActor: psicologo.id,
+            });
             return recargado;
           },
           { bloqueos: [`caso:${idCaso}`] },
@@ -211,6 +222,13 @@ export class ControladorPertinencia extends ControladorBase {
             );
             await repos.casos.guardar(asignado);
             await repos.citas.guardar(nueva);
+            // B9, trazabilidad: cuándo y quién agendó la cita.
+            await repos.eventos.registrar({
+              tipo: TipoEventoCaso.CITA_PROGRAMADA,
+              idCaso,
+              idActor: psicologo.id,
+              idCita: nueva.idCita,
+            });
             return {
               caso: asignado,
               cita: nueva,
