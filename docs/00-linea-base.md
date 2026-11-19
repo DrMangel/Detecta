@@ -105,12 +105,7 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 
 ## 4.2 Reglas diferidas a otras fases
 
-- Un menor sin consentimiento no puede registrar el resultado de la sesión (ER R06, situación 2): lo aplica el servicio de B7 con `habilitadoParaAtencion`, porque `Cita` no conoce a su caso.
-- El cruce de horario al reprogramar una cita lo verifica el servicio de B7 (`Cita` no conoce al psicólogo).
-- Qué ve el Jefe de una solicitud académica confidencial y la aplicación de `puedeVerContenidoConfidencial` (D18): se definen en el plan de B7.
-- Requisitos de B7 (desde B6):
-  - canalizar exige que el programa tenga jefe; si no lo hay, el sistema responde con un mensaje claro (hoy el adaptador lanza un error al derivar `id_jefe`);
-  - un caso de un programa sin jefe se guarda con `id_jefe` NULL y es visible por programa: aparece en la bandeja en cuanto se configura el jefe (D17).
+- Hecho en B7: el bloqueo del registro del resultado de un menor sin consentimiento (ER R06, situación 2) con `habilitadoParaAtencion`; el cruce de horario al reprogramar (excluye la propia cita); D18 en `puedeVerContenidoConfidencial`; canalizar exige jefe en el programa (409 con mensaje claro) y el caso sin jefe es visible por programa.
 - Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
 - Para B9 (sincronización):
   - medir `sincronizarTodo` con unos 2000 estudiantes: unas 14 000 consultas en una sola transacción, con el bloqueo exclusivo retenido mientras dura;
@@ -122,9 +117,16 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
   - `listarPorRol(PSICOLOGO)` carga la agenda completa de cada psicólogo para notificarle una solicitud psicosocial;
   - los envíos en segundo plano se pierden si el proceso muere antes de terminarlos (D24);
   - los tiempos medidos en B6 (consultas de 98 ms como máximo, radicación de 101 ms) son indicativos: se miden con carga en B9.
+- Para B9 (desde B7):
+  - `trazarCaso` hace dos UPDATE por cada `guardar(caso)`;
+  - `reprogramarCita` carga todos los casos del psicólogo para ubicar el caso de la cita (la `Cita` no conoce su caso);
+  - `lock_timeout` de 5 s en los bloqueos con espera de casos y agendas;
+  - medir las bandejas del Jefe y del psicólogo bajo carga (en B7, 235 ms como máximo sin carga).
 - Para F1 (frontend):
   - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar;
   - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso.
+- Para el ER y F1: el aviso de R02 al estudiante debería decir también que una solicitud académica puede ser remitida a psicología si el Jefe de Departamento lo considera necesario (en ese caso el Jefe deja de ver su contenido y lo ve el psicólogo).
+- Para el cierre del proyecto: actualizar los diagramas v3 a una v4 con las diferencias registradas en el §7.
 
 **Estado de las fases**
 
@@ -134,8 +136,9 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B4 | Cerrada (17/11/2026): 181 pruebas unitarias, 83 de integración y 33 e2e |
 | B5 | Cerrada (17/11/2026): 221 pruebas unitarias, 89 de integración y 37 e2e. Verificación del correo real con Brevo pendiente de Ivan |
 | B6 | Cerrada (18/11/2026): 277 pruebas unitarias, 96 de integración y 48 e2e |
-| B7 | Siguiente |
-| B8 y B9 | Pendientes |
+| B7 | Cerrada (18/11/2026): 353 pruebas unitarias, 108 de integración y 62 e2e |
+| B8 | Siguiente |
+| B9 | Pendiente |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -235,6 +238,28 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Flujo | El jefe y los psicólogos destinatarios se buscan dentro de la transacción, no después del commit |
 | Textos nuevos (no vienen del ER) | "No se encontró una matrícula activa asociada a su cuenta." (403); "El texto excede la longitud permitida." (400); "La solicitud no es válida." (400); "Indique el periodo académico." (400) |
 
+### Diferencias introducidas en la implementación (B7)
+
+| Tipo | Elemento |
+|---|---|
+| Entidad (única modificación de dominio autorizada) | `Cita.reprogramar(fechaHora, modalidad)`: el diagrama recibe solo `fechaHora`; R06 pide también la modalidad |
+| Servicio | `ControlAcceso.puedeVerContenidoConfidencial` ampliado para el Jefe (D18) |
+| Método | `RepositorioCasoRiesgo.buscarParaPrograma(idCaso, idPrograma)`: excluye en SQL las solicitudes psicosociales |
+| Método | `RepositorioCasoRiesgo.listarEstadosPorOrigen` devuelve estado y canalización (`EstadoCasoDeOrigen`, D27 ajustada) |
+| Contrato | `RepositoriosTransaccionales` con `citas` y `asesorias` |
+| Contrato | `OpcionesUnidadTrabajo.bloqueos` (con espera, `pg_advisory_xact_lock` en el espacio de claves 7, `lock_timeout` de 5 s, primero el caso y después la agenda) y `BloqueoAgotadoError` |
+| Esquema | Migración `TrazabilidadCaso`: `fecha_canalizacion`, `fecha_consentimiento` e `id_psicologo_consentimiento`, que fija el adaptador (`trazarCaso`); el dominio no los expone |
+| Rutas | Detalles `GET /casos/:idCaso` y `GET /atencion/casos/:idCaso`, con los permisos `listarCasosPendiente` y `listarCasosPsicologo` |
+| Parámetro | Campo opcional `reorientar` en `evaluarPertinencia` (solo con `pertinente = false`) |
+| Servicio | `notificarCita(cita, destinatario, requiereConsentimiento)` y la línea de consentimiento en `plantillaCita` |
+| Respuestas | 409 de `registrarResultado` con `requiereConsentimiento` y `pregunta`; `aviso` en `programarCita` y `programarSeguimiento` |
+| Piezas de NestJS y soporte | `ModuloCasosAtencion`, `respuestas-casos.ts`, `regla()` (reglas del dominio como 409) y `RELOJ` exportado desde `ModuloAcceso` |
+| Flujo | `reprogramarCita` ubica el caso entre los casos del psicólogo, porque la `Cita` no conoce su caso |
+| Flujo | `ControladorPertinencia.programarCita` solo opera sobre casos `EN_EVALUACION`; las citas siguientes van por `programarSeguimiento`. Códigos: canalizar y evaluar 200; citas y resultado 201 |
+| Textos nuevos (no vienen del ER) | "Caso canalizado a la ruta académica"; "El programa del estudiante no tiene Jefe de Departamento configurado."; "El estudiante no requiere consentimiento informado."; "La fecha de la cita debe ser posterior a la actual."; "Otra sesión está modificando este caso. Intente de nuevo."; "El caso ya fue evaluado."; en el correo, "Antes de la cita debe presentar el consentimiento informado firmado por su acudiente." |
+| Textos transcritos | sd_CUD04 y sd_CUD06; el 503 de sd_CUD06, "Error al registrar la información del expediente", lo transcribió Ivan porque la imagen del diagrama está cortada |
+| Textos reutilizados | "Error al consultar la información" (CUD01) en las lecturas de B7; "La solicitud no es válida." (B6) en entradas inválidas y en la reprogramación idéntica; mensajes del dominio (B1): "Registre la justificación" (400 en `evaluarPertinencia`), "La cita ya está cerrada" y el de estado terminal (409) |
+
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
@@ -245,16 +270,16 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D6 | Credenciales de las cuentas y origen de los usuarios | Antes de B3 | Resuelta (corregida). Solo los estudiantes se sincronizan; docentes, jefes, psicólogos, programas, cursos y asignación docente–curso se cargan con el script de datos iniciales. Las cuentas se activan por enlace con token de un solo uso enviado al correo institucional (sirve para todas las cuentas y para recuperar la contraseña) |
 | D7 | Docente obligatorio en un caso de riesgo (ER 3.5.5) | Antes de B2 | Resuelta (16/11/2026). Sin docente obligatorio; un caso tiene motivo, estudiante y exactamente un origen (Alerta o SolicitudAcompanamiento); prevalece sobre el ER 3.5.5 |
 | D8 | Reglas sin definir y fuera de los diagramas: tiempo máximo de canalización, si se notifica al estudiante la canalización, máximo de reprogramaciones de una cita | No implementar | Sin decisión |
-| D9 | Duración de una cita; hoy el cruce es solo misma fecha y hora exactas | Antes de B7 | Abierta |
+| D9 | Duración de una cita; hoy el cruce es solo misma fecha y hora exactas | B7 | Aceptada como limitación (18/11/2026). El cruce es por fecha y hora exactas |
 | D10 | Contenido de `PlanNivelacion.descripcion`; hoy queda vacía | Antes del plan de B8 | Abierta |
-| D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | Antes de B7 | Abierta |
+| D11 | Si `REORIENTADO` cuenta como caso finalizado en el informe | Antes del plan de B8 | Abierta. Por ahora `estaFinalizado()` solo es verdadero para `CERRADO` y `ARCHIVADO` |
 | D12 | Periodo de un caso o plan | Antes de B7 | Resuelta (17/11/2026). El periodo de un caso o plan es el del curso; las solicitudes voluntarias quedan fuera de los informes por periodo; `listarPorPeriodo` de casos devuelve solo cerrados o archivados |
 | D13 | Carga de usuarios y configuración que no llegan por sincronización | B3 y B4 | Resuelta. Script de datos iniciales con archivo JSON: programas y usuarios en B3; cursos y asignación docente–curso en B4 |
 | D14 | Duración de la sesión | B3 | Resuelta. Sesión de 60 minutos fijos |
 | D15 | Bloqueo por intentos fallidos | Antes de B9 | Abierta. No en B3; limitador en memoria en B9, junto con un limitador por IP para solicitudes de activación y revisión de `UV_THREADPOOL_SIZE` por el costo de bcrypt |
 | D16 | Vida del token de activación y límite de solicitudes | B3 | Resuelta. Token de activación de 30 minutos y 3 solicitudes por cuenta y por hora |
 | D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta |
-| D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c ("únicamente psicología") y el perfil del Estudiante (oculta a docentes y estudiantes) se contradicen | Antes del plan de B7 | Parcial. Hecho en B6: el caso de la solicitud nace confidencial, el correo al jefe o a los psicólogos es genérico y el estudiante ve su propio motivo. Abierto: qué ve el Jefe y la aplicación de `puedeVerContenidoConfidencial` |
+| D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c y el perfil del Estudiante se contradecían | B7 | Resuelta (18/11/2026; ER y Manual ajustados). El Jefe ve el motivo, la disponibilidad y la identidad de una solicitud académica de su programa mientras no se canalice a psicología; nunca ve una solicitud psicosocial (excluida en la consulta) ni el expediente. Una solicitud académica canalizada a psicología la ve el psicólogo con su motivo (regla D19) |
 | D19 | Contenido confidencial | B3 | Resuelta. Psicólogo con ruta `PSICOLOGICA` y caso sin asignar o asignado a él |
 | D20 | Lo que deja de venir en la fuente institucional (estudiantes o registros) se conserva sin marca, porque no hay `DELETE` | Posterior | Abierta |
 | D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | B6 | Resuelta (18/11/2026). Matrícula activa = al menos un `RegistroAcademico` del estudiante, sin periodo vigente. Limitación: quien deja de venir en la fuente conserva sus registros (D20) |
@@ -262,8 +287,8 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta |
 | D24 | Entrega de correos sin cola ni reintentos | B5 | Aceptada como limitación. Un fallo se registra como "Error de envío" y no se reintenta; la entrega no está garantizada (ER Tabla 1) |
 | D25 | Avisos de `npm audit` en `picomatch` y `glob` (dependencias anteriores a B5) | B9 | Abierta |
-| D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | Antes del plan de B7 | Abierta |
-| D27 | Estado que ven el estudiante y el docente de una solicitud o alerta: la regla de B1 marca el origen ATENDIDO al generar el caso, y CUD02 dice que la solicitud queda pendiente | B6 | Resuelta (18/11/2026). Se deriva del caso al leer: `PENDIENTE` mientras el caso esté PENDIENTE y `ATENDIDA` en cualquier otro estado, sin ruta ni avance; el estado guardado del origen no cambia |
+| D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | B7 | Resuelta (18/11/2026). Solo el estudiante (R05 paso 6, R06 paso 8); con un menor sin consentimiento, el correo incluye una línea genérica sobre el consentimiento del acudiente, sin mencionar psicología |
+| D27 | Estado que ven el estudiante y el docente de una solicitud o alerta: la regla de B1 marca el origen ATENDIDO al generar el caso, y CUD02 dice que la solicitud queda pendiente | B6, ajustada en B7 | Resuelta (18/11/2026). Se deriva del caso al leer: `ATENDIDA` si el caso salió de PENDIENTE o tiene `fecha_canalizacion`; `PENDIENTE` en otro caso. Una solicitud psicosocial nace con ruta psicológica pero sin canalización: sigue PENDIENTE hasta que un psicólogo la toma. Sin ruta ni avance; el estado guardado del origen no cambia |
 | D28 | Código único de rastreo de la solicitud (R02) | B6 | Aceptada como limitación. Es `idOrigen` (UUID) |
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
