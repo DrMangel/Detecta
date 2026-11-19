@@ -158,6 +158,24 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 - **Qué cuenta el informe:** alertas de la asignatura y el periodo; casos cerrados o archivados con origen en una alerta de la asignatura (no los reorientados, ni las solicitudes voluntarias, ni los casos de la ruta académica); planes que refuerzan la asignatura, contados aparte. Solo datos agregados, iguales para el Jefe y el Psicólogo.
 - **Migración nueva:** `npm run build` y `npm run bd:migrar` (programa y autor del informe).
 
+## Trazabilidad del caso (B9)
+
+ER 1.3.4 («qué acciones se tomaron») y CUD04 («creación, remisión y seguimiento… quedan registrados de forma trazable»). La tabla `evento_caso` guarda un evento por acción, en la misma transacción que la acción: si la acción falla, el evento también se revierte.
+
+| Evento | Acción | Autor | Datos adicionales |
+|---|---|---|---|
+| `DICTAMEN_APROBADO`, `DICTAMEN_ARCHIVADO`, `DICTAMEN_REORIENTADO` | `POST /pertinencia/:idCaso` | Psicólogo | — |
+| `CITA_PROGRAMADA` | `POST /pertinencia/:idCaso/citas` y `POST /atencion/casos/:idCaso/seguimiento` | Psicólogo | `id_cita` |
+| `CITA_REPROGRAMADA` | `POST /atencion/citas/:idCita/reprogramacion` | Psicólogo | `id_cita`, fecha y modalidad anteriores y nuevas |
+| `CASO_CERRADO` | `POST /atencion/casos/:idCaso/cierre` | Psicólogo | — |
+| `PLAN_FINALIZADO` | `POST /planes/:idPlan/finalizacion` | Jefe | `id_plan` |
+
+- **Fecha:** `ocurrido_en`, la pone PostgreSQL (hora de la transacción).
+- **Sin contenido confidencial:** solo identificadores, el tipo y fechas; nunca el motivo, la justificación, las observaciones ni los acuerdos (D18, D19).
+- **Lo que no se duplica:** la creación del caso (`fecha_creacion` y el origen), la canalización (`id_jefe`, `fecha_canalizacion`), el consentimiento (B7), la asesoría (`asesoria.fecha`) y la creación del plan (`fecha`, `id_jefe`) ya tienen autor y fecha en sus tablas.
+- **Consulta:** no hay endpoint de auditoría; el registro se revisa directamente en la base de datos.
+- **Migración nueva:** `npm run build` y `npm run bd:migrar` (`EventosCaso`). No rellena filas: las acciones anteriores no se pueden reconstruir.
+
 ## Notificaciones por correo (B5)
 
 - **Proveedor:** Brevo por SMTP (`smtp-relay.brevo.com:587`) con STARTTLS obligatorio, TLS 1.2 como mínimo y verificación del certificado siempre activa. Plazo global de 5 s por envío (ER Tabla 1).
@@ -214,6 +232,12 @@ GRANT SELECT, INSERT, UPDATE ON nueva_tabla TO detecta_app;
 ```
 
 La prueba de integración de permisos recorre **todas** las tablas del esquema `public` (`pg_tables`): una tabla sin su `GRANT`, o con `DELETE` o `TRUNCATE`, la hace fallar.
+
+**Única excepción aprobada: `evento_caso` (B9).** Es el registro de trazabilidad del caso y es de **solo inserción**: `detecta_app` tiene `SELECT` e `INSERT`, sin `UPDATE`, `DELETE` ni `TRUNCATE`, para que la aplicación no pueda alterar el historial. La prueba de permisos la comprueba aparte.
+
+```sql
+GRANT SELECT, INSERT ON evento_caso TO detecta_app;
+```
 
 ## Flujo de trabajo
 
