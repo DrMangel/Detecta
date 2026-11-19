@@ -9,12 +9,11 @@ import {
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
-  NOMBRE_ESTADO,
-  NOMBRE_TIPO_APOYO,
   ROTULOS_ESTUDIANTE,
   TEXTO_SIN_SOLICITUDES,
   TITULOS_ESTUDIANTE,
 } from './textos';
+import { NOMBRE_ESTADO, NOMBRE_TIPO_APOYO } from '../../componentes/etiquetas';
 
 /*
  * Solicitudes del Estudiante con su estado (CUD01 2.b; sd_CUD01

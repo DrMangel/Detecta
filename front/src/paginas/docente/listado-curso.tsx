@@ -21,9 +21,9 @@ import { PlantillaDocente } from './plantilla-docente';
 import {
   ROTULOS_DOCENTE,
   TEXTO_ALERTA_EMITIDA,
-  TEXTO_INFORMACION_NO_DISPONIBLE,
   TITULOS_DOCENTE,
 } from './textos';
+import { TEXTO_INFORMACION_NO_DISPONIBLE } from '../../componentes/etiquetas';
 
 /*
  * Listado del curso del Docente (CUD01 pasos 3 y 4, rama Docente; sd_CUD01

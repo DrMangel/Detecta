@@ -2,14 +2,11 @@
  * Textos de las pantallas del Docente (F2), en los tres grupos del plan:
  * transcritos de los diagramas, el ER o el Manual; reutilizados del backend;
  * y nuevos (provisionales, aprobados por Ivan en el plan de F2, respuesta 5;
- * revisión de usabilidad en F5). Los valores de nivel de riesgo y de estado
- * se toman de paginas/estudiante/textos.ts (mismas fuentes que en F1).
+ * revisión de usabilidad en F5). Las etiquetas y los textos que comparte con
+ * otros roles están en componentes/etiquetas.ts.
  */
 
 /* ---------- Transcritos ---------- */
-
-/** sd_CUD01 4.a; ER 3.3.1. También si el curso nunca se sincronizó. */
-export { TEXTO_INFORMACION_NO_DISPONIBLE } from '../estudiante/textos';
 
 /** sd_CUD03 6.a; R01: «bloquea el envío notificando la omisión». */
 export const TEXTO_CAMPOS_VACIOS =
@@ -18,10 +15,6 @@ export const TEXTO_CAMPOS_VACIOS =
 /** sd_CUD03: confirmación al docente (igual al `mensaje` del 201). */
 export const TEXTO_ALERTA_EMITIDA =
   'Alerta emitida y remitida al Jefe de Departamento';
-
-/* ---------- Reutilizados del backend ---------- */
-
-export { TEXTO_INDIQUE_PERIODO } from '../estudiante/textos';
 
 /* ---------- Nuevos (provisionales, plan de F2) ---------- */
 

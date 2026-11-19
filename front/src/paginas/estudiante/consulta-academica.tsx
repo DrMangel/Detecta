@@ -20,13 +20,15 @@ import { LIMITES } from '../../servicios-api/limites';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
-  NOMBRE_NIVEL_RIESGO,
   ROTULOS_ESTUDIANTE,
-  TEXTO_INDIQUE_PERIODO,
-  TEXTO_INFORMACION_NO_DISPONIBLE,
   TEXTO_SIN_ALERTAS,
   TITULOS_ESTUDIANTE,
 } from './textos';
+import {
+  NOMBRE_NIVEL_RIESGO,
+  TEXTO_INDIQUE_PERIODO,
+  TEXTO_INFORMACION_NO_DISPONIBLE,
+} from '../../componentes/etiquetas';
 
 /*
  * Consulta académica del Estudiante (CUD01; sd_CUD01, rama del estudiante).

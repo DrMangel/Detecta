@@ -25,8 +25,6 @@ import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
   AVISO_QUIEN_VE,
   AVISO_REMISION_PSICOLOGIA,
-  NOMBRE_ESTADO,
-  NOMBRE_TIPO_APOYO,
   ROTULOS_ESTUDIANTE,
   TEXTO_ASESORIA_EDUCATIVA,
   TEXTO_MOTIVO_VACIO,
@@ -34,6 +32,7 @@ import {
   TEXTO_SOLICITUD_RECIBIDA,
   TITULOS_ESTUDIANTE,
 } from './textos';
+import { NOMBRE_ESTADO, NOMBRE_TIPO_APOYO } from '../../componentes/etiquetas';
 
 /*
  * Solicitar acompañamiento voluntario (CUD02; R02; sd_CUD02).

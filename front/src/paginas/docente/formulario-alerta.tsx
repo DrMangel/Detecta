@@ -14,7 +14,6 @@ import {
 } from '../../servicios-api/errores';
 import type { NivelRiesgo } from '../../servicios-api/estudiante';
 import { LIMITES } from '../../servicios-api/limites';
-import { NOMBRE_NIVEL_RIESGO } from '../estudiante/textos';
 import {
   buscarAlertaRegistrada,
   type AlertaEnviada,
@@ -26,6 +25,7 @@ import {
   TEXTO_CAMPOS_VACIOS,
   textoContador,
 } from './textos';
+import { NOMBRE_NIVEL_RIESGO } from '../../componentes/etiquetas';
 
 /*
  * Formulario de alerta temprana (CUD03 pasos 4 a 8; R01; sd_CUD03).

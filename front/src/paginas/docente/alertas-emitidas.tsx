@@ -7,15 +7,18 @@ import {
 } from '../../servicios-api/docente';
 import { mensajeDeError } from '../../servicios-api/errores';
 import { LIMITES } from '../../servicios-api/limites';
-import { NOMBRE_ESTADO, NOMBRE_NIVEL_RIESGO } from '../estudiante/textos';
 import estilos from './docente.module.css';
 import { PlantillaDocente } from './plantilla-docente';
 import {
   ROTULOS_DOCENTE,
-  TEXTO_INDIQUE_PERIODO,
   TEXTO_SIN_ALERTAS_EMITIDAS,
   TITULOS_DOCENTE,
 } from './textos';
+import {
+  NOMBRE_ESTADO,
+  NOMBRE_NIVEL_RIESGO,
+  TEXTO_INDIQUE_PERIODO,
+} from '../../componentes/etiquetas';
 
 /*
  * Alertas emitidas por el Docente (CUD01 2.c; sd_CUD01 `verAlertasEmitidas`
