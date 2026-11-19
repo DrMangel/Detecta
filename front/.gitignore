@@ -1,0 +1,14 @@
+# Frontend (F0). La raíz ya excluye estos archivos; se repiten aquí para
+# que front/ quede protegido aunque se mueva o se copie aparte.
+
+# Variables de entorno: solo se versiona .env.example (ER 3.6.2)
+.env
+.env.*
+!.env.example
+
+# Dependencias y archivos generados
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log

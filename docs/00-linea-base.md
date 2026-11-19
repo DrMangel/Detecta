@@ -117,8 +117,11 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
   - los envíos de correo en segundo plano se pierden si el proceso muere (D24);
   - `reprogramarCita` carga los casos del psicólogo y `GeneradorInformeRiesgo` filtra en memoria, ambos dentro de sus metas.
 - Para F1 (frontend):
-  - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar;
-  - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso.
+  - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar. **Pregunta para el plan de F1:** choca con la regla del plan del front y con la decisión de F0 de no guardar nada en el almacenamiento del navegador (el formulario lleva el motivo); una copia solo en memoria no sobrevive a recargar la página;
+  - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso;
+  - la prueba del 401 real contra el backend (sesión caducada en una petición protegida) se hace con la primera ruta protegida de F1; en F0 solo existía la consulta inicial de sesión, que es silenciosa, y el caso lo cubren las pruebas de componentes;
+  - en desarrollo, la consulta inicial de sesión aparece dos veces en la red porque React `StrictMode` ejecuta dos veces los efectos; en producción es una sola;
+  - falta el favicon (404 en desarrollo).
 - Para el ER y F1: el aviso de R02 al estudiante debería decir también que una solicitud académica puede ser remitida a psicología si el Jefe de Departamento lo considera necesario (en ese caso el Jefe deja de ver su contenido y lo ve el psicólogo).
 - Para el cierre del proyecto: actualizar los diagramas v3 a una v4 con las diferencias registradas en el §7.
 
@@ -133,6 +136,7 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B7 | Cerrada (18/11/2026): 353 pruebas unitarias, 108 de integración y 62 e2e |
 | B8 | Cerrada (18/11/2026): commits 73d3f23 (B8a) y f6a6afd (B8b); 403 pruebas unitarias, 113 de integración y 69 e2e. Fases B0 a B8 cerradas |
 | B9 | Cerrada (19/11/2026): commits 048b019, be3778c, 43f69da, aaa6b45, 04016b9, 490230a, cb4dae3, e0dddbe, 2157ee0, 234e8d6, e1c1ac2, 0088881 y el commit de docs de la fase; 449 pruebas unitarias, 131 de integración y 79 e2e. Fases B0 a B9 cerradas |
+| F0 | Cerrada (19/11/2026): commits c7039e5, 3021d7a, 38b7c5a, f50cc87, 75e2f46, 272a511 y el commit de docs de la fase; 52 pruebas de componentes (Vitest). Prueba manual en Chrome contra el backend real con una cuenta de cada rol |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -291,6 +295,22 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - **Cabeceras:** la API envía `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` y `X-Frame-Options: DENY`, pensadas para respuestas JSON y el PDF. No cargar la API en un `iframe`. Con `COOKIE_SEGURA=true` se envía HSTS.
 - **`no-store`:** las respuestas con sesión, las de `/acceso/*` y el PDF no se guardan en caché (equipos compartidos de los laboratorios). El front no debe depender de la caché del navegador para esas respuestas.
 - **503 por espera de conexión:** si la base no entrega una conexión en `BD_DETECTA_CONEXION_ESPERA_MS`, la ruta responde 503 con su texto habitual (por ejemplo, "Error al consultar la información"); tratarlo igual que los demás 503.
+
+### Decisiones y textos del frontend (F0)
+
+| Tipo | Elemento |
+|---|---|
+| Pila | React 19.3.1, React Router 8.5.2, Vite 8.3.8, Vitest 5.1.1 con Testing Library y jsdom; oxlint y Prettier con las mismas versiones del backend. **TypeScript 6.0.3**, fijado igual que el backend (no la 7.0.2, la reescritura nativa). Sin librerías de formularios, estilos ni cliente HTTP: `fetch` propio y CSS con variables y CSS Modules |
+| Estructura | `front/src/paginas/{acceso, estudiante, docente, jefe-departamento, psicologo}`, `componentes` y `servicios-api` (diagrama de paquetes, Manual 4.1.2) |
+| Rutas del front | `/` (redirige según la sesión), `/iniciar-sesion`, `/solicitar-activacion`, `/activar` (la fija el enlace del backend), `/estudiante`, `/docente`, `/jefe-departamento` y `/psicologo`. La redirección por rol es solo ayuda de usabilidad: la autorización está en el backend |
+| Proxy de desarrollo | Vite redirige `/api/*` al backend y quita el prefijo, para que el navegador vea un solo sitio (cookie `SameSite=Strict`). **Solo en desarrollo:** cómo se sirve el front en el despliegue se decide en F5 |
+| Sesión en el navegador | El front nunca lee ni guarda el token (cookie `HttpOnly`). La sesión vive en memoria y se consulta con `GET /acceso/sesion` al arrancar, sin mensaje y sin bucles. **Sin almacenamiento persistente:** nada en `localStorage`, `sessionStorage` ni cachés |
+| Enlace de activación | El token se lee del fragmento (`/activar#token=…`), se borra de la URL de inmediato (`history.replaceState`) y se envía en el cuerpo. Tras una activación fallida se conserva **solo en memoria** para reintentar; al activarse la cuenta se borra |
+| Recuperación de contraseña | Por D6: la misma pantalla `/solicitar-activacion` sirve para activar y para recuperar; sin pantalla aparte |
+| Errores uniformes | 401, 400, 409 y 429: texto del backend; 401 en una petición protegida lleva a `/iniciar-sesion` con el aviso una sola vez; 403: siempre el texto de F0; 503: texto de la ruta o el genérico; 500: el genérico; 429: botón deshabilitado hasta que vence `Retry-After` |
+| Textos nuevos (provisionales, sujetos a la revisión de usabilidad de F5) | Rótulos: "Correo electrónico", "Contraseña", "Nueva contraseña", "Iniciar sesión", "Cerrar sesión", "Solicitar enlace", "Fijar contraseña". Títulos de pantalla: "Iniciar sesión", "Solicitar enlace de acceso", "Fijar contraseña" (también como texto de los enlaces entre pantallas). Títulos de los espacios: "Estudiante", "Docente", "Jefe de Departamento de Programa", "Psicólogo". Errores: "No tiene permiso para realizar esta acción." (403), "No fue posible completar la operación. Intente de nuevo más tarde." (500 y 503 genérico), "No fue posible conectar con el servidor. Verifique su conexión e intente de nuevo." (red). Confirmación: "Contraseña fijada. Ya puede iniciar sesión." (una vez, `role="status"`). Título de la pestaña: "<pantalla> · DETECTA" |
+| Textos reutilizados del backend | "Sesión no válida o caducada", "Correo o contraseña incorrectos", "El enlace no es válido o ya caducó", "Demasiados intentos. Intente de nuevo más tarde.", "Si el correo está registrado, recibirá un enlace para fijar su contraseña.", "La contraseña debe tener al menos 12 caracteres" y el `message` de cualquier 400, 409 o 503 |
+| Accesibilidad base | `lang="es"`, etiquetas asociadas a cada campo, errores con `role="alert"` y confirmaciones con `role="status"`, foco visible, controles de al menos 44 px de alto, diseño primero para celular sin desborde horizontal a 360 px |
 
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 

@@ -1,0 +1,46 @@
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3);
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.sistema {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-primario);
+}
+
+.usuario {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-texto-suave);
+}
+
+.cerrar {
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--color-primario);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-primario);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contenido {
+  width: 100%;
+  max-width: var(--ancho-contenido);
+  margin: 0 auto;
+  padding: var(--espacio-4) var(--espacio-3);
+}
