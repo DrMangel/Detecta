@@ -176,7 +176,7 @@ describe('Emisión y foco (CUD03 pasos 7 y 8; ajuste B)', () => {
     await waitFor(() => expect(botonFila('Ana Pérez')).toHaveFocus());
     expect(envios(llamadas)).toHaveLength(1);
     expect(envios(llamadas)[0]?.cuerpo).toEqual({
-      idRegistro: 'R1',
+      idRegistro: 'a1b2c3d4-0000-4000-8000-000000000001',
       nivelRiesgo: 'MEDIO',
       descripcion: JUSTIFICACION,
     });

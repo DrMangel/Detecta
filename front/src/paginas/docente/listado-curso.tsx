@@ -35,8 +35,8 @@ import {
  *   actualizada (respuesta 3 de F2); si nunca se sincronizó, «Información no
  *   disponible» (ER 3.3.1).
  * - Tabla con encabezados semánticos (th con scope, ajuste B). El id del
- *   estudiante no se muestra ni queda en el DOM (ajuste C): las claves y los
- *   ids del DOM usan idRegistro.
+ *   estudiante no se muestra ni queda en el DOM (ajuste C): las claves de
+ *   React usan idRegistro (no llegan al DOM) y los ids del DOM, la posición.
  * - Al cerrar el formulario o tras la confirmación, el foco vuelve al botón
  *   que lo abrió (ajuste B).
  */
@@ -172,8 +172,10 @@ function TablaCurso({
         </tr>
       </thead>
       <tbody>
-        {registros.map((registro) => {
-          const idNombre = `${prefijo}-${registro.idRegistro}`;
+        {registros.map((registro, indice) => {
+          // Ids del DOM por posición: ningún identificador de la base queda
+          // en el DOM (ajuste C; el id del estudiante nunca se usa aquí).
+          const idNombre = `${prefijo}-${indice}`;
           return (
             <tr key={registro.idRegistro}>
               <th scope="row" id={idNombre}>

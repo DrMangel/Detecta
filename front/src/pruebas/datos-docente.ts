@@ -12,13 +12,13 @@ export const CURSO = {
   },
   registros: [
     {
-      idRegistro: 'R1',
+      idRegistro: 'a1b2c3d4-0000-4000-8000-000000000001',
       estudiante: { id: ID_ESTUDIANTE_SECRETO, nombre: 'Ana Pérez' },
       nota: 1.87,
       porcentajeAsistencia: 53,
     },
     {
-      idRegistro: 'R2',
+      idRegistro: 'a1b2c3d4-0000-4000-8000-000000000002',
       estudiante: { id: 'est-otro', nombre: 'Luis Gómez' },
       nota: 4.2,
       porcentajeAsistencia: 100,

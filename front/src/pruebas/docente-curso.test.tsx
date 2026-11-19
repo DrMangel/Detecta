@@ -90,6 +90,10 @@ describe('Consulta de curso (CUD01, Docente)', () => {
     await screen.findByRole('heading', { name: 'Emitir alerta' });
     expect(document.body.innerHTML).not.toContain(ID_ESTUDIANTE_SECRETO);
     expect(container.innerHTML).not.toContain('est-otro');
+    // Tampoco ningún otro identificador de la base (ids del DOM por posición).
+    expect(document.body.innerHTML).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/,
+    );
   });
 
   it('curso nunca sincronizado: «Información no disponible» en lugar de la fecha', async () => {
