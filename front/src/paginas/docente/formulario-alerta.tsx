@@ -13,6 +13,7 @@ import {
   TEXTO_ERROR_RED,
 } from '../../servicios-api/errores';
 import type { NivelRiesgo } from '../../servicios-api/estudiante';
+import { LIMITES } from '../../servicios-api/limites';
 import { NOMBRE_NIVEL_RIESGO } from '../estudiante/textos';
 import {
   buscarAlertaRegistrada,
@@ -46,7 +47,6 @@ import {
  *   red; se pierde al cerrar, al salir o tras un 401 (como en F1).
  */
 
-const LONGITUD_JUSTIFICACION = 2000;
 const NIVELES: readonly NivelRiesgo[] = ['BAJO', 'MEDIO', 'ALTO'];
 
 function esSesionVencida(fallo: unknown): boolean {
@@ -213,7 +213,7 @@ export function FormularioAlerta({
           <textarea
             id={idJustificacion}
             value={descripcion}
-            maxLength={LONGITUD_JUSTIFICACION}
+            maxLength={LIMITES.descripcion}
             required
             autoComplete="off"
             aria-invalid={vacio && descripcion.trim() === ''}
@@ -223,7 +223,7 @@ export function FormularioAlerta({
             onChange={(evento) => setDescripcion(evento.target.value)}
           />
           <p id={idContador} className={estilos['ayuda']}>
-            {textoContador(descripcion.length, LONGITUD_JUSTIFICACION)}
+            {textoContador(descripcion.length, LIMITES.descripcion)}
           </p>
         </div>
 

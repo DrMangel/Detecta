@@ -18,6 +18,7 @@ import {
   type Solicitud,
   type TipoApoyo,
 } from '../../servicios-api/estudiante';
+import { LIMITES } from '../../servicios-api/limites';
 import { buscarRegistrada } from './conciliacion';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
@@ -53,10 +54,6 @@ import {
  * - Doble envío: botón deshabilitado mientras se envía y conciliación tras un
  *   error de red (conciliacion.ts; sección i y ajuste C).
  */
-
-/** Máximos de LONGITUD_MAXIMA en ControladorSolicitudes. */
-const LONGITUD_MOTIVO = 2000;
-const LONGITUD_DISPONIBILIDAD = 500;
 
 const TIPOS: readonly TipoApoyo[] = ['ACADEMICA', 'PSICOLOGICA'];
 
@@ -226,7 +223,7 @@ function SolicitarAcompanamiento() {
           <textarea
             id={idMotivo}
             value={motivo}
-            maxLength={LONGITUD_MOTIVO}
+            maxLength={LIMITES.motivo}
             required
             autoComplete="off"
             aria-invalid={errorMotivo !== null}
@@ -243,7 +240,7 @@ function SolicitarAcompanamiento() {
           <textarea
             id={idDisponibilidad}
             value={disponibilidad}
-            maxLength={LONGITUD_DISPONIBILIDAD}
+            maxLength={LIMITES.disponibilidad}
             autoComplete="off"
             onChange={(evento) => setDisponibilidad(evento.target.value)}
           />

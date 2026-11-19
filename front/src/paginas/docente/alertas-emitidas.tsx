@@ -6,6 +6,7 @@ import {
   type AlertaEmitida,
 } from '../../servicios-api/docente';
 import { mensajeDeError } from '../../servicios-api/errores';
+import { LIMITES } from '../../servicios-api/limites';
 import { NOMBRE_ESTADO, NOMBRE_NIVEL_RIESGO } from '../estudiante/textos';
 import estilos from './docente.module.css';
 import { PlantillaDocente } from './plantilla-docente';
@@ -24,9 +25,6 @@ import {
  * resultado. Solo se pintan los campos conocidos de AlertaEmitida; nunca
  * motivos ni contenido de solicitudes (D18, D19).
  */
-
-/** Máximo de leerPeriodo en el backend (curso.periodo varchar(20)). */
-const LONGITUD_PERIODO = 20;
 
 export function AlertasEmitidas() {
   const idPeriodo = useId();
@@ -71,7 +69,7 @@ export function AlertasEmitidas() {
             id={idPeriodo}
             type="text"
             value={periodo}
-            maxLength={LONGITUD_PERIODO}
+            maxLength={LIMITES.periodo}
             required
             autoComplete="off"
             aria-invalid={errorPeriodo !== null}

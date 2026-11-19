@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { LIMITES } from '../../servicios-api/limites';
 import estilos from './docente.module.css';
 import { PlantillaDocente, RUTAS_DOCENTE } from './plantilla-docente';
 import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
@@ -11,8 +12,6 @@ import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
  * de asignatura»; D22: codigo_asignatura = idCurso). Decisión abierta D37.
  * Máximo 36 caracteres, como `LONGITUD_MAXIMA.identificador` del backend.
  */
-
-const LONGITUD_CODIGO = 36;
 
 export function ConsultaCurso() {
   const navegar = useNavigate();
@@ -36,7 +35,7 @@ export function ConsultaCurso() {
             id={idCodigo}
             type="text"
             value={codigo}
-            maxLength={LONGITUD_CODIGO}
+            maxLength={LIMITES.identificador}
             required
             autoComplete="off"
             onChange={(evento) => setCodigo(evento.target.value)}

@@ -16,6 +16,7 @@ import {
   type AlertaEstudiante,
   type RegistrosEstudiante,
 } from '../../servicios-api/estudiante';
+import { LIMITES } from '../../servicios-api/limites';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
@@ -37,9 +38,6 @@ import {
  *
  * Los datos viven solo en el estado del componente (nada en el navegador).
  */
-
-/** Máximo de leerPeriodo en el backend (validacion-entrada.ts). */
-const LONGITUD_PERIODO = 20;
 
 interface Resultado {
   periodo: string;
@@ -98,7 +96,7 @@ export function ConsultaAcademica() {
             id={idPeriodo}
             type="text"
             value={periodo}
-            maxLength={LONGITUD_PERIODO}
+            maxLength={LIMITES.periodo}
             required
             autoComplete="off"
             aria-invalid={errorPeriodo !== null}
