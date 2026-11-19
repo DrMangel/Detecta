@@ -49,16 +49,29 @@ export function leerRetryAfter(valor: string | null): number | null {
   return Number(valor.trim());
 }
 
-/** Traduce una respuesta no exitosa al error uniforme. */
+/**
+ * Traduce una respuesta no exitosa al error uniforme.
+ *
+ * `textos403` es la excepción aprobada en F1 (respuesta 4, ajuste E): una
+ * ruta puede declarar los textos de 403 del backend que sí se muestran (solo
+ * POST /solicitudes, con el texto de D21). Cualquier otro 403 de esa ruta,
+ * incluido el ForbiddenException() sin texto, sigue mostrando el texto de F0.
+ */
 export function errorDeRespuesta(
   estado: number,
   cuerpo: unknown,
   retryAfter: string | null,
+  textos403: readonly string[] = [],
 ): ErrorApi {
-  if (estado === 403) {
-    return new ErrorApi(403, TEXTO_SIN_PERMISO);
-  }
   const delBackend = mensajeDelCuerpo(cuerpo);
+  if (estado === 403) {
+    return new ErrorApi(
+      403,
+      delBackend !== null && textos403.includes(delBackend)
+        ? delBackend
+        : TEXTO_SIN_PERMISO,
+    );
+  }
   const mensaje =
     CON_TEXTO_DEL_BACKEND.has(estado) && delBackend !== null
       ? delBackend

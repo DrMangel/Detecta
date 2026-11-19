@@ -30,6 +30,32 @@ describe('errorDeRespuesta: traducción uniforme por código', () => {
     expect(error.message).toBe(TEXTO_SIN_PERMISO);
   });
 
+  it('403 con textos permitidos por la ruta (F1, ajuste E): solo esos textos pasan', () => {
+    const permitidos = [
+      'No se encontró una matrícula activa asociada a su cuenta.',
+    ];
+    expect(
+      errorDeRespuesta(403, { message: permitidos[0] }, null, permitidos)
+        .message,
+    ).toBe(permitidos[0]);
+    expect(
+      errorDeRespuesta(
+        403,
+        { statusCode: 403, message: 'Forbidden' },
+        null,
+        permitidos,
+      ).message,
+    ).toBe(TEXTO_SIN_PERMISO);
+    expect(
+      errorDeRespuesta(403, { message: 'Otro texto' }, null, permitidos)
+        .message,
+    ).toBe(TEXTO_SIN_PERMISO);
+    // Sin lista (las demás rutas), ni siquiera ese texto pasa.
+    expect(
+      errorDeRespuesta(403, { message: permitidos[0] }, null).message,
+    ).toBe(TEXTO_SIN_PERMISO);
+  });
+
   it('500: siempre el genérico, nunca el «Internal server error» de NestJS', () => {
     expect(
       errorDeRespuesta(

@@ -10,9 +10,12 @@ import { useTituloPestana } from './titulo-pestana';
  */
 export function Plantilla({
   titulo,
+  navegacion,
   children,
 }: {
   titulo: string;
+  /** Navegación del rol (F1), bajo el encabezado. */
+  navegacion?: ReactNode;
   children?: ReactNode;
 }) {
   const { usuario, cerrar } = useSesion();
@@ -30,6 +33,7 @@ export function Plantilla({
           {ROTULOS.cerrarSesion}
         </button>
       </header>
+      {navegacion}
       <main className={estilos['contenido']}>
         <h1>{titulo}</h1>
         {children}

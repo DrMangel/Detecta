@@ -18,6 +18,8 @@ type Metodo = 'GET' | 'POST';
 export interface OpcionesPeticion {
   /** false en las rutas públicas y en la consulta inicial de la sesión. */
   sesionRequerida?: boolean;
+  /** Textos de 403 del backend que esta ruta muestra (ver errorDeRespuesta). */
+  textos403?: readonly string[];
 }
 
 type ManejadorSesionInvalida = (mensaje: string) => void;
@@ -46,7 +48,7 @@ export async function pedir<T>(
   metodo: Metodo,
   ruta: string,
   cuerpo?: unknown,
-  { sesionRequerida = true }: OpcionesPeticion = {},
+  { sesionRequerida = true, textos403 = [] }: OpcionesPeticion = {},
 ): Promise<T> {
   let respuesta: Response;
   try {
@@ -71,6 +73,7 @@ export async function pedir<T>(
       respuesta.status,
       datos,
       respuesta.headers.get('Retry-After'),
+      textos403,
     );
     if (error.estado === 401 && sesionRequerida) {
       alSesionInvalida?.(error.message);
