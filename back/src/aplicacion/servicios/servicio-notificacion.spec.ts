@@ -111,7 +111,7 @@ function capturarRegistro() {
   const espias = (['log', 'warn', 'error'] as const).map((nivel) =>
     jest
       .spyOn(Logger.prototype, nivel)
-      .mockImplementation((mensaje: unknown) => {
+      .mockImplementation((...[mensaje]: unknown[]) => {
         lineas.push(`${nivel}: ${String(mensaje)}`);
       }),
   );
@@ -225,6 +225,49 @@ describe('ServicioNotificacion (B5, ER Tabla 1)', () => {
     );
     expect(registro.lineas).toEqual([
       'warn: Error de envío (cita): NO_ENVIADO',
+    ]);
+    registro.restaurar();
+  });
+
+  it('B6: lanzada sin esperar, onApplicationShutdown espera a todos los destinatarios', async () => {
+    const registro = capturarRegistro();
+    const liberadores: (() => void)[] = [];
+    const enviar = jest.fn(
+      () =>
+        new Promise<boolean>((resolver) => {
+          liberadores.push(() => resolver(true));
+        }),
+    );
+    const servicio = crear(enviar);
+    void servicio.notificarCasoRemitido(caso(), [psicologo, jefe]);
+
+    let terminado = false;
+    const cierre = servicio.onApplicationShutdown().then(() => {
+      terminado = true;
+    });
+    for (let i = 0; i < 2; i++) {
+      await new Promise((resolver) => setImmediate(resolver));
+      expect(terminado).toBe(false);
+      liberadores.shift()?.();
+    }
+    await cierre;
+    expect(enviar).toHaveBeenCalledTimes(2);
+    expect(registro.lineas).toHaveLength(2);
+    registro.restaurar();
+  });
+
+  it('B6: un error al armar la notificación se registra y la promesa no se rechaza', async () => {
+    const registro = capturarRegistro();
+    const roto = {
+      obtenerEstudiante: () => {
+        throw new Error('grafo incompleto con ana@ejemplo.edu.co');
+      },
+    } as unknown as PlanNivelacion;
+    await expect(
+      crear(jest.fn()).notificarPlanNivelacion(roto),
+    ).resolves.toBeUndefined();
+    expect(registro.lineas).toEqual([
+      'error: Error de envío (plan-nivelacion): DESCONOCIDO',
     ]);
     registro.restaurar();
   });

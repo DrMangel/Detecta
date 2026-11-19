@@ -1,4 +1,9 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationShutdown,
+} from '@nestjs/common';
 import type { Alerta } from '../../dominio/entidades/alerta';
 import type { CasoRiesgo } from '../../dominio/entidades/caso-riesgo';
 import type { Cita } from '../../dominio/entidades/cita';
@@ -42,10 +47,17 @@ type TipoNotificacion = 'alerta' | 'caso-remitido' | 'cita' | 'plan-nivelacion';
  * la entrega no está garantizada (ER Tabla 1) y no debe interrumpir el flujo
  * de negocio. El registro nunca incluye destinatario, cuerpo ni asunto
  * completo (respuesta 7): solo el resultado, el tipo y el código técnico.
+ *
+ * B6 (respuesta 6 de Ivan; fuera del diagrama): quien llama lanza el envío
+ * después de confirmar la transacción y NO lo espera, para que el correo no
+ * retrase la operación de negocio (CUD02: menos de 3 s). El servicio lleva
+ * el registro de los envíos en curso y `onApplicationShutdown()` los espera
+ * (también es la espera determinista de las pruebas).
  */
 @Injectable()
-export class ServicioNotificacion {
+export class ServicioNotificacion implements OnApplicationShutdown {
   readonly #registro = new Logger('ServicioNotificacion');
+  readonly #enviosEnCurso = new Set<Promise<void>>();
 
   constructor(
     @Inject(PROVEEDOR_CORREO)
@@ -55,59 +67,98 @@ export class ServicioNotificacion {
   ) {}
 
   /** (a) Alerta temprana emitida por el docente, notificada al estudiante. */
-  async notificarAlertaEstudiante(alerta: Alerta): Promise<void> {
-    const estudiante = alerta.obtenerEstudiante();
-    await this.#enviar(
-      'alerta',
-      estudiante,
-      plantillaAlerta(
-        estudiante.nombre,
-        alerta.registro.curso.nombre,
-        this.configuracion.urlFrontend,
-      ),
-    );
-  }
-
-  /** (c) Caso remitido, al Psicólogo o al Jefe según la ruta (quien llama elige). */
-  async notificarCasoRemitido(
-    _caso: CasoRiesgo,
-    destinatarios: readonly Persona[],
-  ): Promise<void> {
-    for (const destinatario of destinatarios) {
-      await this.#enviar(
-        'caso-remitido',
-        destinatario,
-        plantillaCasoRemitido(
-          destinatario.nombre,
+  notificarAlertaEstudiante(alerta: Alerta): Promise<void> {
+    return this.#rastrear('alerta', async () => {
+      const estudiante = alerta.obtenerEstudiante();
+      await this.#intentarEnvio(
+        'alerta',
+        estudiante,
+        plantillaAlerta(
+          estudiante.nombre,
+          alerta.registro.curso.nombre,
           this.configuracion.urlFrontend,
         ),
       );
-    }
+    });
+  }
+
+  /** (c) Caso remitido, al Psicólogo o al Jefe según la ruta (quien llama elige). */
+  notificarCasoRemitido(
+    _caso: CasoRiesgo,
+    destinatarios: readonly Persona[],
+  ): Promise<void> {
+    return this.#rastrear('caso-remitido', async () => {
+      for (const destinatario of destinatarios) {
+        await this.#intentarEnvio(
+          'caso-remitido',
+          destinatario,
+          plantillaCasoRemitido(
+            destinatario.nombre,
+            this.configuracion.urlFrontend,
+          ),
+        );
+      }
+    });
   }
 
   /** (b) Cita de asesoría programada o reprogramada (destinatario: quien llama). */
-  async notificarCita(cita: Cita, destinatario: Persona): Promise<void> {
-    await this.#enviar(
-      'cita',
-      destinatario,
-      plantillaCita(destinatario.nombre, cita, this.configuracion.urlFrontend),
+  notificarCita(cita: Cita, destinatario: Persona): Promise<void> {
+    return this.#rastrear('cita', () =>
+      this.#intentarEnvio(
+        'cita',
+        destinatario,
+        plantillaCita(
+          destinatario.nombre,
+          cita,
+          this.configuracion.urlFrontend,
+        ),
+      ),
     );
   }
 
   /** (d) Plan de nivelación académica, notificado al estudiante. */
-  async notificarPlanNivelacion(plan: PlanNivelacion): Promise<void> {
-    const estudiante = plan.obtenerEstudiante();
-    await this.#enviar(
-      'plan-nivelacion',
-      estudiante,
-      plantillaPlanNivelacion(
-        estudiante.nombre,
-        this.configuracion.urlFrontend,
-      ),
-    );
+  notificarPlanNivelacion(plan: PlanNivelacion): Promise<void> {
+    return this.#rastrear('plan-nivelacion', async () => {
+      const estudiante = plan.obtenerEstudiante();
+      await this.#intentarEnvio(
+        'plan-nivelacion',
+        estudiante,
+        plantillaPlanNivelacion(
+          estudiante.nombre,
+          this.configuracion.urlFrontend,
+        ),
+      );
+    });
   }
 
-  async #enviar(
+  /** Espera las notificaciones que sigan en curso (cierre de la aplicación). */
+  async onApplicationShutdown(): Promise<void> {
+    while (this.#enviosEnCurso.size > 0) {
+      await Promise.all(this.#enviosEnCurso);
+    }
+  }
+
+  /**
+   * Registra la notificación completa (con todos sus destinatarios) como en
+   * curso y garantiza que su promesa nunca se rechace: quien la lanza sin
+   * esperarla no deja un rechazo sin manejar.
+   */
+  #rastrear(
+    tipo: TipoNotificacion,
+    trabajo: () => Promise<void>,
+  ): Promise<void> {
+    const envio = trabajo()
+      .catch(() => {
+        this.#registro.error(
+          `${MENSAJES_TABLA_1.error} (${tipo}): DESCONOCIDO`,
+        );
+      })
+      .finally(() => this.#enviosEnCurso.delete(envio));
+    this.#enviosEnCurso.add(envio);
+    return envio;
+  }
+
+  async #intentarEnvio(
     tipo: TipoNotificacion,
     destinatario: Persona,
     mensaje: MensajeCorreo,

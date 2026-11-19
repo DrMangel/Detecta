@@ -135,7 +135,7 @@ describe('ProveedorCorreoDesactivado (CORREO_MODO=desactivado)', () => {
     for (const nivel of ['log', 'warn', 'error', 'debug', 'verbose'] as const) {
       jest
         .spyOn(Logger.prototype, nivel)
-        .mockImplementation((mensaje: unknown) => {
+        .mockImplementation((...[mensaje]: unknown[]) => {
           registro.push(String(mensaje));
         });
     }

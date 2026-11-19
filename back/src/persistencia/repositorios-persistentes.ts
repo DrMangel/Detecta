@@ -148,6 +148,25 @@ export class RepositorioPersistenteCasoRiesgo
     );
   }
 
+  /** Una sola consulta (unión origen–caso) para todos los orígenes (B6). */
+  async listarEstadosPorOrigen(
+    idsOrigen: readonly string[],
+  ): Promise<Map<string, EstadoCaso>> {
+    if (idsOrigen.length === 0) {
+      return new Map();
+    }
+    const filas = await this.acceso.query<
+      { id_origen: string; estado: EstadoCaso }[]
+    >(
+      `SELECT o.id_origen, c.estado
+       FROM origen_riesgo o
+       JOIN caso_riesgo c ON c.id_origen = o.id_origen
+       WHERE o.id_origen = ANY($1::varchar[])`,
+      [[...idsOrigen]],
+    );
+    return new Map(filas.map((fila) => [fila.id_origen, fila.estado]));
+  }
+
   /**
    * Casos cerrados o archivados (sd_CUD10) de alertas sobre cursos del
    * periodo, de estudiantes del programa. Las solicitudes no aparecen (D12).
@@ -287,7 +306,9 @@ export class RepositorioPersistenteRegistroAcademico
     super(fuente, {
       objetivo: EsquemaRegistroAcademico,
       propiedadId: 'idRegistro',
-      criterios: {},
+      // B6 (D21): listar(idEstudiante) verifica la matrícula activa con el
+      // contrato base del diagrama, sin un método nuevo.
+      criterios: { idEstudiante: 'idEstudiante' },
       cargar: (cargador, ids) => cargador.registros(ids),
       escribir: escribirRegistro,
     });

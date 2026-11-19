@@ -1,7 +1,10 @@
 import type { Curso } from '../../dominio/entidades/curso';
 import type { Repositorio } from '../../dominio/repositorios/repositorio';
+import type { RepositorioAlerta } from '../../dominio/repositorios/repositorio-alerta';
+import type { RepositorioCasoRiesgo } from '../../dominio/repositorios/repositorio-caso-riesgo';
 import type { RepositorioPersona } from '../../dominio/repositorios/repositorio-persona';
 import type { RepositorioRegistroAcademico } from '../../dominio/repositorios/repositorio-registro-academico';
+import type { RepositorioSolicitud } from '../../dominio/repositorios/repositorio-solicitud';
 
 /**
  * Contrato `UnidadTrabajo` (aprobado por Ivan en el plan de B4; NO está en el
@@ -17,6 +20,14 @@ export interface RepositoriosTransaccionales {
   personas: RepositorioPersona;
   registros: RepositorioRegistroAcademico;
   cursos: Repositorio<Curso>;
+  /**
+   * B6 (respuesta 5 de Ivan): el origen (alerta o solicitud) y su caso se
+   * guardan en la misma transacción, primero el origen y después el caso
+   * (D7: el caso exige su origen).
+   */
+  alertas: RepositorioAlerta;
+  solicitudes: RepositorioSolicitud;
+  casos: RepositorioCasoRiesgo;
 }
 
 export interface OpcionesUnidadTrabajo {
