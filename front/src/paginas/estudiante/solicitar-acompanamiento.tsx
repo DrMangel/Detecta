@@ -125,21 +125,7 @@ function SolicitarAcompanamiento() {
   };
 
   if (comprobante !== null) {
-    return (
-      <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
-        <div className={estilos['comprobante']}>
-          <MensajeInformativo mensaje={TEXTO_SOLICITUD_RECIBIDA} />
-          <dl className={`${estilos['datos']} ${estilos['tarjeta']}`}>
-            <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
-            <dd>{comprobante.codigo}</dd>
-            <dt>{ROTULOS_ESTUDIANTE.fecha}</dt>
-            <dd>{formatearFecha(comprobante.fecha)}</dd>
-            <dt>{ROTULOS_ESTUDIANTE.estado}</dt>
-            <dd>{NOMBRE_ESTADO[comprobante.estado]}</dd>
-          </dl>
-        </div>
-      </PlantillaEstudiante>
-    );
+    return <ComprobanteSolicitud comprobante={comprobante} />;
   }
 
   return (
@@ -155,15 +141,7 @@ function SolicitarAcompanamiento() {
           clase={estilos['grupo']}
         />
 
-        {/* Región viva siempre montada: el cambio de aviso se anuncia. */}
-        <div aria-live="polite">
-          {tipoApoyo !== null && (
-            <div className={estilos['aviso']}>
-              <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
-              {tipoApoyo === 'ACADEMICA' && <p>{AVISO_REMISION_PSICOLOGIA}</p>}
-            </div>
-          )}
-        </div>
+        <AvisoQuienVe tipoApoyo={tipoApoyo} />
 
         <CampoTexto
           rotulo={ROTULOS_ESTUDIANTE.motivo}
@@ -194,6 +172,40 @@ function SolicitarAcompanamiento() {
           {ROTULOS_ESTUDIANTE.enviar}
         </button>
       </form>
+    </PlantillaEstudiante>
+  );
+}
+
+/** Paso 3 de R02: quién podrá ver la solicitud, antes del envío. */
+function AvisoQuienVe({ tipoApoyo }: { tipoApoyo: TipoApoyo | null }) {
+  // Región viva siempre montada: el cambio de aviso se anuncia.
+  return (
+    <div aria-live="polite">
+      {tipoApoyo !== null && (
+        <div className={estilos['aviso']}>
+          <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
+          {tipoApoyo === 'ACADEMICA' && <p>{AVISO_REMISION_PSICOLOGIA}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Paso 7: comprobante con el código de rastreo, sin identidad (ER 3.3.3). */
+function ComprobanteSolicitud({ comprobante }: { comprobante: Solicitud }) {
+  return (
+    <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
+      <div className={estilos['comprobante']}>
+        <MensajeInformativo mensaje={TEXTO_SOLICITUD_RECIBIDA} />
+        <dl className={`${estilos['datos']} ${estilos['tarjeta']}`}>
+          <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
+          <dd>{comprobante.codigo}</dd>
+          <dt>{ROTULOS_ESTUDIANTE.fecha}</dt>
+          <dd>{formatearFecha(comprobante.fecha)}</dd>
+          <dt>{ROTULOS_ESTUDIANTE.estado}</dt>
+          <dd>{NOMBRE_ESTADO[comprobante.estado]}</dd>
+        </dl>
+      </div>
     </PlantillaEstudiante>
   );
 }
