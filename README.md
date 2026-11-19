@@ -154,6 +154,7 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 | `npm run start` / `start:dev` | Arranca la aplicación (con recarga en `start:dev`) |
 | `npm run start:prod` | Arranca la versión compilada |
 | `npm run lint` | Lint con oxlint (con reglas que usan información de tipos) |
+| `npm run typecheck` | Verifica los tipos de todo el proyecto, pruebas incluidas (`tsc --noEmit`) |
 | `npm run format` / `format:check` | Aplica o verifica el formato con Prettier |
 | `npm test` | Pruebas unitarias |
 | `npm run test:e2e` | Conexión a ambas bases, autenticación, correo de activación por un servidor SMTP local, flujos del docente y del estudiante (B6) y disparo manual de la sincronización por HTTP contra `detecta_pruebas` (requiere PostgreSQL en marcha, `back/.env` y `npm run bd:institucional`) |
