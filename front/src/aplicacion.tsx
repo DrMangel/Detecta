@@ -8,7 +8,9 @@ import { ProveedorSesion } from './componentes/sesion';
 import { PaginaActivar } from './paginas/acceso/activar';
 import { PaginaIniciarSesion } from './paginas/acceso/iniciar-sesion';
 import { PaginaSolicitarActivacion } from './paginas/acceso/solicitar-activacion';
-import { EspacioDocente } from './paginas/docente/espacio-docente';
+import { AlertasEmitidas } from './paginas/docente/alertas-emitidas';
+import { ConsultaCurso } from './paginas/docente/consulta-curso';
+import { PaginaListadoCurso } from './paginas/docente/listado-curso';
 import { ConsultaAcademica } from './paginas/estudiante/consulta-academica';
 import { MisSolicitudes } from './paginas/estudiante/mis-solicitudes';
 import { PaginaSolicitarAcompanamiento } from './paginas/estudiante/solicitar-acompanamiento';
@@ -67,11 +69,28 @@ export function Aplicacion() {
             </RutaProtegida>
           }
         />
+        {/* Espacio del Docente (plan de F2, §1). */}
         <Route
           path="/docente"
           element={
             <RutaProtegida rol="DOCENTE">
-              <EspacioDocente />
+              <ConsultaCurso />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/docente/cursos/:idCurso"
+          element={
+            <RutaProtegida rol="DOCENTE">
+              <PaginaListadoCurso />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/docente/alertas"
+          element={
+            <RutaProtegida rol="DOCENTE">
+              <AlertasEmitidas />
             </RutaProtegida>
           }
         />
