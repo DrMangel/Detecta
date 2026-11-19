@@ -49,8 +49,8 @@ El mismo del backend:
 
 ### F1. Estudiante
 
-- **CUD01:** notas, asistencia, alertas emitidas sobre el estudiante y estado de sus solicitudes. El estado de la solicitud es derivado del caso (D27).
-- **CUD02:** el periodo es obligatorio y de texto libre (hasta 20 caracteres); el código de rastreo es el identificador del origen (D28). El aviso sobre quién ve la solicitud y el tratamiento de la solicitud cuando la base no está disponible y del doble envío se toman de R02 y de sd_CUD02 (verificar).
+- **CUD01:** notas, asistencia, alertas emitidas sobre el estudiante y estado de sus solicitudes. El estado de la solicitud es derivado del caso (D27). El periodo académico es el filtro de la consulta de registros y de alertas: obligatorio y de texto libre (hasta 20 caracteres).
+- **CUD02:** la solicitud lleva tipo de apoyo, motivo y disponibilidad horaria opcional, sin periodo (R02, Manual CUD02, sd_CUD02 y `POST /solicitudes`); el código de rastreo es el identificador del origen (D28). El aviso sobre quién ve la solicitud y el tratamiento de la solicitud cuando la base no está disponible y del doble envío se toman de R02 y de sd_CUD02 (verificar).
 - **ER:** el reporte confidencial se confirma sin exponer quién lo hizo (3.3.3); la interfaz debe reflejar que el acompañamiento es asesoría educativa y no intervención clínica (1.3.4); uso principal desde celular (1.3.3).
 - **Verificar en la línea base (§8):** el comportamiento para un estudiante sin registros académicos (D21).
 

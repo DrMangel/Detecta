@@ -117,12 +117,12 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
   - los envíos de correo en segundo plano se pierden si el proceso muere (D24);
   - `reprogramarCita` carga los casos del psicólogo y `GeneradorInformeRiesgo` filtra en memoria, ambos dentro de sus metas.
 - Para F1 (frontend):
-  - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar. **Pregunta para el plan de F1:** choca con la regla del plan del front y con la decisión de F0 de no guardar nada en el almacenamiento del navegador (el formulario lleva el motivo); una copia solo en memoria no sobrevive a recargar la página;
-  - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso;
-  - la prueba del 401 real contra el backend (sesión caducada en una petición protegida) se hace con la primera ruta protegida de F1; en F0 solo existía la consulta inicial de sesión, que es silenciosa, y el caso lo cubren las pruebas de componentes;
-  - en desarrollo, la consulta inicial de sesión aparece dos veces en la red porque React `StrictMode` ejecuta dos veces los efectos; en producción es una sola;
+  - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar. **Resuelto en F1:** R02, el Manual (CUD02 6.a) y sd_CUD02 solo piden conservar los datos en el formulario, no entre recargas; la copia vive solo en la memoria del componente (diferencia para la v4 en «Decisiones y textos del frontend (F1)», §7);
+  - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso. **Resuelto en F1 para la solicitud** (botón deshabilitado y conciliación tras un error de red); F2 lo aplica a la alerta;
+  - la prueba del 401 real contra el backend (sesión caducada en una petición protegida) se hace con la primera ruta protegida de F1. **Hecha en F1** con `GET /consulta/registros` tras borrar la cookie;
+  - en desarrollo, la consulta inicial de sesión aparece dos veces en la red porque React `StrictMode` ejecuta dos veces los efectos; en producción es una sola. Lo mismo ocurre con `GET /consulta/solicitudes` al abrir «Mis solicitudes»;
   - falta el favicon (404 en desarrollo).
-- Para el ER y F1: el aviso de R02 al estudiante debería decir también que una solicitud académica puede ser remitida a psicología si el Jefe de Departamento lo considera necesario (en ese caso el Jefe deja de ver su contenido y lo ve el psicólogo).
+- Para el ER y F1: el aviso de R02 al estudiante debería decir también que una solicitud académica puede ser remitida a psicología si el Jefe de Departamento lo considera necesario (en ese caso el Jefe deja de ver su contenido y lo ve el psicólogo). **Incorporado en F1** como complemento del aviso académico; el ER R02 se actualizará aparte.
 - Para el cierre del proyecto: actualizar los diagramas v3 a una v4 con las diferencias registradas en el §7.
 
 **Estado de las fases**
@@ -137,6 +137,7 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B8 | Cerrada (18/11/2026): commits 73d3f23 (B8a) y f6a6afd (B8b); 403 pruebas unitarias, 113 de integración y 69 e2e. Fases B0 a B8 cerradas |
 | B9 | Cerrada (19/11/2026): commits 048b019, be3778c, 43f69da, aaa6b45, 04016b9, 490230a, cb4dae3, e0dddbe, 2157ee0, 234e8d6, e1c1ac2, 0088881 y el commit de docs de la fase; 449 pruebas unitarias, 131 de integración y 79 e2e. Fases B0 a B9 cerradas |
 | F0 | Cerrada (19/11/2026): commits c7039e5, 3021d7a, 38b7c5a, f50cc87, 75e2f46, 272a511 y el commit de docs de la fase; 52 pruebas de componentes (Vitest). Prueba manual en Chrome contra el backend real con una cuenta de cada rol |
+| F1 | En auditoría (19/11/2026): commits a5dac36, 27e303b, f58450e, 041faa9 y el commit de docs de la fase; 97 pruebas de componentes (Vitest). Prueba manual en Chrome a 360 px contra el backend real con la cuenta del estudiante de ejemplo |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -313,6 +314,21 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Accesibilidad base | `lang="es"`, etiquetas asociadas a cada campo, errores con `role="alert"` y confirmaciones con `role="status"`, foco visible, controles de al menos 44 px de alto, diseño primero para celular sin desborde horizontal a 360 px |
 
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
+
+### Decisiones y textos del frontend (F1)
+
+| Tipo | Elemento |
+|---|---|
+| Rutas del front | `/estudiante` (consulta académica, CUD01), `/estudiante/solicitudes` (CUD01 2.b) y `/estudiante/solicitudes/nueva` (CUD02), con una navegación de tres enlaces. Reemplazan el espacio vacío de F0 |
+| Periodo | Filtro de la consulta de registros y de alertas (CUD01), texto libre de hasta 20 caracteres. La solicitud (CUD02) no lleva periodo |
+| Formato | `es-CO`: notas y asistencia con dos decimales y coma ("3,45", "87,50 %"); fechas "19/11/2026" en hora de Bogotá |
+| 403 de matrícula | Excepción a la regla de F0, solo en `POST /solicitudes`: se muestra el texto del backend "No se encontró una matrícula activa asociada a su cuenta." (D21). Cualquier otro 403 de esa ruta, y todos los de las demás, siguen con el texto de F0 |
+| Doble envío de la solicitud | Botón deshabilitado durante el envío y reemplazo del formulario por el comprobante. Tras un error de red se compara `GET /consulta/solicitudes` de antes y de después del envío (código nuevo con el mismo tipo, motivo y disponibilidad): si aparece, se muestra su comprobante; si no, el error de red de F0. Si alguna de las dos consultas falla, el envío no se bloquea y se muestra el texto de resultado incierto. Límite: dos solicitudes idénticas enviadas a la vez desde dos pestañas se verían como una |
+| **Diferencia para la v4** | La copia del formulario ante un 503 (R02, situaciones anormales; Manual CUD02 6.a; nota de sd_CUD02 «La GUI conserva los datos diligenciados (R02)») vive **solo en la memoria del componente**: se pierde al recargar, al cerrar la pestaña, al salir de la pantalla y tras un 401. Nada en `localStorage` ni `sessionStorage` |
+| Textos transcritos | "Información no disponible" (sd_CUD01 4.a; también cuando falta la fecha de sincronización), "Describa el motivo de la solicitud" (sd_CUD02; Manual CUD02 5.a), "No fue posible registrar la solicitud. Intente de nuevo" (sd_CUD02), "Error al consultar la información" (sd_CUD01). Valores: "Académico" y "Psicosocial" (R02, Manual CUD02), "Pendiente" y "Atendida" (Manual CUD01 2.b), "Bajo", "Medio" y "Alto" (este plan, F2) |
+| Textos reutilizados del backend | "Indique el periodo académico." (también antes de enviar), "El texto excede la longitud permitida.", "La solicitud no es válida.", "No se encontró una matrícula activa asociada a su cuenta." |
+| Aviso de R02 (paso 3) | Base: ER R02 paso 3 («El sistema informa al Estudiante, antes del envío, quién podrá ver su solicitud según la categoría seleccionada: el Psicólogo si es psicosocial, o el Jefe de Departamento de programa si es académica.») y Manual CUD02 paso 3. Textos: "Podrá ver su solicitud el Jefe de Departamento de Programa." y su complemento "Si lo considera necesario, podrá remitirla a psicología; en ese caso dejará de verla y la verá el Psicólogo." (académico); "Podrá ver su solicitud el Psicólogo." (psicosocial). Aparece al elegir el tipo y antes de poder enviar |
+| Textos nuevos (provisionales, sujetos a la revisión de usabilidad de F5) | Títulos y enlaces: "Consulta académica", "Mis solicitudes", "Solicitar acompañamiento". Rótulos: "Periodo académico", "Consultar", "Asignatura", "Nota", "Asistencia", "Última sincronización", "Alertas", "Fecha", "Nivel de riesgo", "Descripción", "Tipo de apoyo", "Motivo", "Disponibilidad horaria" (en la lista) y "Disponibilidad horaria (opcional)" (en el formulario), "Estado", "Código de rastreo", "Enviar solicitud". Ayuda del periodo: "Por ejemplo: 2026-2". Vacíos: "No hay alertas registradas para este periodo.", "Aún no ha registrado solicitudes.". ER 1.3.4: "El acompañamiento de DETECTA es una asesoría educativa y no una intervención clínica.". Comprobante (ER 3.3.3): "Su solicitud fue recibida." con el código de rastreo, la fecha y el estado, sin datos de identidad. Resultado incierto: "No se pudo confirmar si su solicitud fue registrada. Revise «Mis solicitudes» antes de enviarla de nuevo." |
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
