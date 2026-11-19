@@ -330,16 +330,26 @@ async function escribirAsesoriaDeCita(
  * fechas las pone PostgreSQL al confirmar el cambio.
  */
 async function trazarCaso(m: EntityManager, idCaso: string): Promise<void> {
+  // B9 (R4): un solo UPDATE en lugar de dos. Las condiciones se evalúan sobre
+  // la fila ANTERIOR, así que cada dato se fija una sola vez y nunca se
+  // sobrescribe; si no hay nada que fijar, el WHERE no toca la fila.
   await m.query(
-    `UPDATE caso_riesgo SET fecha_canalizacion = now()
-     WHERE id_caso = $1 AND id_jefe IS NOT NULL AND fecha_canalizacion IS NULL`,
-    [idCaso],
-  );
-  await m.query(
-    `UPDATE caso_riesgo
-     SET fecha_consentimiento = now(), id_psicologo_consentimiento = id_psicologo
-     WHERE id_caso = $1 AND consentimiento_confirmado
-       AND id_psicologo IS NOT NULL AND fecha_consentimiento IS NULL`,
+    `UPDATE caso_riesgo SET
+       fecha_canalizacion = CASE
+         WHEN id_jefe IS NOT NULL AND fecha_canalizacion IS NULL THEN now()
+         ELSE fecha_canalizacion END,
+       fecha_consentimiento = CASE
+         WHEN consentimiento_confirmado AND id_psicologo IS NOT NULL
+           AND fecha_consentimiento IS NULL THEN now()
+         ELSE fecha_consentimiento END,
+       id_psicologo_consentimiento = CASE
+         WHEN consentimiento_confirmado AND id_psicologo IS NOT NULL
+           AND fecha_consentimiento IS NULL THEN id_psicologo
+         ELSE id_psicologo_consentimiento END
+     WHERE id_caso = $1
+       AND ((id_jefe IS NOT NULL AND fecha_canalizacion IS NULL)
+         OR (consentimiento_confirmado AND id_psicologo IS NOT NULL
+           AND fecha_consentimiento IS NULL))`,
     [idCaso],
   );
 }

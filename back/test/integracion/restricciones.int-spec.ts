@@ -135,6 +135,7 @@ describe('Restricciones de subtipo, integridad y rangos', () => {
 describe('Usuario de la aplicación sin DELETE (ER 3.7 c)', () => {
   /** Tabla interna de TypeORM: la app no debe tener ningún permiso sobre ella. */
   const TABLA_MIGRACIONES = 'migraciones_typeorm';
+  const TABLA_EVENTOS = 'evento_caso';
 
   type Privilegios = {
     tabla: string;
@@ -166,11 +167,16 @@ describe('Usuario de la aplicación sin DELETE (ER 3.7 c)', () => {
 
   it('detecta_app tiene SELECT, INSERT y UPDATE, y no DELETE ni TRUNCATE, en todas las tablas del esquema public', async () => {
     const filas = await privilegiosDeTodasLasTablas();
-    const delDominio = filas.filter((fila) => fila.tabla !== TABLA_MIGRACIONES);
+    // evento_caso (B9) es la excepción aprobada, de solo inserción: se
+    // comprueba en la prueba siguiente.
+    const delDominio = filas.filter(
+      (fila) =>
+        fila.tabla !== TABLA_MIGRACIONES && fila.tabla !== TABLA_EVENTOS,
+    );
 
     // La consulta debe encontrar al menos las tablas conocidas (no es vacía).
     expect(delDominio.map((fila) => fila.tabla)).toEqual(
-      expect.arrayContaining([...TABLAS]),
+      expect.arrayContaining(TABLAS.filter((tabla) => tabla !== TABLA_EVENTOS)),
     );
     for (const fila of delDominio) {
       expect(fila).toEqual({
@@ -182,6 +188,18 @@ describe('Usuario de la aplicación sin DELETE (ER 3.7 c)', () => {
         truncate: false,
       });
     }
+  });
+
+  it('evento_caso (B9, trazabilidad): solo SELECT e INSERT, sin UPDATE, DELETE ni TRUNCATE', async () => {
+    const filas = await privilegiosDeTodasLasTablas();
+    expect(filas.find((fila) => fila.tabla === TABLA_EVENTOS)).toEqual({
+      tabla: TABLA_EVENTOS,
+      select: true,
+      insert: true,
+      update: false,
+      delete: false,
+      truncate: false,
+    });
   });
 
   it('detecta_app no tiene ningún permiso sobre la tabla de migraciones', async () => {

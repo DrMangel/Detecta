@@ -1,3 +1,4 @@
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import {
   BadRequestException,
   Body,
@@ -217,6 +218,13 @@ export class ControladorPlanNivelacion extends ControladorBase {
             }
             regla(() => recargado.finalizar());
             await repos.planes.guardar(recargado);
+            // B9, trazabilidad: fecha y autor de la finalización del plan.
+            await repos.eventos.registrar({
+              tipo: TipoEventoCaso.PLAN_FINALIZADO,
+              idCaso: recargado.caso.idCaso,
+              idActor: jefe.id,
+              idPlan,
+            });
             return recargado;
           },
           { bloqueos: [`plan:${idPlan}`] },

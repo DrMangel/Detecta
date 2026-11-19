@@ -11,6 +11,7 @@ import {
   crearRepositorioCita,
   crearRepositorioCurso,
 } from './repositorios-genericos';
+import { RegistroPersistenteEventosCaso } from './registro-persistente-eventos-caso';
 import {
   RepositorioPersistenteAlerta,
   RepositorioPersistenteCasoRiesgo,
@@ -98,6 +99,7 @@ export class UnidadTrabajoPersistente implements UnidadTrabajo {
         citas: crearRepositorioCita(manager),
         asesorias: crearRepositorioAsesoria(manager),
         planes: new RepositorioPersistentePlanNivelacion(manager),
+        eventos: new RegistroPersistenteEventosCaso(manager),
       });
     });
   }

@@ -230,3 +230,65 @@ describe('validarEntorno', () => {
     ).toThrow(/NODE_ENV debe ser uno de/);
   });
 });
+
+describe('validarEntorno: hilos de libuv y pool de la base (B9)', () => {
+  it('son opcionales: por defecto 4 hilos, 10 conexiones y 10 s de espera por conexión', () => {
+    const resultado = validarEntorno(entornoValido);
+
+    expect(resultado.UV_THREADPOOL_SIZE).toBe(4);
+    expect(resultado.BD_DETECTA_POOL_MAX).toBe(10);
+    expect(resultado.BD_DETECTA_CONEXION_ESPERA_MS).toBe(10000);
+  });
+
+  it('BD_DETECTA_CONEXION_ESPERA_MS acepta 1000 a 60000', () => {
+    for (const valor of [1000, 60000]) {
+      expect(
+        validarEntorno({
+          ...entornoValido,
+          BD_DETECTA_CONEXION_ESPERA_MS: String(valor),
+        }).BD_DETECTA_CONEXION_ESPERA_MS,
+      ).toBe(valor);
+    }
+  });
+
+  it('acepta valores dentro del rango', () => {
+    const resultado = validarEntorno({
+      ...entornoValido,
+      UV_THREADPOOL_SIZE: '128',
+      BD_DETECTA_POOL_MAX: '20',
+    });
+
+    expect(resultado.UV_THREADPOOL_SIZE).toBe(128);
+    expect(resultado.BD_DETECTA_POOL_MAX).toBe(20);
+  });
+
+  it.each([
+    [
+      'UV_THREADPOOL_SIZE',
+      '0',
+      /UV_THREADPOOL_SIZE es opcional; si se declara debe ser un entero entre 1 y 128/,
+    ],
+    ['UV_THREADPOOL_SIZE', '129', /UV_THREADPOOL_SIZE es opcional/],
+    ['UV_THREADPOOL_SIZE', '4.5', /UV_THREADPOOL_SIZE es opcional/],
+    [
+      'BD_DETECTA_POOL_MAX',
+      '0',
+      /BD_DETECTA_POOL_MAX es opcional; si se declara debe ser un entero entre 1 y 50/,
+    ],
+    ['BD_DETECTA_POOL_MAX', 'diez', /BD_DETECTA_POOL_MAX es opcional/],
+    [
+      'BD_DETECTA_CONEXION_ESPERA_MS',
+      '0',
+      /BD_DETECTA_CONEXION_ESPERA_MS es opcional; si se declara debe ser un entero entre 1000 y 60000/,
+    ],
+    [
+      'BD_DETECTA_CONEXION_ESPERA_MS',
+      '60001',
+      /BD_DETECTA_CONEXION_ESPERA_MS es opcional/,
+    ],
+  ])('rechaza %s=%s', (clave, valor, mensaje) => {
+    expect(() => validarEntorno({ ...entornoValido, [clave]: valor })).toThrow(
+      mensaje,
+    );
+  });
+});

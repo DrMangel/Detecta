@@ -1,3 +1,6 @@
+// Primera importación: fija UV_THREADPOOL_SIZE antes de que libuv cree sus
+// hilos (B9, ajuste 3a). Ver hilos-libuv.ts.
+import './hilos-libuv';
 import 'reflect-metadata';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';

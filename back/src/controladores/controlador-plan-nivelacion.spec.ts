@@ -1,3 +1,4 @@
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import { HttpException, Logger } from '@nestjs/common';
 import {
   BloqueoAgotadoError,
@@ -99,6 +100,7 @@ function preparar(caso: CasoRiesgo | null, plan: PlanNivelacion | null = null) {
       guardar: jest.fn(async () => undefined),
       buscarPorId: jest.fn(async () => plan),
     },
+    eventos: { registrar: jest.fn(async () => undefined) },
   };
   const opciones: (OpcionesUnidadTrabajo | undefined)[] = [];
   const unidad: UnidadTrabajo = {
@@ -334,5 +336,43 @@ describe('ControladorPlanNivelacion.finalizarPlan (CUD05 1.a)', () => {
       estado: 409,
       mensaje: MENSAJES_PLAN.bloqueoPlan,
     });
+  });
+});
+
+describe('Trazabilidad (B9; ER 1.3.4, CUD04): finalización del plan', () => {
+  function planActivo(): PlanNivelacion {
+    return jefe.estructurarPlanNivelacion(
+      casoAcademico(),
+      [calculo],
+      'T',
+      'C',
+      '',
+    );
+  }
+
+  it('finalizar: un evento PLAN_FINALIZADO con el caso del plan y el Jefe como autor', async () => {
+    const plan = planActivo();
+    const { controlador, repos } = preparar(null, plan);
+    await controlador.finalizarPlan(jefe, plan.idPlan);
+    expect(repos.eventos.registrar).toHaveBeenCalledTimes(1);
+    expect(repos.eventos.registrar).toHaveBeenCalledWith({
+      tipo: TipoEventoCaso.PLAN_FINALIZADO,
+      idCaso: plan.caso.idCaso,
+      idActor: jefe.id,
+      idPlan: plan.idPlan,
+    });
+  });
+
+  it('ya finalizado (409) y estructurar el plan: sin evento (la creación ya tiene fecha e id_jefe)', async () => {
+    const plan = planActivo();
+    plan.finalizar();
+    const { controlador, repos } = preparar(null, plan);
+    await errorDe(controlador.finalizarPlan(jefe, plan.idPlan));
+    expect(repos.eventos.registrar).not.toHaveBeenCalled();
+
+    const otro = preparar(casoAcademico());
+    await otro.controlador.estructurarPlan(jefe, CUERPO);
+    expect(otro.repos.planes.guardar).toHaveBeenCalledTimes(1);
+    expect(otro.repos.eventos.registrar).not.toHaveBeenCalled();
   });
 });

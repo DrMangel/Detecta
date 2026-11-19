@@ -11,6 +11,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ControlAcceso } from '../aplicacion/servicios/control-acceso';
+import { SIN_CACHE } from '../cabeceras-seguridad';
 import {
   DEFINICIONES_TOTALES,
   GeneradorInformeRiesgo,
@@ -195,6 +196,8 @@ export class ControladorInformes extends ControladorBase {
         'Content-Type': archivo.tipoContenido,
         'Content-Disposition': `attachment; filename="${archivo.nombre}"`,
         'Content-Length': String(archivo.contenido.length),
+        // Ajuste E de B9: el PDF no se guarda en caché.
+        'Cache-Control': SIN_CACHE,
       })
       .send(archivo.contenido);
   }

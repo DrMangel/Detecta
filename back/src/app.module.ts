@@ -50,6 +50,17 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
         synchronize: false,
         retryAttempts: REINTENTOS_CONEXION,
         retryDelay: ESPERA_ENTRE_REINTENTOS_MS,
+        // B9 (ajuste 3b): tamaño del pool de pg configurable; 10 por defecto,
+        // el mismo valor que pg usaba hasta B8. Condición 4 del informe
+        // parcial 2: espera finita por una conexión libre (pg: sin límite por
+        // defecto); al vencer, conPersistencia responde 503 con el texto de
+        // la ruta.
+        extra: {
+          max: config.get('BD_DETECTA_POOL_MAX', { infer: true }),
+          connectionTimeoutMillis: config.get('BD_DETECTA_CONEXION_ESPERA_MS', {
+            infer: true,
+          }),
+        },
       }),
     }),
     TypeOrmModule.forRootAsync({

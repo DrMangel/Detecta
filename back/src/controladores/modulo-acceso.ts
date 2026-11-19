@@ -11,6 +11,7 @@ import {
   type Reloj,
 } from '../aplicacion/servicios/servicio-autenticacion';
 import type { VariablesEntorno } from '../validacion-entorno';
+import { crearLimitadores, LIMITADORES } from './limitador-peticiones';
 import {
   CONFIGURACION_COOKIE,
   ControladorAcceso,
@@ -65,6 +66,8 @@ type Configuracion = ConfigService<VariablesEntorno, true>;
       }),
     },
     { provide: RELOJ, useValue: (() => new Date()) satisfies Reloj },
+    // B9 (D15, ajuste A): limitadores en memoria, por instancia.
+    { provide: LIMITADORES, inject: [RELOJ], useFactory: crearLimitadores },
   ],
   // RELOJ: B7 lo reutiliza (reloj inyectable, ajuste C del plan de B7).
   exports: [ServicioAutenticacion, ControlAcceso, JwtModule, RELOJ],

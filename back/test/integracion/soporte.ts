@@ -35,6 +35,7 @@ if (!BASE_PRUEBAS.endsWith('_pruebas')) {
 
 export const TABLAS = [
   'token_activacion',
+  'evento_caso',
   'informe_riesgo_plan',
   'informe_riesgo_caso',
   'informe_riesgo',

@@ -11,6 +11,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
+import { TipoEventoCaso } from '../aplicacion/contratos/registro-eventos-caso';
 import {
   UNIDAD_TRABAJO,
   type UnidadTrabajo,
@@ -206,8 +207,22 @@ export class ControladorAtencionPsicologica extends ControladorBase {
             ) {
               throw new ConflictException(MENSAJES_PERTINENCIA.cruceHorario);
             }
+            // B9, trazabilidad: la fecha y la modalidad anteriores se
+            // capturan antes de reprogramar (la cita las sobrescribe).
+            const fechaHoraAnterior = actual.fechaHora;
+            const modalidadAnterior = actual.modalidad;
             regla(() => actual.reprogramar(fechaHora, modalidad));
             await repos.citas.guardar(actual);
+            await repos.eventos.registrar({
+              tipo: TipoEventoCaso.CITA_REPROGRAMADA,
+              idCaso,
+              idActor: psicologo.id,
+              idCita,
+              fechaHoraAnterior,
+              fechaHoraNueva: fechaHora,
+              modalidadAnterior,
+              modalidadNueva: modalidad,
+            });
             return { caso: recargado, cita: actual };
           },
           { bloqueos: [`caso:${idCaso}`, `agenda:${psicologo.id}`] },
@@ -375,6 +390,13 @@ export class ControladorAtencionPsicologica extends ControladorBase {
             );
             await repos.casos.guardar(recargado);
             await repos.citas.guardar(nueva);
+            // B9, trazabilidad: cuándo y quién agendó el seguimiento.
+            await repos.eventos.registrar({
+              tipo: TipoEventoCaso.CITA_PROGRAMADA,
+              idCaso,
+              idActor: psicologo.id,
+              idCita: nueva.idCita,
+            });
             return {
               caso: recargado,
               cita: nueva,
@@ -422,6 +444,12 @@ export class ControladorAtencionPsicologica extends ControladorBase {
               );
             }
             await repos.casos.guardar(recargado);
+            // B9, trazabilidad: fecha y autor del cierre.
+            await repos.eventos.registrar({
+              tipo: TipoEventoCaso.CASO_CERRADO,
+              idCaso,
+              idActor: psicologo.id,
+            });
           },
           { bloqueos: [`caso:${idCaso}`] },
         ),

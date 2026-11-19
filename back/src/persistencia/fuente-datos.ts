@@ -4,6 +4,7 @@ import { EsquemaInicial1794873600000 } from './migraciones/1794873600000-Esquema
 import { TokensActivacion1794877200000 } from './migraciones/1794877200000-TokensActivacion';
 import { TrazabilidadCaso1794880800000 } from './migraciones/1794880800000-TrazabilidadCaso';
 import { AutoriaInforme1794884400000 } from './migraciones/1794884400000-AutoriaInforme';
+import { EventosCaso1794888000000 } from './migraciones/1794888000000-EventosCaso';
 
 /** Migraciones en orden. Se listan explícitamente (sin glob) para que
  * funcionen igual desde `dist/` y desde las pruebas con ts-jest. */
@@ -12,6 +13,7 @@ export const MIGRACIONES = [
   TokensActivacion1794877200000,
   TrazabilidadCaso1794880800000,
   AutoriaInforme1794884400000,
+  EventosCaso1794888000000,
 ];
 
 function exigirVariable(nombre: string): string {
