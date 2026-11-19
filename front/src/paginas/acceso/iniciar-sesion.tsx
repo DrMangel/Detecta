@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Campo } from '../../componentes/campo';
-import { useEsperaReintento } from '../../componentes/espera-reintento';
 import {
   BotonPrincipal,
   FormularioAcceso,
@@ -14,8 +13,8 @@ import {
 import { ESPACIO_POR_ROL } from '../../componentes/roles';
 import { useSesion } from '../../componentes/sesion';
 import { ROTULOS, TITULOS } from '../../componentes/textos';
+import { useEnvio } from '../../componentes/use-envio';
 import { iniciarSesion } from '../../servicios-api/acceso';
-import { ErrorApi, mensajeDeError } from '../../servicios-api/errores';
 
 /*
  * Inicio de sesión (ControladorAcceso.iniciarSesion; ER 1.3.1: correo y
@@ -28,39 +27,28 @@ export function PaginaIniciarSesion() {
   const navegar = useNavigate();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [confirmacion, setConfirmacion] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  const { enEspera, esperar } = useEsperaReintento();
+  const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();
 
   // El aviso pasa a esta pantalla una sola vez (ajuste A).
   useEffect(() => {
     const aviso = consumirAviso();
-    if (aviso?.tipo === 'error') {
-      setError(aviso.texto);
-    } else if (aviso?.tipo === 'confirmacion') {
-      setConfirmacion(aviso.texto);
+    if (aviso !== null) {
+      const mostrar = { error: ponerError, confirmacion: setConfirmacion };
+      mostrar[aviso.tipo](aviso.texto);
     }
     // Solo al montar: consumirAviso cambia al vaciar el aviso.
   }, []);
 
   const enviar = async () => {
-    setError(null);
     setConfirmacion(null);
-    setEnviando(true);
-    try {
+    await ejecutar(async () => {
       const datos = await iniciarSesion(correo.trim(), contrasena);
       establecer(datos);
       void navegar(ESPACIO_POR_ROL[datos.rol], { replace: true });
-    } catch (causa) {
-      setError(mensajeDeError(causa));
-      if (causa instanceof ErrorApi && causa.estado === 429) {
-        esperar(causa.esperaSegundos);
-      }
-    } finally {
-      setContrasena('');
-      setEnviando(false);
-    }
+    });
+    // La contraseña no queda en el formulario, haya funcionado o no.
+    setContrasena('');
   };
 
   return (

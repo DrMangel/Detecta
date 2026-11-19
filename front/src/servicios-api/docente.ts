@@ -58,32 +58,31 @@ export const TEXTO_REGISTRO_AJENO =
 
 /** CUD01 (Docente): listado del curso con notas, asistencia y sincronización. */
 export function consultarCurso(idCurso: string): Promise<ConsultaCurso> {
-  return pedir<ConsultaCurso>(
-    'GET',
-    `/alertas/cursos/${encodeURIComponent(idCurso)}`,
-    undefined,
-    { textos403: [TEXTO_CURSO_AJENO] },
-  );
+  return pedir<ConsultaCurso>({
+    metodo: 'GET',
+    ruta: `/alertas/cursos/${encodeURIComponent(idCurso)}`,
+    textos403: [TEXTO_CURSO_AJENO],
+  });
 }
 
 /** CUD01 2.c: alertas emitidas por el docente en el periodo. */
 export function consultarAlertasEmitidas(
   periodo: string,
 ): Promise<AlertaEmitida[]> {
-  return pedir<AlertaEmitida[]>(
-    'GET',
-    `/alertas/emitidas?periodo=${encodeURIComponent(periodo)}`,
-  );
+  return pedir<AlertaEmitida[]>({
+    metodo: 'GET',
+    ruta: `/alertas/emitidas?periodo=${encodeURIComponent(periodo)}`,
+  });
 }
 
 /** CUD03: emite la alerta; el 201 trae el mensaje y la alerta. */
 export function emitirAlerta(
   datos: DatosAlerta,
 ): Promise<{ mensaje: string; alerta: AlertaEmitida }> {
-  return pedir<{ mensaje: string; alerta: AlertaEmitida }>(
-    'POST',
-    '/alertas',
-    datos,
-    { textos403: [TEXTO_REGISTRO_AJENO] },
-  );
+  return pedir<{ mensaje: string; alerta: AlertaEmitida }>({
+    metodo: 'POST',
+    ruta: '/alertas',
+    cuerpo: datos,
+    textos403: [TEXTO_REGISTRO_AJENO],
+  });
 }

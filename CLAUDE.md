@@ -35,6 +35,9 @@ Si dos fuentes se contradicen y la contradicción **no** está resuelta en `00-l
 - Contraseñas con bcrypt. Comunicaciones cifradas (HTTPS/TLS).
 - Comentarios en el código en español, explicando el porqué y citando el requisito, el diagrama o el caso de uso cuando aplique.
 - Lint y pruebas deben pasar antes de declarar terminada una tarea.
+- Front: antes de escribir código nuevo, reutiliza lo de `front/src/componentes/` y `front/src/servicios-api/`; un módulo compartido nuevo se hace con TDD dentro de esas carpetas (`docs/plan-front.md`, «Convenciones del front»).
+- Front: guardas y retorno anticipado (máximo 2 niveles), sin `else` tras `return`, tablas de correspondencia, funciones de menos de 80 líneas y máximo 3 parámetros, sin código muerto ni comentarios que repitan el código ni abstracciones de un solo uso.
+- Front: cada plan lleva la sección «Reutilización»; antes del informe, oxlint con una configuración temporal `-c` sobre los archivos tocados (sin tocar `.oxlintrc.json`) y una línea con el resultado.
 
 ## Puntos de parada conocidos
 

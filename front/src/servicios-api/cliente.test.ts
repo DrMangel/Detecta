@@ -32,9 +32,9 @@ describe('cliente HTTP', () => {
     simularApi({ 'GET /consulta/registros': SIN_SESION });
     const manejador = vi.fn();
     registrarSesionInvalida(manejador);
-    await expect(pedir('GET', '/consulta/registros')).rejects.toBeInstanceOf(
-      ErrorApi,
-    );
+    await expect(
+      pedir({ metodo: 'GET', ruta: '/consulta/registros' }),
+    ).rejects.toBeInstanceOf(ErrorApi);
     expect(manejador).toHaveBeenCalledWith('Sesión no válida o caducada');
     registrarSesionInvalida(null);
   });

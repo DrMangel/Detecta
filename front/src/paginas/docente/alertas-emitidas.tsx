@@ -1,20 +1,23 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState } from 'react';
+import { FormularioPeriodo } from '../../componentes/formulario-periodo';
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
 import {
   consultarAlertasEmitidas,
   type AlertaEmitida,
 } from '../../servicios-api/docente';
-import { mensajeDeError } from '../../servicios-api/errores';
-import { NOMBRE_ESTADO, NOMBRE_NIVEL_RIESGO } from '../estudiante/textos';
+import { useEnvio } from '../../componentes/use-envio';
 import estilos from './docente.module.css';
 import { PlantillaDocente } from './plantilla-docente';
 import {
   ROTULOS_DOCENTE,
-  TEXTO_INDIQUE_PERIODO,
   TEXTO_SIN_ALERTAS_EMITIDAS,
   TITULOS_DOCENTE,
 } from './textos';
+import {
+  NOMBRE_ESTADO,
+  NOMBRE_NIVEL_RIESGO,
+} from '../../componentes/etiquetas';
 
 /*
  * Alertas emitidas por el Docente (CUD01 2.c; sd_CUD01 `verAlertasEmitidas`
@@ -25,77 +28,25 @@ import {
  * motivos ni contenido de solicitudes (D18, D19).
  */
 
-/** Máximo de leerPeriodo en el backend (curso.periodo varchar(20)). */
-const LONGITUD_PERIODO = 20;
-
 export function AlertasEmitidas() {
-  const idPeriodo = useId();
-  const idAyuda = useId();
-  const idError = useId();
-  const [periodo, setPeriodo] = useState('');
-  const [consultando, setConsultando] = useState(false);
-  const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [alertas, setAlertas] = useState<AlertaEmitida[] | null>(null);
+  const { enviando, enEspera, error, ejecutar } = useEnvio();
 
-  const consultar = async (evento: FormEvent) => {
-    evento.preventDefault();
-    if (consultando) {
-      return;
-    }
-    const buscado = periodo.trim();
-    if (buscado === '') {
-      setErrorPeriodo(TEXTO_INDIQUE_PERIODO);
-      return;
-    }
-    setErrorPeriodo(null);
-    setError(null);
-    setConsultando(true);
-    try {
-      setAlertas(await consultarAlertasEmitidas(buscado));
-    } catch (fallo) {
-      // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-      setAlertas(null);
-      setError(mensajeDeError(fallo));
-    } finally {
-      setConsultando(false);
-    }
+  const consultar = async (periodo: string) => {
+    const lista = await ejecutar(() => consultarAlertasEmitidas(periodo));
+    setAlertas(lista ?? null);
   };
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.alertasEmitidas}>
-      <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <div className={estilos['campo']}>
-          <label htmlFor={idPeriodo}>{ROTULOS_DOCENTE.periodo}</label>
-          <input
-            id={idPeriodo}
-            type="text"
-            value={periodo}
-            maxLength={LONGITUD_PERIODO}
-            required
-            autoComplete="off"
-            aria-invalid={errorPeriodo !== null}
-            aria-describedby={
-              errorPeriodo === null ? idAyuda : `${idAyuda} ${idError}`
-            }
-            onChange={(evento) => setPeriodo(evento.target.value)}
-          />
-          <p id={idAyuda} className={estilos['ayuda']}>
-            {ROTULOS_DOCENTE.ayudaPeriodo}
-          </p>
-          <MensajeError mensaje={errorPeriodo} id={idError} />
-        </div>
-        <button
-          type="submit"
-          className={estilos['boton']}
-          disabled={consultando}
-        >
-          {ROTULOS_DOCENTE.consultar}
-        </button>
-      </form>
+      <FormularioPeriodo
+        alConsultar={(periodo) => void consultar(periodo)}
+        ocupado={enviando || enEspera}
+        claseCampo={estilos['campo']}
+      />
 
       <MensajeError mensaje={error} />
-      <div aria-busy={consultando}>
+      <div aria-busy={enviando}>
         {alertas !== null &&
           (alertas.length === 0 ? (
             <p>{TEXTO_SIN_ALERTAS_EMITIDAS}</p>

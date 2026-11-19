@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Campo } from '../../componentes/campo';
-import { useEsperaReintento } from '../../componentes/espera-reintento';
 import {
   BotonPrincipal,
   FormularioAcceso,
@@ -12,8 +11,8 @@ import {
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
 import { ROTULOS, TITULOS } from '../../componentes/textos';
+import { useEnvio } from '../../componentes/use-envio';
 import { solicitarActivacion } from '../../servicios-api/acceso';
-import { ErrorApi, mensajeDeError } from '../../servicios-api/errores';
 
 /*
  * Solicitud del enlace de acceso (D6): activa la cuenta y también recupera
@@ -22,25 +21,14 @@ import { ErrorApi, mensajeDeError } from '../../servicios-api/errores';
  */
 export function PaginaSolicitarActivacion() {
   const [correo, setCorreo] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [confirmacion, setConfirmacion] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  const { enEspera, esperar } = useEsperaReintento();
+  const { enviando, enEspera, error, ejecutar } = useEnvio();
 
   const enviar = async () => {
-    setError(null);
     setConfirmacion(null);
-    setEnviando(true);
-    try {
-      const { mensaje } = await solicitarActivacion(correo.trim());
-      setConfirmacion(mensaje);
-    } catch (causa) {
-      setError(mensajeDeError(causa));
-      if (causa instanceof ErrorApi && causa.estado === 429) {
-        esperar(causa.esperaSegundos);
-      }
-    } finally {
-      setEnviando(false);
+    const respuesta = await ejecutar(() => solicitarActivacion(correo.trim()));
+    if (respuesta !== undefined) {
+      setConfirmacion(respuesta.mensaje);
     }
   };
 

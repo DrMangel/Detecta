@@ -1,0 +1,88 @@
+/*
+ * Controles compartidos por las pantallas de los roles (F1b): solo las reglas
+ * que eran idénticas en los módulos del Estudiante y del Docente. Lo que
+ * difiere entre roles (alto de las áreas de texto, borde de error, grupos,
+ * botones) sigue en el módulo de cada rol y se aplica con la prop `clase`.
+ */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.campo label {
+  font-weight: 600;
+}
+
+/* :where() no suma especificidad: las reglas de cada rol (por ejemplo, el
+   alto de las áreas de texto) ganan sin depender del orden del CSS. */
+:where(.campo) input,
+:where(.campo) textarea {
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.ayuda {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 0.875rem;
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 2.75rem;
+}
+
+.opcion input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  max-width: 40rem;
+  margin-bottom: var(--espacio-4);
+}
+
+.boton {
+  align-self: flex-start;
+  min-height: 2.75rem;
+  padding: var(--espacio-2) var(--espacio-4);
+  border: none;
+  border-radius: var(--radio);
+  background: var(--color-primario);
+  color: var(--color-primario-texto);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.seccion {
+  margin-top: var(--espacio-4);
+}
+
+.seccion h2 {
+  font-size: 1.25rem;
+  margin: 0 0 var(--espacio-2);
+}
+
+/* Solo se ve en secciones que reciben el foco (formulario de alerta, F2). */
+.seccion:focus {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 4px;
+}

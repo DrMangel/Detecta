@@ -140,7 +140,9 @@ describe('Sesión caducada y cierre de sesión', () => {
     await screen.findByRole('heading', { name: 'Consulta académica' });
 
     await act(async () => {
-      await pedir('GET', '/consulta/registros').catch(() => undefined);
+      await pedir({ metodo: 'GET', ruta: '/consulta/registros' }).catch(
+        () => undefined,
+      );
     });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(

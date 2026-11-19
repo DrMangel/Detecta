@@ -6,34 +6,8 @@
  * estilos/base.css.
  */
 
-.formulario {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-  max-width: 40rem;
-  margin-bottom: var(--espacio-4);
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-}
-
-.campo label,
 .grupo legend {
   font-weight: 600;
-}
-
-.campo input,
-.campo textarea {
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-3);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto);
-  font: inherit;
 }
 
 .campo textarea {
@@ -44,12 +18,6 @@
 .campo textarea[aria-invalid='true'],
 .grupo[aria-invalid='true'] {
   border-color: var(--color-error);
-}
-
-.ayuda {
-  margin: 0;
-  color: var(--color-texto-suave);
-  font-size: 0.875rem;
 }
 
 .grupo {
@@ -65,19 +33,6 @@
   width: 100%;
   margin-bottom: var(--espacio-1);
   padding: 0;
-}
-
-.opcion {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: 2.75rem;
-}
-
-.opcion input {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin: 0;
 }
 
 .acciones {
@@ -133,20 +88,6 @@
 .curso dd {
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.seccion {
-  margin-top: var(--espacio-4);
-}
-
-.seccion h2 {
-  font-size: 1.25rem;
-  margin: 0 0 var(--espacio-2);
-}
-
-.seccion:focus {
-  outline: 3px solid var(--color-foco);
-  outline-offset: 4px;
 }
 
 .panel {

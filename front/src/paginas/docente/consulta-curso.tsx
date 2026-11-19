@@ -1,5 +1,9 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
 import { useNavigate } from 'react-router';
+import { LIMITES } from '../../servicios-api/limites';
+import controles from '../../componentes/controles.module.css';
+import { ROTULOS_PERIODO } from '../../componentes/etiquetas';
 import estilos from './docente.module.css';
 import { PlantillaDocente, RUTAS_DOCENTE } from './plantilla-docente';
 import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
@@ -12,11 +16,8 @@ import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
  * Máximo 36 caracteres, como `LONGITUD_MAXIMA.identificador` del backend.
  */
 
-const LONGITUD_CODIGO = 36;
-
 export function ConsultaCurso() {
   const navegar = useNavigate();
-  const idCodigo = useId();
   const [codigo, setCodigo] = useState('');
   const buscado = codigo.trim();
 
@@ -29,26 +30,22 @@ export function ConsultaCurso() {
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.consultaCurso}>
-      <form className={estilos['formulario']} onSubmit={consultar} noValidate>
-        <div className={estilos['campo']}>
-          <label htmlFor={idCodigo}>{ROTULOS_DOCENTE.codigoCurso}</label>
-          <input
-            id={idCodigo}
-            type="text"
-            value={codigo}
-            maxLength={LONGITUD_CODIGO}
-            required
-            autoComplete="off"
-            onChange={(evento) => setCodigo(evento.target.value)}
-          />
-        </div>
+      <form className={controles['formulario']} onSubmit={consultar} noValidate>
+        <CampoTexto
+          rotulo={ROTULOS_DOCENTE.codigoCurso}
+          valor={codigo}
+          alCambiar={setCodigo}
+          maximo={LIMITES.identificador}
+          requerido
+          clase={estilos['campo']}
+        />
         {/* Sin código no se consulta (no hay texto aprobado para el vacío). */}
         <button
           type="submit"
           className={estilos['boton']}
           disabled={buscado === ''}
         >
-          {ROTULOS_DOCENTE.consultar}
+          {ROTULOS_PERIODO.consultar}
         </button>
       </form>
     </PlantillaDocente>

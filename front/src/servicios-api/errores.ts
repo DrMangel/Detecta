@@ -49,20 +49,28 @@ export function leerRetryAfter(valor: string | null): number | null {
   return Number(valor.trim());
 }
 
+export interface RespuestaFallida {
+  estado: number;
+  cuerpo: unknown;
+  retryAfter: string | null;
+  textos403?: readonly string[];
+}
+
 /**
  * Traduce una respuesta no exitosa al error uniforme.
  *
  * `textos403` es la excepción aprobada en F1 (respuesta 4, ajuste E): una
- * ruta puede declarar los textos de 403 del backend que sí se muestran (solo
- * POST /solicitudes, con el texto de D21). Cualquier otro 403 de esa ruta,
+ * ruta puede declarar los textos de 403 del backend que sí se muestran
+ * (POST /solicitudes con D21; GET /alertas/cursos/:idCurso y POST /alertas,
+ * respuesta 2 de F2). Cualquier otro 403 de esa ruta,
  * incluido el ForbiddenException() sin texto, sigue mostrando el texto de F0.
  */
-export function errorDeRespuesta(
-  estado: number,
-  cuerpo: unknown,
-  retryAfter: string | null,
-  textos403: readonly string[] = [],
-): ErrorApi {
+export function errorDeRespuesta({
+  estado,
+  cuerpo,
+  retryAfter,
+  textos403 = [],
+}: RespuestaFallida): ErrorApi {
   const delBackend = mensajeDelCuerpo(cuerpo);
   if (estado === 403) {
     return new ErrorApi(

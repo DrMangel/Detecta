@@ -69,28 +69,31 @@ function conPeriodo(ruta: string, periodo: string): string {
 export function consultarRegistros(
   periodo: string,
 ): Promise<RegistrosEstudiante> {
-  return pedir<RegistrosEstudiante>(
-    'GET',
-    conPeriodo('/consulta/registros', periodo),
-  );
+  return pedir<RegistrosEstudiante>({
+    metodo: 'GET',
+    ruta: conPeriodo('/consulta/registros', periodo),
+  });
 }
 
 /** CUD01 2.a: alertas emitidas sobre el estudiante en el periodo. */
 export function consultarAlertas(periodo: string): Promise<AlertaEstudiante[]> {
-  return pedir<AlertaEstudiante[]>(
-    'GET',
-    conPeriodo('/consulta/alertas', periodo),
-  );
+  return pedir<AlertaEstudiante[]>({
+    metodo: 'GET',
+    ruta: conPeriodo('/consulta/alertas', periodo),
+  });
 }
 
 /** CUD01 2.b: solicitudes del estudiante con su estado (D27). */
 export function consultarSolicitudes(): Promise<Solicitud[]> {
-  return pedir<Solicitud[]>('GET', '/consulta/solicitudes');
+  return pedir<Solicitud[]>({ metodo: 'GET', ruta: '/consulta/solicitudes' });
 }
 
 /** CUD02: registra la solicitud; el 201 es el comprobante. */
 export function registrarSolicitud(datos: DatosSolicitud): Promise<Solicitud> {
-  return pedir<Solicitud>('POST', '/solicitudes', datos, {
+  return pedir<Solicitud>({
+    metodo: 'POST',
+    ruta: '/solicitudes',
+    cuerpo: datos,
     textos403: [TEXTO_SIN_MATRICULA],
   });
 }

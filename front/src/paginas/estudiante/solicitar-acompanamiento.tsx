@@ -1,16 +1,17 @@
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
+import { GrupoOpciones } from '../../componentes/grupo-opciones';
 import { useLocation } from 'react-router';
-import { useEsperaReintento } from '../../componentes/espera-reintento';
 import { formatearFecha } from '../../componentes/formato';
 import {
   MensajeError,
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
+import { useEnvio } from '../../componentes/use-envio';
 import {
-  ErrorApi,
-  mensajeDeError,
-  TEXTO_ERROR_RED,
-} from '../../servicios-api/errores';
+  enviarConConciliacion,
+  type PasosEnvio,
+} from '../../servicios-api/conciliacion';
 import {
   consultarSolicitudes,
   registrarSolicitud,
@@ -18,14 +19,14 @@ import {
   type Solicitud,
   type TipoApoyo,
 } from '../../servicios-api/estudiante';
+import { LIMITES } from '../../servicios-api/limites';
 import { buscarRegistrada } from './conciliacion';
+import controles from '../../componentes/controles.module.css';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
   AVISO_QUIEN_VE,
   AVISO_REMISION_PSICOLOGIA,
-  NOMBRE_ESTADO,
-  NOMBRE_TIPO_APOYO,
   ROTULOS_ESTUDIANTE,
   TEXTO_ASESORIA_EDUCATIVA,
   TEXTO_MOTIVO_VACIO,
@@ -33,6 +34,7 @@ import {
   TEXTO_SOLICITUD_RECIBIDA,
   TITULOS_ESTUDIANTE,
 } from './textos';
+import { NOMBRE_ESTADO, NOMBRE_TIPO_APOYO } from '../../componentes/etiquetas';
 
 /*
  * Solicitar acompañamiento voluntario (CUD02; R02; sd_CUD02).
@@ -54,10 +56,6 @@ import {
  *   error de red (conciliacion.ts; sección i y ajuste C).
  */
 
-/** Máximos de LONGITUD_MAXIMA en ControladorSolicitudes. */
-const LONGITUD_MOTIVO = 2000;
-const LONGITUD_DISPONIBILIDAD = 500;
-
 const TIPOS: readonly TipoApoyo[] = ['ACADEMICA', 'PSICOLOGICA'];
 
 /**
@@ -69,76 +67,63 @@ export function PaginaSolicitarAcompanamiento() {
   return <SolicitarAcompanamiento key={key} />;
 }
 
-function esSesionVencida(fallo: unknown): boolean {
-  return fallo instanceof ErrorApi && fallo.estado === 401;
+/**
+ * Pasos del envío con conciliación (sección i y ajuste C de F1): la lista de
+ * solicitudes antes y después del envío dice si quedó registrada.
+ */
+function pasosSolicitud(datos: DatosSolicitud): PasosEnvio<Solicitud> {
+  return {
+    consultarPrevias: async () =>
+      new Set(
+        (await consultarSolicitudes()).map((solicitud) => solicitud.codigo),
+      ),
+    enviar: () => registrarSolicitud(datos),
+    buscar: async (previas) =>
+      buscarRegistrada(previas, await consultarSolicitudes(), datos),
+  };
 }
 
-function SolicitarAcompanamiento() {
-  const nombreTipo = useId();
-  const idMotivo = useId();
-  const idErrorMotivo = useId();
-  const idDisponibilidad = useId();
+/**
+ * Borrador del formulario, solo en memoria (plan de F1, sección h): se
+ * conserva ante un 503 y se vacía tras el comprobante.
+ */
+function useBorrador() {
   const [tipoApoyo, setTipoApoyo] = useState<TipoApoyo | null>(null);
   const [motivo, setMotivo] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
-  const [errorMotivo, setErrorMotivo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  const [comprobante, setComprobante] = useState<Solicitud | null>(null);
-  const { enEspera, esperar } = useEsperaReintento();
-  // Cierra la ventana entre dos clics antes de que React vuelva a pintar.
-  const enCurso = useRef(false);
-
-  const terminar = (registrada: Solicitud) => {
-    setComprobante(registrada);
+  const vaciar = () => {
     setTipoApoyo(null);
     setMotivo('');
     setDisponibilidad('');
   };
-
-  /** Códigos ya registrados; null si no se pudo consultar (no bloquea). */
-  const codigosPrevios = async (): Promise<Set<string> | null> => {
-    try {
-      const lista = await consultarSolicitudes();
-      return new Set(lista.map((solicitud) => solicitud.codigo));
-    } catch (fallo) {
-      if (esSesionVencida(fallo)) {
-        throw fallo;
-      }
-      return null;
-    }
+  return {
+    tipoApoyo,
+    setTipoApoyo,
+    motivo,
+    setMotivo,
+    disponibilidad,
+    setDisponibilidad,
+    vaciar,
   };
+}
 
-  /** Tras un error de red: ¿quedó registrada? */
-  const conciliar = async (
-    previos: Set<string> | null,
-    datos: DatosSolicitud,
-  ) => {
-    if (previos === null) {
-      setError(TEXTO_RESULTADO_INCIERTO);
-      return;
-    }
-    try {
-      const registrada = buscarRegistrada(
-        previos,
-        await consultarSolicitudes(),
-        datos,
-      );
-      if (registrada === null) {
-        setError(TEXTO_ERROR_RED);
-      } else {
-        terminar(registrada);
-      }
-    } catch (fallo) {
-      if (!esSesionVencida(fallo)) {
-        setError(TEXTO_RESULTADO_INCIERTO);
-      }
-    }
+function SolicitarAcompanamiento() {
+  const borrador = useBorrador();
+  const { tipoApoyo, motivo, disponibilidad } = borrador;
+  const [errorMotivo, setErrorMotivo] = useState<string | null>(null);
+  const [comprobante, setComprobante] = useState<Solicitud | null>(null);
+  // 401: ProveedorSesion ya llevó al inicio de sesión y el borrador no se
+  // conserva (respuesta 5 de F1).
+  const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();
+
+  const terminar = (registrada: Solicitud) => {
+    setComprobante(registrada);
+    borrador.vaciar();
   };
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
-    if (enCurso.current || tipoApoyo === null) {
+    if (tipoApoyo === null) {
       return;
     }
     if (motivo.trim() === '') {
@@ -146,118 +131,102 @@ function SolicitarAcompanamiento() {
       return;
     }
     setErrorMotivo(null);
-    setError(null);
-    enCurso.current = true;
-    setEnviando(true);
     const datos: DatosSolicitud = { tipoApoyo, motivo, disponibilidad };
-    try {
-      const previos = await codigosPrevios();
-      try {
-        terminar(await registrarSolicitud(datos));
-      } catch (fallo) {
-        if (fallo instanceof ErrorApi && fallo.estado === null) {
-          await conciliar(previos, datos);
-        } else if (!esSesionVencida(fallo)) {
-          setError(mensajeDeError(fallo));
-          if (fallo instanceof ErrorApi && fallo.estado === 429) {
-            esperar(fallo.esperaSegundos);
-          }
-        }
-      }
-    } catch {
-      // 401 en la consulta previa: ProveedorSesion ya llevó al inicio de
-      // sesión y el borrador no se conserva (respuesta 5).
-    } finally {
-      enCurso.current = false;
-      setEnviando(false);
+    const resultado = await ejecutar(() =>
+      enviarConConciliacion(pasosSolicitud(datos)),
+    );
+    if (resultado === undefined) {
+      return;
     }
+    if (resultado.tipo === 'incierto') {
+      ponerError(TEXTO_RESULTADO_INCIERTO);
+      return;
+    }
+    terminar(resultado.valor);
   };
 
   if (comprobante !== null) {
-    return (
-      <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
-        <div className={estilos['comprobante']}>
-          <MensajeInformativo mensaje={TEXTO_SOLICITUD_RECIBIDA} />
-          <dl className={`${estilos['datos']} ${estilos['tarjeta']}`}>
-            <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
-            <dd>{comprobante.codigo}</dd>
-            <dt>{ROTULOS_ESTUDIANTE.fecha}</dt>
-            <dd>{formatearFecha(comprobante.fecha)}</dd>
-            <dt>{ROTULOS_ESTUDIANTE.estado}</dt>
-            <dd>{NOMBRE_ESTADO[comprobante.estado]}</dd>
-          </dl>
-        </div>
-      </PlantillaEstudiante>
-    );
+    return <ComprobanteSolicitud comprobante={comprobante} />;
   }
 
   return (
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
       <p className={estilos['caracter']}>{TEXTO_ASESORIA_EDUCATIVA}</p>
-      <form className={estilos['formulario']} onSubmit={enviar} noValidate>
-        <fieldset className={estilos['grupo']}>
-          <legend>{ROTULOS_ESTUDIANTE.tipoApoyo}</legend>
-          {TIPOS.map((tipo) => (
-            <label key={tipo} className={estilos['opcion']}>
-              <input
-                type="radio"
-                name={nombreTipo}
-                value={tipo}
-                checked={tipoApoyo === tipo}
-                onChange={() => setTipoApoyo(tipo)}
-              />
-              {NOMBRE_TIPO_APOYO[tipo]}
-            </label>
-          ))}
-        </fieldset>
+      <form className={controles['formulario']} onSubmit={enviar} noValidate>
+        <GrupoOpciones
+          leyenda={ROTULOS_ESTUDIANTE.tipoApoyo}
+          opciones={TIPOS}
+          etiquetas={NOMBRE_TIPO_APOYO}
+          valor={tipoApoyo}
+          alCambiar={borrador.setTipoApoyo}
+          clase={estilos['grupo']}
+        />
 
-        {/* Región viva siempre montada: el cambio de aviso se anuncia. */}
-        <div aria-live="polite">
-          {tipoApoyo !== null && (
-            <div className={estilos['aviso']}>
-              <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
-              {tipoApoyo === 'ACADEMICA' && <p>{AVISO_REMISION_PSICOLOGIA}</p>}
-            </div>
-          )}
-        </div>
+        <AvisoQuienVe tipoApoyo={tipoApoyo} />
 
-        <div className={estilos['campo']}>
-          <label htmlFor={idMotivo}>{ROTULOS_ESTUDIANTE.motivo}</label>
-          <textarea
-            id={idMotivo}
-            value={motivo}
-            maxLength={LONGITUD_MOTIVO}
-            required
-            autoComplete="off"
-            aria-invalid={errorMotivo !== null}
-            aria-describedby={errorMotivo === null ? undefined : idErrorMotivo}
-            onChange={(evento) => setMotivo(evento.target.value)}
-          />
-          <MensajeError mensaje={errorMotivo} id={idErrorMotivo} />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_ESTUDIANTE.motivo}
+          valor={motivo}
+          alCambiar={borrador.setMotivo}
+          maximo={LIMITES.motivo}
+          multilinea
+          requerido
+          error={errorMotivo}
+          clase={estilos['campo']}
+        />
 
-        <div className={estilos['campo']}>
-          <label htmlFor={idDisponibilidad}>
-            {ROTULOS_ESTUDIANTE.disponibilidadOpcional}
-          </label>
-          <textarea
-            id={idDisponibilidad}
-            value={disponibilidad}
-            maxLength={LONGITUD_DISPONIBILIDAD}
-            autoComplete="off"
-            onChange={(evento) => setDisponibilidad(evento.target.value)}
-          />
-        </div>
+        <CampoTexto
+          rotulo={ROTULOS_ESTUDIANTE.disponibilidadOpcional}
+          valor={disponibilidad}
+          alCambiar={borrador.setDisponibilidad}
+          maximo={LIMITES.disponibilidad}
+          multilinea
+          clase={estilos['campo']}
+        />
 
         <MensajeError mensaje={error} />
         <button
           type="submit"
-          className={estilos['boton']}
+          className={controles['boton']}
           disabled={tipoApoyo === null || enviando || enEspera}
         >
           {ROTULOS_ESTUDIANTE.enviar}
         </button>
       </form>
+    </PlantillaEstudiante>
+  );
+}
+
+/** Paso 3 de R02: quién podrá ver la solicitud, antes del envío. */
+function AvisoQuienVe({ tipoApoyo }: { tipoApoyo: TipoApoyo | null }) {
+  // Región viva siempre montada: el cambio de aviso se anuncia.
+  return (
+    <div aria-live="polite">
+      {tipoApoyo !== null && (
+        <div className={estilos['aviso']}>
+          <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
+          {tipoApoyo === 'ACADEMICA' && <p>{AVISO_REMISION_PSICOLOGIA}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Paso 7: comprobante con el código de rastreo, sin identidad (ER 3.3.3). */
+function ComprobanteSolicitud({ comprobante }: { comprobante: Solicitud }) {
+  return (
+    <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
+      <div className={estilos['comprobante']}>
+        <MensajeInformativo mensaje={TEXTO_SOLICITUD_RECIBIDA} />
+        <dl className={`${estilos['datos']} ${estilos['tarjeta']}`}>
+          <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
+          <dd>{comprobante.codigo}</dd>
+          <dt>{ROTULOS_ESTUDIANTE.fecha}</dt>
+          <dd>{formatearFecha(comprobante.fecha)}</dd>
+          <dt>{ROTULOS_ESTUDIANTE.estado}</dt>
+          <dd>{NOMBRE_ESTADO[comprobante.estado]}</dd>
+        </dl>
+      </div>
     </PlantillaEstudiante>
   );
 }

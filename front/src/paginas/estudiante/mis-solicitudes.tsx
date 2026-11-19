@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
-import { mensajeDeError } from '../../servicios-api/errores';
+import { useConsulta } from '../../componentes/use-consulta';
 import {
   consultarSolicitudes,
   type Solicitud,
@@ -9,12 +8,11 @@ import {
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
-  NOMBRE_ESTADO,
-  NOMBRE_TIPO_APOYO,
   ROTULOS_ESTUDIANTE,
   TEXTO_SIN_SOLICITUDES,
   TITULOS_ESTUDIANTE,
 } from './textos';
+import { NOMBRE_ESTADO, NOMBRE_TIPO_APOYO } from '../../componentes/etiquetas';
 
 /*
  * Solicitudes del Estudiante con su estado (CUD01 2.b; sd_CUD01
@@ -22,28 +20,14 @@ import {
  * por el backend (D27): no se muestra la ruta, el avance ni el resultado del
  * caso. El código de rastreo es el idOrigen (D28).
  *
- * En desarrollo, StrictMode monta dos veces y hace dos GET (línea base §4.2);
- * el indicador `vigente` descarta la respuesta del montaje abandonado.
+ * La consulta al montar (y el doble GET de StrictMode en desarrollo) la
+ * resuelve useConsulta.
  */
 export function MisSolicitudes() {
-  const [solicitudes, setSolicitudes] = useState<Solicitud[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let vigente = true;
-    consultarSolicitudes().then(
-      (lista) => {
-        if (vigente) setSolicitudes(lista);
-      },
-      (fallo: unknown) => {
-        // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-        if (vigente) setError(mensajeDeError(fallo));
-      },
-    );
-    return () => {
-      vigente = false;
-    };
-  }, []);
+  const { datos: solicitudes, error } = useConsulta(
+    consultarSolicitudes,
+    'solicitudes',
+  );
 
   return (
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.solicitudes}>

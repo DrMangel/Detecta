@@ -14,16 +14,19 @@ import {
   type ConsultaCurso,
   type RegistroCurso,
 } from '../../servicios-api/docente';
-import { mensajeDeError } from '../../servicios-api/errores';
+import { useConsulta } from '../../componentes/use-consulta';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
 import { PlantillaDocente } from './plantilla-docente';
 import {
   ROTULOS_DOCENTE,
   TEXTO_ALERTA_EMITIDA,
-  TEXTO_INFORMACION_NO_DISPONIBLE,
   TITULOS_DOCENTE,
 } from './textos';
+import {
+  ROTULOS_PERIODO,
+  TEXTO_INFORMACION_NO_DISPONIBLE,
+} from '../../componentes/etiquetas';
 
 /*
  * Listado del curso del Docente (CUD01 pasos 3 y 4, rama Docente; sd_CUD01
@@ -48,28 +51,14 @@ export function PaginaListadoCurso() {
 }
 
 function ListadoCurso({ idCurso }: { idCurso: string }) {
-  const [consulta, setConsulta] = useState<ConsultaCurso | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { datos: consulta, error } = useConsulta(
+    () => consultarCurso(idCurso),
+    idCurso,
+  );
   const [seleccionado, setSeleccionado] = useState<RegistroCurso | null>(null);
   const [confirmacion, setConfirmacion] = useState<string | null>(null);
   const disparador = useRef<HTMLButtonElement | null>(null);
   const devolverFoco = useRef(false);
-
-  useEffect(() => {
-    let vigente = true;
-    consultarCurso(idCurso).then(
-      (datos) => {
-        if (vigente) setConsulta(datos);
-      },
-      (fallo: unknown) => {
-        // Un 401 ya llevó al inicio de sesión (ProveedorSesion).
-        if (vigente) setError(mensajeDeError(fallo));
-      },
-    );
-    return () => {
-      vigente = false;
-    };
-  }, [idCurso]);
 
   useEffect(() => {
     if (seleccionado === null && devolverFoco.current) {
@@ -134,7 +123,7 @@ function DatosCurso({ curso }: { curso: ConsultaCurso['curso'] }) {
     <dl className={estilos['curso']}>
       <dt>{ROTULOS_DOCENTE.curso}</dt>
       <dd>{curso.nombre}</dd>
-      <dt>{ROTULOS_DOCENTE.periodo}</dt>
+      <dt>{ROTULOS_PERIODO.periodo}</dt>
       <dd>{curso.periodo}</dd>
       <dt>{ROTULOS_DOCENTE.ultimaSincronizacion}</dt>
       <dd>

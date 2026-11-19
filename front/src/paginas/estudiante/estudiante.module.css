@@ -5,34 +5,8 @@
  * una rejilla. Usa los tokens de estilos/base.css.
  */
 
-.formulario {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-  max-width: 40rem;
-  margin-bottom: var(--espacio-4);
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-}
-
-.campo label,
 .grupo legend {
   font-weight: 600;
-}
-
-.campo input,
-.campo textarea {
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-3);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto);
-  font: inherit;
 }
 
 .campo textarea {
@@ -43,12 +17,6 @@
 .campo input[aria-invalid='true'],
 .campo textarea[aria-invalid='true'] {
   border-color: var(--color-error);
-}
-
-.ayuda {
-  margin: 0;
-  color: var(--color-texto-suave);
-  font-size: 0.875rem;
 }
 
 .grupo {
@@ -63,19 +31,6 @@
 .grupo legend {
   margin-bottom: var(--espacio-1);
   padding: 0;
-}
-
-.opcion {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: 2.75rem;
-}
-
-.opcion input {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin: 0;
 }
 
 .aviso {
@@ -96,32 +51,6 @@
 .caracter {
   margin: 0 0 var(--espacio-3);
   color: var(--color-texto-suave);
-}
-
-.boton {
-  align-self: flex-start;
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-4);
-  border: none;
-  border-radius: var(--radio);
-  background: var(--color-primario);
-  color: var(--color-primario-texto);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.boton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.seccion {
-  margin-top: var(--espacio-4);
-}
-
-.seccion h2 {
-  font-size: 1.25rem;
-  margin: 0 0 var(--espacio-2);
 }
 
 .lista {
