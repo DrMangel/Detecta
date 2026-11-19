@@ -85,12 +85,48 @@ describe('Cabeceras de seguridad (B9, S7)', () => {
             segura ? 'max-age=31536000; includeSubDomains' : null,
           );
         }
-        // Respuestas autenticadas sin caché (ajuste E).
+        // Respuestas autenticadas sin caché (ajuste E) y todo /acceso/*,
+        // también sin cookie (ajuste 5).
         expect(protegida.headers.get('cache-control')).toBe('no-store');
-        expect(publica.headers.get('cache-control')).toBeNull();
+        expect(publica.headers.get('cache-control')).toBe('no-store');
       } finally {
         await app.close();
       }
     },
   );
+});
+
+describe('Sin caché en /acceso/* (B9, ajuste 5)', () => {
+  it('iniciar-sesion, solicitar-activacion y activar responden no-store aunque fallen; fuera de /acceso sin cookie no', async () => {
+    const { app, url } = await levantar(true);
+    try {
+      const pedir = (ruta: string, cuerpo: unknown) =>
+        fetch(`${url}${ruta}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cuerpo),
+        });
+      const respuestas = [
+        await pedir('/acceso/iniciar-sesion', {
+          correo: 'nadie@ejemplo.invalid',
+          contrasena: 'incorrecta',
+        }),
+        await pedir('/acceso/solicitar-activacion', {}),
+        await pedir('/acceso/activar', {}),
+        // Express enruta sin distinguir mayúsculas.
+        await pedir('/ACCESO/iniciar-sesion', {}),
+      ];
+      for (const respuesta of respuestas) {
+        expect(respuesta.status).toBeGreaterThanOrEqual(400);
+        expect(respuesta.headers.get('cache-control')).toBe('no-store');
+      }
+      const ajena = await fetch(`${url}/inexistente`);
+      expect(ajena.status).toBe(404);
+      expect(ajena.headers.get('cache-control')).toBeNull();
+      const parecida = await fetch(`${url}/accesorios`);
+      expect(parecida.headers.get('cache-control')).toBeNull();
+    } finally {
+      await app.close();
+    }
+  });
 });

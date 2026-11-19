@@ -18,13 +18,27 @@ export const CABECERAS_SEGURIDAD: Readonly<Record<string, string>> = {
 export const CABECERA_HSTS = 'max-age=31536000; includeSubDomains';
 
 /**
- * Las respuestas autenticadas (con la cookie de sesión) y el PDF no se
- * guardan en caché: equipos compartidos de los laboratorios (ajuste E).
+ * Las respuestas autenticadas (con la cookie de sesión), las de /acceso/* y
+ * el PDF no se guardan en caché: equipos compartidos de los laboratorios
+ * (ajuste E; ajuste 5 del informe parcial 1: también el inicio de sesión).
  */
 export const SIN_CACHE = 'no-store';
 
+/** Prefijo de las rutas de acceso (ControladorAcceso, B3). */
+const PREFIJO_ACCESO = '/acceso';
+
 interface PeticionMinima {
+  url?: string;
   headers: Record<string, string | string[] | undefined>;
+}
+
+/**
+ * true si la petición va a /acceso o /acceso/*. Express enruta sin
+ * distinguir mayúsculas, así que la comparación tampoco las distingue.
+ */
+function esRutaAcceso(url: string | undefined): boolean {
+  const ruta = (url ?? '').split('?')[0]!.toLowerCase();
+  return ruta === PREFIJO_ACCESO || ruta.startsWith(`${PREFIJO_ACCESO}/`);
 }
 interface RespuestaMinima {
   setHeader(nombre: string, valor: string): void;
@@ -43,7 +57,10 @@ export function middlewareCabeceras(hsts: boolean) {
     if (hsts) {
       respuesta.setHeader('Strict-Transport-Security', CABECERA_HSTS);
     }
-    if (leerCookie(peticion.headers['cookie'], COOKIE_SESION) !== undefined) {
+    if (
+      esRutaAcceso(peticion.url) ||
+      leerCookie(peticion.headers['cookie'], COOKIE_SESION) !== undefined
+    ) {
       respuesta.setHeader('Cache-Control', SIN_CACHE);
     }
     siguiente();
