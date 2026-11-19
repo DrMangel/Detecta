@@ -106,24 +106,16 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 ## 4.2 Reglas diferidas a otras fases
 
 - Hecho en B7: el bloqueo del registro del resultado de un menor sin consentimiento (ER R06, situación 2) con `habilitadoParaAtencion`; el cruce de horario al reprogramar (excluye la propia cita); D18 en `puedeVerContenidoConfidencial`; canalizar exige jefe en el programa (409 con mensaje claro) y el caso sin jefe es visible por programa.
-- Para B9: D15, limitador por IP de solicitudes de activación, `UV_THREADPOOL_SIZE`, y medición de rendimiento de los grafos completos y del guard.
-- Para B9 (sincronización):
-  - medir `sincronizarTodo` con unos 2000 estudiantes: unas 14 000 consultas en una sola transacción, con el bloqueo exclusivo retenido mientras dura;
-  - el estado compartido en `omisionesUltimaLectura()` y `obtenerUltimoResultado()` no es seguro si algún día se corre más de una sincronización en paralelo (hoy el bloqueo lo impide).
-- Para B9 (correo y dependencias):
-  - revisar los avisos de `npm audit` (D25) sin `--force`;
-  - los correos de alerta de B6 no deben bloquear la operación de negocio (ER Tabla 1: menos de 5 s).
-- Para B9 (desde B6):
-  - `listarPorRol(PSICOLOGO)` carga la agenda completa de cada psicólogo para notificarle una solicitud psicosocial;
-  - los envíos en segundo plano se pierden si el proceso muere antes de terminarlos (D24);
-  - los tiempos medidos en B6 (consultas de 98 ms como máximo, radicación de 101 ms) son indicativos: se miden con carga en B9.
-- Para B9 (desde B7):
-  - `trazarCaso` hace dos UPDATE por cada `guardar(caso)`;
-  - `reprogramarCita` carga todos los casos del psicólogo para ubicar el caso de la cita (la `Cita` no conoce su caso);
-  - `lock_timeout` de 5 s en los bloqueos con espera de casos y agendas;
-  - medir las bandejas del Jefe y del psicólogo bajo carga (en B7, 235 ms como máximo sin carga).
-- Para B9 (desde B8):
-  - `GeneradorInformeRiesgo` carga los casos y los planes de todo el programa y del periodo y filtra en memoria por asignatura; medir con un tamaño real (en B8, 222 ms como máximo con 60 estudiantes, 200 alertas, 200 casos y 200 planes; 46 consultas, constantes con el volumen).
+- Hecho en B9:
+  - D15 (limitador en memoria del inicio de sesión y de las solicitudes de activación), cabeceras de seguridad y `Cache-Control: no-store`;
+  - `UV_THREADPOOL_SIZE`, `BD_DETECTA_POOL_MAX` y `BD_DETECTA_CONEXION_ESPERA_MS`, opcionales;
+  - consultas en serie dentro de las transacciones (aviso de `pg`) y `trazarCaso` en un solo UPDATE;
+  - trazabilidad del caso (ER 1.3.4, CUD04) con la tabla `evento_caso`, de solo inserción;
+  - mediciones M1 a M8 sobre `detecta_carga` (sección 11), incluidas `sincronizarTodo` con 2000 estudiantes, `listarPorRol(PSICOLOGO)`, `reprogramarCita`, las bandejas del Jefe y del psicólogo y el informe.
+- Sigue vigente tras B9 (medido, sin cambios por falta de evidencia; ver §8):
+  - el estado compartido del conector (D33);
+  - los envíos de correo en segundo plano se pierden si el proceso muere (D24);
+  - `reprogramarCita` carga los casos del psicólogo y `GeneradorInformeRiesgo` filtra en memoria, ambos dentro de sus metas.
 - Para F1 (frontend):
   - si la base de datos no está disponible al radicar una solicitud (R02, 503), conservar una copia temporal local del formulario para reintentar;
   - evitar el doble envío de los formularios, porque cada alerta o solicitud genera su propio caso.
@@ -140,7 +132,7 @@ CUD05, CUD07, CUD08 y CUD09 no tienen diagrama de secuencia propio: están dentr
 | B6 | Cerrada (18/11/2026): 277 pruebas unitarias, 96 de integración y 48 e2e |
 | B7 | Cerrada (18/11/2026): 353 pruebas unitarias, 108 de integración y 62 e2e |
 | B8 | Cerrada (18/11/2026): commits 73d3f23 (B8a) y f6a6afd (B8b); 403 pruebas unitarias, 113 de integración y 69 e2e. Fases B0 a B8 cerradas |
-| B9 | Siguiente |
+| B9 | Cerrada (19/11/2026): commits 048b019, be3778c, 43f69da, aaa6b45, 04016b9, 490230a, cb4dae3, e0dddbe, 2157ee0, 234e8d6, e1c1ac2, 0088881 y el commit de docs de la fase; 449 pruebas unitarias, 131 de integración y 79 e2e. Fases B0 a B9 cerradas |
 
 ## 5. Decisiones técnicas del entorno y del plan
 
@@ -278,6 +270,28 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Textos nuevos (no vienen del ER) | "Error al registrar el plan de nivelación"; "Otra sesión está modificando este plan. Intente de nuevo."; en el PDF, el título, las etiquetas de los totales, las tres definiciones (alertas, casos cerrados o archivados, planes contados aparte) y la nota de que solo contiene datos agregados |
 | Textos reutilizados | "La solicitud no es válida.", "Indique el periodo académico." y "El texto excede la longitud permitida." (B6); "Otra sesión está modificando este caso. Intente de nuevo." (B7, bloqueo del caso en `estructurarPlan`); del dominio (B1), como 409: "El plan de nivelación requiere un caso con ruta ACADEMICA" y "El plan de nivelación ya está finalizado" |
 
+### Diferencias introducidas en la implementación (B9)
+
+| Tipo | Elemento |
+|---|---|
+| Esquema | Tabla `evento_caso` (migración `EventosCaso`, con reversión): un evento por acción, con `id_caso`, `id_actor`, `tipo` y `ocurrido_en` (`now()` de PostgreSQL), más `id_plan`, `id_cita` y las fechas y modalidades anterior y nueva según el tipo (CHECKs por tipo). Tipos: `DICTAMEN_APROBADO`, `DICTAMEN_ARCHIVADO`, `DICTAMEN_REORIENTADO`, `CITA_PROGRAMADA`, `CITA_REPROGRAMADA`, `CASO_CERRADO`, `PLAN_FINALIZADO`. Sin contenido confidencial |
+| Permisos | Excepción a la convención del §7 (B2): `detecta_app` tiene solo `SELECT` e `INSERT` sobre `evento_caso`, sin `UPDATE`, `DELETE` ni `TRUNCATE` (registro inmutable) |
+| Contrato y adaptador | `RegistroEventosCaso.registrar(evento)` con el tipo `TipoEventoCaso`, en `aplicacion/contratos`; adaptador `RegistroPersistenteEventosCaso` |
+| Contrato | `RepositoriosTransaccionales.eventos`: el evento se inserta en la misma transacción que la acción (`evaluarPertinencia`, `programarCita`, `programarSeguimiento`, `reprogramarCita`, `cerrarCaso` y `finalizarPlan`) |
+| Limitador (D15) | `LimitadorPeticiones`, `LIMITADORES` y `limites-peticiones.ts`, en memoria y con reloj inyectado: 429 con `Retry-After` en `POST /acceso/iniciar-sesion` y `POST /acceso/solicitar-activacion` |
+| Cabeceras | `cabeceras-seguridad.ts` (sin helmet): `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` y `Content-Security-Policy` en todas las respuestas; HSTS solo con `COOKIE_SEGURA=true`; `Cache-Control: no-store` en las respuestas con sesión, en todo `/acceso/*` y en el PDF |
+| Arranque | `hilos-libuv.ts`, primera importación de `main.ts`: fija `UV_THREADPOOL_SIZE` desde el entorno o `.env` antes de que libuv cree sus hilos |
+| Variables nuevas (opcionales) | `UV_THREADPOOL_SIZE` (1 a 128; 4 por defecto), `BD_DETECTA_POOL_MAX` (1 a 50; 10 por defecto) y `BD_DETECTA_CONEXION_ESPERA_MS` (1000 a 60 000; 10 000 por defecto: al vencer la espera de una conexión, la ruta responde 503 con su texto) |
+| Persistencia | El cargador de grafos ya no lanza consultas en paralelo dentro de una transacción; `trazarCaso` hace un solo UPDATE |
+| Texto nuevo (aprobado en el plan de B9) | "Demasiados intentos. Intente de nuevo más tarde." (429) |
+| Pruebas de carga | `npm run carga:preparar` y `npm run carga` (bases `detecta_carga` e `institucional_carga`, fuera de `npm test`); M4 marca la corrida INVÁLIDA si hay respuestas con un estado no esperado o faltan los datos del escenario |
+
+**Notas para F1 (B9):**
+- **429:** `POST /acceso/iniciar-sesion` y `POST /acceso/solicitar-activacion` pueden responder 429 con el texto "Demasiados intentos. Intente de nuevo más tarde." y la cabecera `Retry-After` (segundos). El front debe mostrar el texto y no reintentar antes de ese plazo.
+- **Cabeceras:** la API envía `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` y `X-Frame-Options: DENY`, pensadas para respuestas JSON y el PDF. No cargar la API en un `iframe`. Con `COOKIE_SEGURA=true` se envía HSTS.
+- **`no-store`:** las respuestas con sesión, las de `/acceso/*` y el PDF no se guardan en caché (equipos compartidos de los laboratorios). El front no debe depender de la caché del navegador para esas respuestas.
+- **503 por espera de conexión:** si la base no entrega una conexión en `BD_DETECTA_CONEXION_ESPERA_MS`, la ruta responde 503 con su texto habitual (por ejemplo, "Error al consultar la información"); tratarlo igual que los demás 503.
+
 **Nota para F0:** el enlace de activación lleva el token en el fragmento de la URL (`/activar#token=…`), que el navegador nunca envía al servidor ni en la cabecera `Referer`. La página de activación del front debe leer el token del fragmento y enviarlo en el **cuerpo** del `POST /acceso/activar` (`{ token, contrasena }`), nunca en la URL.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
@@ -294,22 +308,38 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D12 | Periodo de un caso o plan | Antes de B7 | Resuelta (17/11/2026). El periodo de un caso o plan es el del curso; las solicitudes voluntarias quedan fuera de los informes por periodo; `listarPorPeriodo` de casos devuelve solo cerrados o archivados |
 | D13 | Carga de usuarios y configuración que no llegan por sincronización | B3 y B4 | Resuelta. Script de datos iniciales con archivo JSON: programas y usuarios en B3; cursos y asignación docente–curso en B4 |
 | D14 | Duración de la sesión | B3 | Resuelta. Sesión de 60 minutos fijos |
-| D15 | Bloqueo por intentos fallidos | Antes de B9 | Abierta. No en B3; limitador en memoria en B9, junto con un limitador por IP para solicitudes de activación y revisión de `UV_THREADPOOL_SIZE` por el costo de bcrypt |
+| D15 | Bloqueo por intentos fallidos | Antes de B9 | Resuelta (19/11/2026). Sin bloqueo de cuenta; limitador en memoria con 429, "Demasiados intentos. Intente de nuevo más tarde." y `Retry-After`. Inicio de sesión: solo cuentan los fallos, en ventanas de 15 min; 10 por (IP, correo normalizado) y 100 por IP; un inicio exitoso reinicia el par. Solicitud de activación: cuentan todas las peticiones, en ventanas de 1 h, antes de consultar el correo; 30 por IP y 3 por correo. Memoria acotada (50 000 claves), sin `X-Forwarded-For`. `UV_THREADPOOL_SIZE` opcional (4 por defecto) |
 | D16 | Vida del token de activación y límite de solicitudes | B3 | Resuelta. Token de activación de 30 minutos y 3 solicitudes por cuenta y por hora |
-| D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta |
+| D17 | Cambio de jefe de un programa (requiere el concepto de cuenta inactiva) | Posterior | Abierta (sin cambios en B9) |
 | D18 | Qué ve el Jefe de una solicitud académica confidencial; el ER 3.7 c y el perfil del Estudiante se contradecían | B7 | Resuelta (18/11/2026; ER y Manual ajustados). El Jefe ve el motivo, la disponibilidad y la identidad de una solicitud académica de su programa mientras no se canalice a psicología; nunca ve una solicitud psicosocial (excluida en la consulta) ni el expediente. Una solicitud académica canalizada a psicología la ve el psicólogo con su motivo (regla D19) |
 | D19 | Contenido confidencial | B3 | Resuelta. Psicólogo con ruta `PSICOLOGICA` y caso sin asignar o asignado a él |
-| D20 | Lo que deja de venir en la fuente institucional (estudiantes o registros) se conserva sin marca, porque no hay `DELETE` | Posterior | Abierta |
+| D20 | Lo que deja de venir en la fuente institucional (estudiantes o registros) se conserva sin marca, porque no hay `DELETE` | Posterior | Abierta (sin cambios en B9) |
 | D21 | Qué es "matrícula activa" al radicar una solicitud (R02): la Tabla 2 no trae un campo de estado de matrícula y la vista solo expone matrículas activas | B6 | Resuelta (18/11/2026). Matrícula activa = al menos un `RegistroAcademico` del estudiante, sin periodo vigente. Limitación: quien deja de venir en la fuente conserva sus registros (D20) |
 | D22 | `codigo_asignatura = Curso.idCurso`: un curso por asignatura; un periodo nuevo exige cursos nuevos con códigos nuevos | B4 | Aceptada como limitación |
-| D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta |
+| D23 | Reasignar un curso a otro docente en `datos:iniciales`: hoy falla con un mensaje explicativo | Posterior | Abierta (sin cambios en B9) |
 | D24 | Entrega de correos sin cola ni reintentos | B5 | Aceptada como limitación. Un fallo se registra como "Error de envío" y no se reintenta; la entrega no está garantizada (ER Tabla 1) |
-| D25 | Avisos de `npm audit` en `picomatch` y `glob` (dependencias anteriores a B5) | B9 | Abierta |
+| D25 | Avisos de `npm audit` en `picomatch` y `glob` (dependencias anteriores a B5) | B9 | Registrada (19/11/2026). Producción: 0 avisos al 19/11/2026 (`npm audit --omit=dev`: "found 0 vulnerabilities"); desarrollo: 18 moderadas en jest, `glob` y `minimatch`, sin efecto en el servidor. No se tocan dependencias |
 | D26 | Quién recibe el correo de cita según el evento: estudiante, psicólogo o jefe | B7 | Resuelta (18/11/2026). Solo el estudiante (R05 paso 6, R06 paso 8); con un menor sin consentimiento, el correo incluye una línea genérica sobre el consentimiento del acudiente, sin mencionar psicología |
 | D27 | Estado que ven el estudiante y el docente de una solicitud o alerta: la regla de B1 marca el origen ATENDIDO al generar el caso, y CUD02 dice que la solicitud queda pendiente | B6, ajustada en B7 | Resuelta (18/11/2026). Se deriva del caso al leer: `ATENDIDA` si el caso salió de PENDIENTE o tiene `fecha_canalizacion`; `PENDIENTE` en otro caso. Una solicitud psicosocial nace con ruta psicológica pero sin canalización: sigue PENDIENTE hasta que un psicólogo la toma. Sin ruta ni avance; el estado guardado del origen no cambia |
 | D28 | Código único de rastreo de la solicitud (R02) | B6 | Aceptada como limitación. Es `idOrigen` (UUID) |
 | D29 | Estado del caso académico con el plan de nivelación | B8 | Aceptada como limitación (18/11/2026). El caso queda `EN_NIVELACION` al registrar y al finalizar el plan, así que los casos de la ruta académica no entran en `totalCasos`; los planes se cuentan aparte (`totalPlanes`). Se admiten varios planes por caso |
 | D30 | Formato del archivo exportado del informe (R07: "formato estándar"; sd_CUD10 y Manual CUD10: PDF) | B8 | Resuelta (18/11/2026). PDF con un generador propio mínimo, sin dependencias |
+| D31 | El limitador es en memoria y por instancia | B9 | Aceptada como limitación (19/11/2026). Se pierde al reiniciar y no se comparte entre instancias |
+| D32 | Sin revocación de JWT | B9 | Aceptada como limitación (19/11/2026). Sesión fija de 60 min (D14); cerrar sesión solo borra la cookie |
+| D33 | Estado compartido del conector (`omisionesUltimaLectura` y el último resultado) | B9 | Aceptada como limitación (19/11/2026). Es seguro solo mientras el bloqueo impida dos sincronizaciones a la vez |
+| D34 | Consulta del registro de trazabilidad | B9 | Aceptada como limitación (19/11/2026). No hay consulta ni endpoint de auditoría: `evento_caso` solo se verifica en la base de datos |
+| D35 | Inicios de sesión simultáneos masivos | B9 | Aceptada como limitación (19/11/2026). Con bcrypt de costo 12, los hashes se encolan en los hilos de libuv: rinden unos (hilos ÷ 0,4 s) inicios por segundo. Medido: 20 simultáneos con p95 de 1,8 a 2,7 s con 4 hilos; 200 simultáneos, p95 de 21 a 32 s (informativo). Subir `UV_THREADPOOL_SIZE` según los núcleos del servidor |
+
+**Notas de B9 sobre el §8:**
+- **ECONNRESET aislado:** apareció una sola vez, bajo sobrecarga extrema (escenario de estrés, pool 30, 200 usuarios con 5 s de reflexión y el event loop bloqueado hasta 3,4 s). El intento dedicado de reproducirlo (cliente keep-alive y pausa de 5,1 s) no lo reprodujo, así que `keepAliveTimeout` no se cambió. Causa probable, no confirmada: una carrera de keep-alive.
+- **Excepción de permisos:** `evento_caso` es la única tabla sin `UPDATE` para `detecta_app` (ver §7, B9). La prueba de permisos la comprueba aparte.
+- **Textos nuevos:** solo el del 429, aprobado en el plan de B9.
+- **No se hizo por falta de evidencia** (con datos realistas y las metas del ER):
+  - paginación de las bandejas: la bandeja del Jefe tarda 57 ms sola;
+  - R6 (filtro del informe en SQL): el informe tiene un p95 de 278 ms, por debajo del umbral de 2,5 s;
+  - R8 (b), guard con consultas propias: p50 de 25 ms o menos, por debajo de 50 ms;
+  - R1, R3 y R5: un curso sincroniza en menos de 1 s (meta 10 s); `listarPorRol(PSICOLOGO)` tarda menos de 100 ms y `reprogramarCita`, 110 ms.
+- **Pool lleno antes del guard (pregunta abierta):** si la base no entrega una conexión al guard de sesión, la respuesta es un 500 genérico dentro del plazo de espera, sin colgarse; solo las rutas responden 503 con su texto.
 
 ## 9. Antecedentes (versiones anteriores, NO vigentes)
 
@@ -324,3 +354,42 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 ## 10. Lo que NO está disponible (no asumir)
 
 Diagrama de componentes vigente, descripciones de los casos de uso de diseño (tablas CUD01 a CUD10), diseño de pantallas (GUI), modelo de datos relacional independiente del diagrama de entidades, versiones del ER y del Manual posteriores a las v1.4 y v1.2.
+
+## 11. Mediciones finales de B9 (rendimiento)
+
+**Las cifras locales no equivalen a producción.** Son de un portátil y varían entre corridas.
+
+- **Máquina:** AMD Ryzen 5 3500U, 8 núcleos lógicos, 10 GB de RAM, Windows 11, Node v26.13.1, PostgreSQL 18 en Docker local. `UV_THREADPOOL_SIZE` = 4 y pool de 10 conexiones (valores por defecto).
+- **Escenario realista (ER 3.4.1 c):** 25 programas de unos 80 estudiantes (2000), 75 docentes, 25 jefes y 3 psicólogos; 6000 alertas y casos, 1000 planes y 400 casos psicológicos con cita.
+- **Supuestos de M4 (no son cifras del ER):** 200 usuarios virtuales (150 estudiantes, 30 docentes, 17 jefes y 3 psicólogos), cada uno con una petición y luego un tiempo de reflexión de unos 10 s, o de unos 5 s en la variante exigente (±50 %), durante 60 s, con `sincronizarTodo` en curso.
+- **Validez:** cada corrida cuenta los estados HTTP y es INVÁLIDA si hay respuestas no esperadas. La corrida final fue VÁLIDA: 100 % de 2xx y sin errores de red.
+- **Estado del equipo:** carga de CPU de 29 a 49 % antes y de 28 a 46 % después, con Discord abierto.
+- **El estrés no se remidió tras la sub-etapa 4:** sus cifras son anteriores a la sub-etapa 4 y a la trazabilidad.
+
+**Escenario realista, 19/11/2026 (M4 con 3 repeticiones; el resto con 1 corrida; M5 con 10 peticiones):**
+
+| Id | Medición | Resultado | Meta del ER |
+|---|---|---|---|
+| M4 | 200 usuarios, reflexión de 10 s: p95 de todas las peticiones (mediana y rango) | 841 ms (284–1034) | < 2 s ✔ |
+| M4 | 200 usuarios, reflexión de 5 s | 3206 ms (2294–5232) | < 2 s ✘; pico de 4 s: en mediana ✔, no en el máximo |
+| M4 | Una petición de cada tipo, sin concurrencia (p95) | 32 a 65 ms (bandeja del Jefe 57 ms, 48 kB) | ✔ |
+| M4 | Ráfaga de 200 a la vez (informativa) | p95 6424 ms | — |
+| M1 | Inicio de sesión, bcrypt de costo 12: en serie / 20 a la vez (p95) | 702 ms / 2697 ms | — (D35) |
+| M2 | Guard por petición: estudiante / docente / jefe / psicólogo (consultas; p50) | 2 / 6 / 2 / 3; 9 / 25 / 6 / 17 ms | < 50 ms ✔ |
+| M3 | Sincronizar un curso de 53 estudiantes | 790 ms | < 10 s ✔ |
+| M3 | `sincronizarTodo` con 2000 estudiantes: primera / segunda vez (solo se mide) | 32,9 s / 44,5 s | — |
+| M5 | Informe de una asignatura (p95; 40 consultas) | 278 ms | < 5 s ✔ |
+| M6 | `listarPorRol(PSICOLOGO)` (p95) | 92 ms | — |
+| M7 | Casos del psicólogo / reprogramar (p95) | 36 ms / 110 ms | — |
+| M8 | Consultas de `guardar(caso)`: sin citas / con una cita | 4 / 6 | — |
+
+**Escenario de estrés (1 programa de 2040 estudiantes, un psicólogo con 300 casos), antes de la sub-etapa 4 y de la trazabilidad, 3 repeticiones:**
+
+| Id | Resultado |
+|---|---|
+| M4 | Reflexión de 10 s / 5 s: p95 de 9360 / 8209 ms; ráfaga: 9240 ms; bandeja del Jefe sola: 403 ms (2030 casos, 974 kB) |
+| M1 | 20 a la vez: p95 de 1980 ms |
+| M5 | p95 de 1301 ms |
+| M7 | Casos del psicólogo / reprogramar: p95 de 161 / 276 ms |
+
+**Pool de conexiones:** se mantiene en 10. Barrido de 10, 20 y 30 con una repetición: el control salió fuera de rango en los dos escenarios y no hubo mejora demostrable. Las corridas realistas de ese barrido se descartaron como INVÁLIDAS: corrieron sin los datos del escenario y sus respuestas fueron 401.
