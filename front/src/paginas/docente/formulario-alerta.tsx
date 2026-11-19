@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { formatearAsistencia, formatearNota } from '../../componentes/formato';
 import { CampoTexto } from '../../componentes/campo-texto';
+import { GrupoOpciones } from '../../componentes/grupo-opciones';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useEnvio } from '../../componentes/use-envio';
 import {
@@ -89,7 +90,6 @@ export function FormularioAlerta({
   alEmitir: () => void;
 }) {
   const idTitulo = useId();
-  const nombreNivel = useId();
   const idErrorCampos = useId();
   const seccion = useRef<HTMLElement>(null);
   const [nivelRiesgo, setNivelRiesgo] = useState<NivelRiesgo | null>(null);
@@ -153,24 +153,15 @@ export function FormularioAlerta({
           <dd>{formatearAsistencia(registro.porcentajeAsistencia)}</dd>
         </dl>
 
-        <fieldset
-          className={estilos['grupo']}
-          aria-invalid={vacio && nivelRiesgo === null}
-        >
-          <legend>{ROTULOS_DOCENTE.nivelRiesgo}</legend>
-          {NIVELES.map((nivel) => (
-            <label key={nivel} className={estilos['opcion']}>
-              <input
-                type="radio"
-                name={nombreNivel}
-                value={nivel}
-                checked={nivelRiesgo === nivel}
-                onChange={() => setNivelRiesgo(nivel)}
-              />
-              {NOMBRE_NIVEL_RIESGO[nivel]}
-            </label>
-          ))}
-        </fieldset>
+        <GrupoOpciones
+          leyenda={ROTULOS_DOCENTE.nivelRiesgo}
+          opciones={NIVELES}
+          etiquetas={NOMBRE_NIVEL_RIESGO}
+          valor={nivelRiesgo}
+          alCambiar={setNivelRiesgo}
+          invalido={vacio && nivelRiesgo === null}
+          clase={estilos['grupo']}
+        />
 
         <CampoTexto
           rotulo={ROTULOS_DOCENTE.justificacion}

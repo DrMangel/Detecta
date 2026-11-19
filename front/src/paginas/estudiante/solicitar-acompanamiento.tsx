@@ -1,5 +1,6 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { CampoTexto } from '../../componentes/campo-texto';
+import { GrupoOpciones } from '../../componentes/grupo-opciones';
 import { useLocation } from 'react-router';
 import { formatearFecha } from '../../componentes/formato';
 import {
@@ -82,7 +83,6 @@ function pasosSolicitud(datos: DatosSolicitud): PasosEnvio<Solicitud> {
 }
 
 function SolicitarAcompanamiento() {
-  const nombreTipo = useId();
   const [tipoApoyo, setTipoApoyo] = useState<TipoApoyo | null>(null);
   const [motivo, setMotivo] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
@@ -145,21 +145,14 @@ function SolicitarAcompanamiento() {
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
       <p className={estilos['caracter']}>{TEXTO_ASESORIA_EDUCATIVA}</p>
       <form className={estilos['formulario']} onSubmit={enviar} noValidate>
-        <fieldset className={estilos['grupo']}>
-          <legend>{ROTULOS_ESTUDIANTE.tipoApoyo}</legend>
-          {TIPOS.map((tipo) => (
-            <label key={tipo} className={estilos['opcion']}>
-              <input
-                type="radio"
-                name={nombreTipo}
-                value={tipo}
-                checked={tipoApoyo === tipo}
-                onChange={() => setTipoApoyo(tipo)}
-              />
-              {NOMBRE_TIPO_APOYO[tipo]}
-            </label>
-          ))}
-        </fieldset>
+        <GrupoOpciones
+          leyenda={ROTULOS_ESTUDIANTE.tipoApoyo}
+          opciones={TIPOS}
+          etiquetas={NOMBRE_TIPO_APOYO}
+          valor={tipoApoyo}
+          alCambiar={setTipoApoyo}
+          clase={estilos['grupo']}
+        />
 
         {/* Región viva siempre montada: el cambio de aviso se anuncia. */}
         <div aria-live="polite">
