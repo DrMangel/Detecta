@@ -67,8 +67,18 @@ const ESCENARIO =
 const REUTILIZAR = process.env['CARGA_REUTILIZAR'] === '1';
 const CONTRASENA = 'Contraseña-de-carga-1';
 const AHORA = new Date('2026-11-18T15:00:00Z');
-/** Repeticiones de cada medición para la mediana y la dispersión. */
-const REPETICIONES = 3;
+/**
+ * Repeticiones de cada medición para la mediana y la dispersión. 3 por
+ * defecto; CARGA_REPETICIONES (1 a 10) la cambia, p. ej. para el barrido del
+ * pool con una repetición y criterio fijado antes de medir.
+ */
+const REPETICIONES = (() => {
+  const valor = Number(process.env['CARGA_REPETICIONES'] ?? 3);
+  if (!Number.isInteger(valor) || valor < 1 || valor > 10) {
+    throw new Error('CARGA_REPETICIONES debe ser un entero entre 1 y 10');
+  }
+  return valor;
+})();
 
 interface Configuracion {
   programas: { id: string; nombre: string; cursos: string[] }[];
@@ -213,7 +223,11 @@ async function datosYaCargados(): Promise<boolean> {
 }
 
 beforeAll(async () => {
-  reportar('MAQUINA', { escenario: ESCENARIO, ...maquina() });
+  reportar('MAQUINA', {
+    escenario: ESCENARIO,
+    repeticiones: REPETICIONES,
+    ...maquina(),
+  });
   await migrarBaseCarga();
   contador = new ContadorConsultas();
   fuente = await abrirFuenteCarga(contador);
