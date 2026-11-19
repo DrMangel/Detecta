@@ -83,10 +83,33 @@ function pasosSolicitud(datos: DatosSolicitud): PasosEnvio<Solicitud> {
   };
 }
 
-function SolicitarAcompanamiento() {
+/**
+ * Borrador del formulario, solo en memoria (plan de F1, sección h): se
+ * conserva ante un 503 y se vacía tras el comprobante.
+ */
+function useBorrador() {
   const [tipoApoyo, setTipoApoyo] = useState<TipoApoyo | null>(null);
   const [motivo, setMotivo] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
+  const vaciar = () => {
+    setTipoApoyo(null);
+    setMotivo('');
+    setDisponibilidad('');
+  };
+  return {
+    tipoApoyo,
+    setTipoApoyo,
+    motivo,
+    setMotivo,
+    disponibilidad,
+    setDisponibilidad,
+    vaciar,
+  };
+}
+
+function SolicitarAcompanamiento() {
+  const borrador = useBorrador();
+  const { tipoApoyo, motivo, disponibilidad } = borrador;
   const [errorMotivo, setErrorMotivo] = useState<string | null>(null);
   const [comprobante, setComprobante] = useState<Solicitud | null>(null);
   // 401: ProveedorSesion ya llevó al inicio de sesión y el borrador no se
@@ -95,9 +118,7 @@ function SolicitarAcompanamiento() {
 
   const terminar = (registrada: Solicitud) => {
     setComprobante(registrada);
-    setTipoApoyo(null);
-    setMotivo('');
-    setDisponibilidad('');
+    borrador.vaciar();
   };
 
   const enviar = async (evento: FormEvent) => {
@@ -137,7 +158,7 @@ function SolicitarAcompanamiento() {
           opciones={TIPOS}
           etiquetas={NOMBRE_TIPO_APOYO}
           valor={tipoApoyo}
-          alCambiar={setTipoApoyo}
+          alCambiar={borrador.setTipoApoyo}
           clase={estilos['grupo']}
         />
 
@@ -146,7 +167,7 @@ function SolicitarAcompanamiento() {
         <CampoTexto
           rotulo={ROTULOS_ESTUDIANTE.motivo}
           valor={motivo}
-          alCambiar={setMotivo}
+          alCambiar={borrador.setMotivo}
           maximo={LIMITES.motivo}
           multilinea
           requerido
@@ -157,7 +178,7 @@ function SolicitarAcompanamiento() {
         <CampoTexto
           rotulo={ROTULOS_ESTUDIANTE.disponibilidadOpcional}
           valor={disponibilidad}
-          alCambiar={setDisponibilidad}
+          alCambiar={borrador.setDisponibilidad}
           maximo={LIMITES.disponibilidad}
           multilinea
           clase={estilos['campo']}
