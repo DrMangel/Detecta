@@ -1,16 +1,15 @@
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router';
-import { useEsperaReintento } from '../../componentes/espera-reintento';
 import { formatearFecha } from '../../componentes/formato';
 import {
   MensajeError,
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
+import { useEnvio } from '../../componentes/use-envio';
 import {
-  ErrorApi,
-  mensajeDeError,
-  TEXTO_ERROR_RED,
-} from '../../servicios-api/errores';
+  enviarConConciliacion,
+  type PasosEnvio,
+} from '../../servicios-api/conciliacion';
 import {
   consultarSolicitudes,
   registrarSolicitud,
@@ -65,8 +64,20 @@ export function PaginaSolicitarAcompanamiento() {
   return <SolicitarAcompanamiento key={key} />;
 }
 
-function esSesionVencida(fallo: unknown): boolean {
-  return fallo instanceof ErrorApi && fallo.estado === 401;
+/**
+ * Pasos del envío con conciliación (sección i y ajuste C de F1): la lista de
+ * solicitudes antes y después del envío dice si quedó registrada.
+ */
+function pasosSolicitud(datos: DatosSolicitud): PasosEnvio<Solicitud> {
+  return {
+    consultarPrevias: async () =>
+      new Set(
+        (await consultarSolicitudes()).map((solicitud) => solicitud.codigo),
+      ),
+    enviar: () => registrarSolicitud(datos),
+    buscar: async (previas) =>
+      buscarRegistrada(previas, await consultarSolicitudes(), datos),
+  };
 }
 
 function SolicitarAcompanamiento() {
@@ -78,12 +89,10 @@ function SolicitarAcompanamiento() {
   const [motivo, setMotivo] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
   const [errorMotivo, setErrorMotivo] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
   const [comprobante, setComprobante] = useState<Solicitud | null>(null);
-  const { enEspera, esperar } = useEsperaReintento();
-  // Cierra la ventana entre dos clics antes de que React vuelva a pintar.
-  const enCurso = useRef(false);
+  // 401: ProveedorSesion ya llevó al inicio de sesión y el borrador no se
+  // conserva (respuesta 5 de F1).
+  const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();
 
   const terminar = (registrada: Solicitud) => {
     setComprobante(registrada);
@@ -92,49 +101,9 @@ function SolicitarAcompanamiento() {
     setDisponibilidad('');
   };
 
-  /** Códigos ya registrados; null si no se pudo consultar (no bloquea). */
-  const codigosPrevios = async (): Promise<Set<string> | null> => {
-    try {
-      const lista = await consultarSolicitudes();
-      return new Set(lista.map((solicitud) => solicitud.codigo));
-    } catch (fallo) {
-      if (esSesionVencida(fallo)) {
-        throw fallo;
-      }
-      return null;
-    }
-  };
-
-  /** Tras un error de red: ¿quedó registrada? */
-  const conciliar = async (
-    previos: Set<string> | null,
-    datos: DatosSolicitud,
-  ) => {
-    if (previos === null) {
-      setError(TEXTO_RESULTADO_INCIERTO);
-      return;
-    }
-    try {
-      const registrada = buscarRegistrada(
-        previos,
-        await consultarSolicitudes(),
-        datos,
-      );
-      if (registrada === null) {
-        setError(TEXTO_ERROR_RED);
-      } else {
-        terminar(registrada);
-      }
-    } catch (fallo) {
-      if (!esSesionVencida(fallo)) {
-        setError(TEXTO_RESULTADO_INCIERTO);
-      }
-    }
-  };
-
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
-    if (enCurso.current || tipoApoyo === null) {
+    if (tipoApoyo === null) {
       return;
     }
     if (motivo.trim() === '') {
@@ -142,31 +111,18 @@ function SolicitarAcompanamiento() {
       return;
     }
     setErrorMotivo(null);
-    setError(null);
-    enCurso.current = true;
-    setEnviando(true);
     const datos: DatosSolicitud = { tipoApoyo, motivo, disponibilidad };
-    try {
-      const previos = await codigosPrevios();
-      try {
-        terminar(await registrarSolicitud(datos));
-      } catch (fallo) {
-        if (fallo instanceof ErrorApi && fallo.estado === null) {
-          await conciliar(previos, datos);
-        } else if (!esSesionVencida(fallo)) {
-          setError(mensajeDeError(fallo));
-          if (fallo instanceof ErrorApi && fallo.estado === 429) {
-            esperar(fallo.esperaSegundos);
-          }
-        }
-      }
-    } catch {
-      // 401 en la consulta previa: ProveedorSesion ya llevó al inicio de
-      // sesión y el borrador no se conserva (respuesta 5).
-    } finally {
-      enCurso.current = false;
-      setEnviando(false);
+    const resultado = await ejecutar(() =>
+      enviarConConciliacion(pasosSolicitud(datos)),
+    );
+    if (resultado === undefined) {
+      return;
     }
+    if (resultado.tipo === 'incierto') {
+      ponerError(TEXTO_RESULTADO_INCIERTO);
+      return;
+    }
+    terminar(resultado.valor);
   };
 
   if (comprobante !== null) {
