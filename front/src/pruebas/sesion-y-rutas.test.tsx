@@ -13,7 +13,7 @@ import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
 
 const ROLES: [Rol, string, string][] = [
   ['ESTUDIANTE', '/estudiante', 'Consulta académica'],
-  ['DOCENTE', '/docente', 'Docente'],
+  ['DOCENTE', '/docente', 'Consulta de curso'],
   [
     'JEFE_DEPARTAMENTO',
     '/jefe-departamento',
@@ -52,9 +52,9 @@ describe('Inicio de sesión por rol', () => {
       expect(screen.getByTestId('ruta')).toHaveTextContent(ruta);
       await waitFor(() => expect(document.title).toBe(`${titulo} · DETECTA`));
       expect(screen.getByText(`Usuario ${rol}`)).toBeInTheDocument();
-      // Espacio vacío: solo el título dentro del contenido principal. El del
-      // Estudiante tiene contenido desde F1 (pruebas en estudiante-*.test).
-      if (rol !== 'ESTUDIANTE') {
+      // Espacio vacío: solo el título dentro del contenido principal. Los del
+      // Estudiante (F1) y del Docente (F2) ya tienen contenido.
+      if (rol !== 'ESTUDIANTE' && rol !== 'DOCENTE') {
         expect(screen.getByRole('main').children).toHaveLength(1);
       }
       expect(llamadas.at(-1)?.cuerpo).toEqual({
