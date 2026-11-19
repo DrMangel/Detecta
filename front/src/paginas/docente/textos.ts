@@ -6,6 +6,8 @@
  * otros roles están en componentes/etiquetas.ts.
  */
 
+import { ROTULOS_COMUNES } from '../../componentes/etiquetas';
+
 /* ---------- Transcritos ---------- */
 
 /** sd_CUD03 6.a; R01: «bloquea el envío notificando la omisión». */
@@ -24,18 +26,9 @@ export const TITULOS_DOCENTE = {
 } as const;
 
 export const ROTULOS_DOCENTE = {
-  codigoCurso: 'Código del curso',
-  curso: 'Curso',
-  ultimaSincronizacion: 'Última sincronización',
-  estudiante: 'Estudiante',
-  nota: 'Nota',
-  asistencia: 'Asistencia',
+  ...ROTULOS_COMUNES,
   emitirAlerta: 'Emitir alerta',
-  nivelRiesgo: 'Nivel de riesgo',
-  /** R01 paso 4 y sd_CUD03 («la justificación»). */
-  justificacion: 'Justificación',
   estadoAtencion: 'Estado de atención',
-  fecha: 'Fecha',
   /**
    * Cierra el formulario sin emitir (ajuste B: «al cerrarlo»). No estaba en
    * la lista de §4: pendiente de confirmación en el informe de cierre.
