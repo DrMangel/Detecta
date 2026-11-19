@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SIN_SESION, simularApi } from '../pruebas/utilidades';
 import { consultarSesion, iniciarSesion } from './acceso';
-import { pedir, registrarSesionInvalida } from './cliente';
-import { ErrorApi, TEXTO_ERROR_RED } from './errores';
+import { descargar, pedir, registrarSesionInvalida } from './cliente';
+import { ErrorApi, TEXTO_ERROR_RED, TEXTO_SIN_PERMISO } from './errores';
 
 describe('cliente HTTP', () => {
   it('usa el prefijo /api, envía la cookie del mismo sitio y JSON', async () => {
@@ -63,5 +63,46 @@ describe('cliente HTTP', () => {
     expect(error).toBeInstanceOf(ErrorApi);
     expect((error as ErrorApi).estado).toBeNull();
     expect((error as ErrorApi).message).toBe(TEXTO_ERROR_RED);
+  });
+});
+
+/*
+ * Descarga de un archivo (F3, CUD10 paso 6: exportar el informe en PDF). El
+ * nombre no se toma de Content-Disposition: entre orígenes el CORS del
+ * backend no expone esa cabecera (ajuste C de F3).
+ */
+describe('descargar', () => {
+  it('devuelve el contenido como Blob, por GET y con la cookie del mismo sitio', async () => {
+    const falso = vi.fn(
+      async () =>
+        new Response('%PDF-1.4', {
+          status: 200,
+          headers: { 'Content-Type': 'application/pdf' },
+        }),
+    );
+    vi.stubGlobal('fetch', falso);
+    const archivo = await descargar('/informes/I1/pdf');
+    expect(await archivo.text()).toBe('%PDF-1.4');
+    expect(falso).toHaveBeenCalledWith(
+      '/api/informes/I1/pdf',
+      expect.objectContaining({ method: 'GET', credentials: 'same-origin' }),
+    );
+  });
+
+  it('un fallo da el error uniforme y el 401 avisa a la sesión', async () => {
+    simularApi({
+      'GET /informes/I1/pdf': { estado: 403, cuerpo: { message: 'Forbidden' } },
+      'GET /informes/I2/pdf': SIN_SESION,
+    });
+    await expect(descargar('/informes/I1/pdf')).rejects.toThrow(
+      TEXTO_SIN_PERMISO,
+    );
+    const manejador = vi.fn();
+    registrarSesionInvalida(manejador);
+    await expect(descargar('/informes/I2/pdf')).rejects.toBeInstanceOf(
+      ErrorApi,
+    );
+    expect(manejador).toHaveBeenCalledWith('Sesión no válida o caducada');
+    registrarSesionInvalida(null);
   });
 });
