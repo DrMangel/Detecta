@@ -20,6 +20,7 @@ import { PaginaDetalleCaso } from './paginas/jefe-departamento/detalle-caso';
 import { InformesRiesgo } from './paginas/jefe-departamento/informes-riesgo';
 import { EspacioPsicologo } from './paginas/psicologo/espacio-psicologo';
 import { PaginaExpedientePsicologo } from './paginas/psicologo/expediente';
+import { InformesRiesgoPsicologo } from './paginas/psicologo/informes';
 import type { Rol } from './servicios-api/tipos';
 
 /*
@@ -72,6 +73,11 @@ const RUTAS_PROTEGIDAS: readonly {
     ruta: '/psicologo/casos/:idCaso',
     rol: 'PSICOLOGO',
     pantalla: <PaginaExpedientePsicologo />,
+  },
+  {
+    ruta: '/psicologo/informes',
+    rol: 'PSICOLOGO',
+    pantalla: <InformesRiesgoPsicologo />,
   },
 ];
 
