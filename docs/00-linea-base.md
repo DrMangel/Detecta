@@ -518,3 +518,11 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
 | M7 | Casos del psicólogo / reprogramar: p95 de 161 / 276 ms |
 
 **Pool de conexiones:** se mantiene en 10 por falta de evidencia a favor de otro valor. El barrido realista (10, 20 y 30, una repetición) fue inválido: M4 corrió sin los datos del escenario y sus respuestas fueron 401. En estrés, el control salió fuera de rango y no hubo mejora demostrable.
+
+## 12. F4c: informes del Psicólogo (implementación pendiente de verificación real)
+
+- Rama `fase/f4c-psicologo-informes`, creada desde `main` (`ac3fea8`). Reutiliza `IU_Informes` y la plantilla existente del Psicólogo; `GET /programas` alimenta el selector, que muestra nombres y mantiene los identificadores fuera del DOM. El Psicólogo envía `{periodo, idPrograma, idCurso}`; el cuerpo del Jefe permanece `{periodo, idCurso}`.
+- El backend inspeccionado devuelve 200 con `No hay datos para el periodo seleccionado` si curso/programa/período no producen datos; curso inexistente devuelve 400. Se añadieron pruebas de componente para el caso sin datos, sin poder confirmarlo mediante HTTP real.
+- Front verificado: 246 pruebas (29 archivos), typecheck, lint, format:check y build correctos. La suite nueva cubre programas vacíos/errores, selección sin IDs en DOM/almacenamiento, cuerpo Psicólogo, respuesta sin datos y descarga PDF simulada. Las 6 pruebas existentes del Jefe siguen sin cambios.
+- Verificación real pendiente: el proceso arrancó con `CORREO_MODO=desactivado` confirmado en su registro, pero no abrió el puerto 3000; por seguridad no se enviaron peticiones. No se generó ningún informe. Quedan sin confirmar el caso curso ajeno a programa, el cuerpo real del Psicólogo, el PDF no vacío y la comparación real del cuerpo del Jefe. La verificación visual queda no verificada en navegador y pasa a F5b.
+- Textos provisionales aprobados para revisar en F5: `Informes de riesgo` y `No hay programas disponibles.`; `Programa` y `Seleccione un programa` ya estaban aprobados.
