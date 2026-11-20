@@ -47,6 +47,13 @@ import { ProveedorCorreoExterno } from './proveedor-correo-externo';
               clave: correo.clave,
               remitente: correo.remitente,
               remitenteNombre: correo.remitenteNombre,
+              rechazarEjemploInvalid: config.get(
+                'CORREO_RECHAZAR_EJEMPLO_INVALID',
+                { infer: true },
+              ),
+              destinoPermitido: config.get('CORREO_DESTINO_PERMITIDO', {
+                infer: true,
+              }),
             });
       },
     },

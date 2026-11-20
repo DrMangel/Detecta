@@ -40,6 +40,43 @@ function sinCorreo(): Record<string, string> {
 }
 
 describe('validarEntorno: correo (B5)', () => {
+  it('bloquea dominios de ejemplo solo cuando se configura', () => {
+    expect(validarEntorno(entornoValido).CORREO_RECHAZAR_EJEMPLO_INVALID).toBe(
+      false,
+    );
+    expect(
+      validarEntorno({
+        ...entornoValido,
+        CORREO_RECHAZAR_EJEMPLO_INVALID: 'true',
+      }).CORREO_RECHAZAR_EJEMPLO_INVALID,
+    ).toBe(true);
+    expect(() =>
+      validarEntorno({
+        ...entornoValido,
+        CORREO_RECHAZAR_EJEMPLO_INVALID: 'si',
+      }),
+    ).toThrow(/CORREO_RECHAZAR_EJEMPLO_INVALID debe ser true o false/);
+  });
+
+  it('el patrón de destino permitido es opcional y se normaliza (F5a)', () => {
+    expect(validarEntorno(entornoValido).CORREO_DESTINO_PERMITIDO).toBeNull();
+    expect(
+      validarEntorno({
+        ...entornoValido,
+        CORREO_DESTINO_PERMITIDO: ' DetectaSoporteTecnico+*@Gmail.com ',
+      }).CORREO_DESTINO_PERMITIDO,
+    ).toBe('detectasoportetecnico+*@gmail.com');
+  });
+
+  it.each(['*@gmail.com', 'sin-arroba', 'a*b+*@gmail.com', 'x+*@*.com'])(
+    'rechaza un patrón de destino permitido mal formado: %j',
+    (patron) => {
+      expect(() =>
+        validarEntorno({ ...entornoValido, CORREO_DESTINO_PERMITIDO: patron }),
+      ).toThrow(/CORREO_DESTINO_PERMITIDO/);
+    },
+  );
+
   it('con la configuración SMTP completa el modo es smtp', () => {
     expect(validarEntorno(entornoValido).CORREO).toEqual({
       modo: 'smtp',

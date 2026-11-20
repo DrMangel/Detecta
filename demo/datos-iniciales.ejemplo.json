@@ -1,0 +1,47 @@
+{
+  "programas": [
+    { "idPrograma": "SIS", "nombre": "Ingeniería de Sistemas" },
+    { "idPrograma": "QUI", "nombre": "Química" }
+  ],
+  "usuarios": [
+    {
+      "rol": "JEFE_DEPARTAMENTO",
+      "id": "JEFE-ENTREGA",
+      "nombre": "Jefe de Demostración",
+      "correo": "detectasoportetecnico+jefe@gmail.com",
+      "idPrograma": "SIS"
+    },
+    {
+      "rol": "PSICOLOGO",
+      "id": "PSICO-ENTREGA",
+      "nombre": "Psicólogo de Demostración",
+      "correo": "detectasoportetecnico+psicologo@gmail.com"
+    },
+    {
+      "rol": "DOCENTE",
+      "id": "DOC-ENTREGA",
+      "nombre": "Docente de Demostración",
+      "correo": "detectasoportetecnico+docente@gmail.com"
+    }
+  ],
+  "cursos": [
+    {
+      "idCurso": "ISOF-101",
+      "nombre": "Ingeniería de Software I",
+      "periodo": "2026-2",
+      "idDocente": "DOC-ENTREGA"
+    },
+    {
+      "idCurso": "CALC-201",
+      "nombre": "Cálculo Integral",
+      "periodo": "2026-2",
+      "idDocente": "DOC-ENTREGA"
+    },
+    {
+      "idCurso": "FIS-301",
+      "nombre": "Física III",
+      "periodo": "2026-2",
+      "idDocente": "DOC-ENTREGA"
+    }
+  ]
+}

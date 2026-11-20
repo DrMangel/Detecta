@@ -70,6 +70,64 @@ describe('ProveedorCorreoExterno (B5)', () => {
     },
   );
 
+  it('en demo rechaza destinatarios @ejemplo.invalid antes del transporte', async () => {
+    const sendMail = jest.fn();
+    const proveedor = new ProveedorCorreoExterno(
+      { ...OPCIONES, rechazarEjemploInvalid: true },
+      transporte(sendMail),
+    );
+    const error = await capturarError(
+      proveedor.enviar('estudiante@ejemplo.invalid', 'Asunto', '<p>x</p>'),
+    );
+    expect(error).toBeInstanceOf(ErrorEnvioCorreo);
+    expect((error as ErrorEnvioCorreo).codigo).toBe(
+      'DESTINATARIO_NO_PERMITIDO',
+    );
+    expect(sendMail).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'otra.persona@gmail.com',
+    'detectasoportetecnico@gmail.com',
+    'detectasoportetecnico+est01@gmail.com.ejemplo.test',
+    'detectasoportetecnico+est01@ejemplo.edu.co',
+  ])(
+    'en demo rechaza destinatarios fuera del patrón permitido antes del transporte: %s',
+    async (destino) => {
+      const sendMail = jest.fn();
+      const proveedor = new ProveedorCorreoExterno(
+        { ...OPCIONES, destinoPermitido: 'detectasoportetecnico+*@gmail.com' },
+        transporte(sendMail),
+      );
+      const error = await capturarError(
+        proveedor.enviar(destino, 'Asunto', '<p>x</p>'),
+      );
+      expect(error).toBeInstanceOf(ErrorEnvioCorreo);
+      expect((error as ErrorEnvioCorreo).codigo).toBe(
+        'DESTINATARIO_NO_PERMITIDO',
+      );
+      expect(sendMail).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    'detectasoportetecnico+est01@gmail.com',
+    ' DetectaSoporteTecnico+JEFE@Gmail.com ',
+  ])(
+    'en demo envía a destinatarios que cumplen el patrón permitido: %j',
+    async (destino) => {
+      const sendMail = jest.fn().mockResolvedValue({ messageId: 'x' });
+      const proveedor = new ProveedorCorreoExterno(
+        { ...OPCIONES, destinoPermitido: 'detectasoportetecnico+*@gmail.com' },
+        transporte(sendMail),
+      );
+      await expect(
+        proveedor.enviar(destino, 'Asunto', '<p>x</p>'),
+      ).resolves.toBe(true);
+      expect(sendMail).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('plazo global: un transporte que no responde se corta al vencer el plazo (ajuste B)', async () => {
     const proveedor = new ProveedorCorreoExterno(
       { ...OPCIONES, plazoMs: 200 },

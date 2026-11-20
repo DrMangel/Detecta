@@ -8,5 +8,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/pruebas/preparacion.ts'],
     css: { modules: { classNameStrategy: 'non-scoped' } },
+    maxWorkers: 2,
+    testTimeout: 10_000,
   },
 });

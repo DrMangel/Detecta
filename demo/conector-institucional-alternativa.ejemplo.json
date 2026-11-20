@@ -1,0 +1,13 @@
+{
+  "origen": "vista_estudiantes_entrega_alternativa",
+  "mapeoCampos": {
+    "id_estudiante": "codigo_estudiante",
+    "nombre_estudiante": "nombre_completo",
+    "correo_estudiante": "correo_contacto",
+    "fecha_nacimiento": "nacimiento_estudiante",
+    "programa_academico": "programa",
+    "codigo_asignatura": "asignatura",
+    "calificacion_acumulada": "nota_acumulada",
+    "porcentaje_asistencia": "asistencia_porcentaje"
+  }
+}

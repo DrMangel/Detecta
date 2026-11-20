@@ -535,3 +535,46 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   6. El cuerpo del Jefe sigue sin `idPrograma`.
   7. Observación: el Jefe de un programa puede descargar el informe de su programa generado por el Psicólogo, porque la regla filtra por programa y no por autor (a verificar contra el ER).
 - Pendiente para F5b: inconsistencia de anchos entre el aviso «sin datos» del Jefe (ancho completo), el formulario (720 px) y la tarjeta del Psicólogo (848 px); botón deshabilitado con poco contraste; favicon pendiente.
+
+## 13. F5a: entorno de demostración, arranque local y estabilidad de pruebas
+
+- Rama `fase/f5a-entorno-demo-estabilidad`, creada desde `main` (`8b5cfcf`). Codex inició la fase y Claude Code la retomó tras un diagnóstico de solo lectura aprobado por Ivan. Guía de uso: [`demo/README.md`](../demo/README.md).
+- **Bases aisladas:** `detecta_entrega` e `institucional_entrega`, dentro de `detecta-postgres`. Los scripts solo crean, borran o modifican esas dos bases (lista blanca); `-Reiniciar` elimina y recrea únicamente esas dos.
+- **Desviación del plan aprobada (decisión 1 de Ivan):** se reutilizan los roles existentes `detecta_app`, `detecta_migrador` e `institucional_lector` en lugar de crear roles propios de la demo. El modelo de permisos es el vigente: `detecta_app` sin `DELETE` ni `TRUNCATE` (lo otorgan las migraciones) e `institucional_lector` en solo lectura sobre las vistas. Los scripts no crean ni modifican roles.
+- **Correo en demo (decisión 2):** variables nuevas y opcionales en `back/.env.example`:
+  - `CORREO_RECHAZAR_EJEMPLO_INVALID` rechaza `@ejemplo.invalid`;
+  - `CORREO_DESTINO_PERMITIDO` admite una dirección o un prefijo terminado en `*` con dominio fijo (en la demo, `detectasoportetecnico+*@gmail.com`).
+
+  Los destinos no permitidos fallan con `DESTINATARIO_NO_PERMITIDO` antes de abrir la conexión SMTP. Fuera de la demo, el comportamiento no cambia.
+- **Enlaces de activación (decisión 3):** la salida de `datos-iniciales` se guarda en `%USERPROFILE%\detecta-entrega\enlaces-activacion.txt`. Se sobrescribe en cada preparación, se borra con `-Reiniciar` y nunca se imprime ni se versiona. La activación de la demo usa el flujo real `/solicitar-activacion`.
+- **Datos (decisión 4):** `institucional_entrega.csv` y su variante alternativa están en UTF-8 sin BOM y tienen 80 filas:
+  - el curso ISOF-101 con 60 estudiantes y 5 menores;
+  - un único alias `detectasoportetecnico+estNN@gmail.com` por estudiante;
+  - los mismos casos límite de `institucional_demo`: conflicto de nombre de 2026002, valores fuera de rango y matrícula inactiva.
+
+  Los datos iniciales usan los programas y cursos de B4, para conservar los rechazos por programa inexistente, por nombre sin tilde y por curso no configurado (QUIM-999). Las cuentas usan alias `+<rol>`.
+- **SQL (decisión 5):** la Tabla 25 de `institucional_entrega` se carga con `institucional_demo.sql` (el archivo no contiene el nombre de la base), sin copia versionada. La variante de columnas ficticias tiene su propio SQL y su JSON de conector (ER 3.7 e).
+- **Configuración de la demo:** `demo/.env.example` deja vacía `SINCRONIZACION_HORA_NOCTURNA`; en el guion la sincronización se lanza a mano. `scripts/validar-entorno-demo.mjs` exige todas las claves del ejemplo y que ninguna variable de la sesión las tape, porque `node --env-file` no reemplaza variables existentes y ConfigModule completaría las ausentes con `back/.env`.
+- **Vitest:** `maxWorkers: 2`, `testTimeout: 10000` y `asyncUtilTimeout: 3000` en la preparación común; `jefe-informes.test.tsx` no se modificó.
+- **Corregido respecto al trabajo inicial de Codex:**
+  - BOM y línea vacía tras `COPY … FROM STDIN` en el SQL de entrega, que habrían hecho fallar la carga;
+  - `psql -c` con `\gexec`, que no es válido;
+  - correos distintos para un mismo estudiante;
+  - programas y curso añadidos que anulaban los casos de rechazo de B4;
+  - respaldo de enlaces borrado tras el éxito.
+- **Verificación real (20/11/2026, Claude Code, autorizada por Ivan):**
+  1. `preparar-demo.ps1 -Reiniciar`, código 0:
+     - 5 migraciones en `detecta_entrega`;
+     - 80 filas en `institucional_entrega`;
+     - datos iniciales: 2 programas, 3 cuentas y 3 cursos;
+     - 3 enlaces en el archivo de respaldo, que no se mostró.
+
+     El tamaño de las demás bases y las filas de `detecta`, `institucional_demo` y `detecta_pruebas` coinciden antes y después. `detecta_app` solo tiene `SELECT`, `INSERT` y `UPDATE`; `institucional_lector` solo tiene `SELECT` sobre las dos vistas.
+  2. ER 3.4: la sincronización de ISOF-101 actualizó 60 registros en **2,82 s** medidos con `Measure-Command`. La cifra incluye el arranque de Node y de NestJS; la meta es de 10 s.
+  3. Sincronización de todos los cursos, en 3,10 s:
+     - 67 registros actualizados;
+     - omisiones: 3 por calificación o asistencia fuera de rango, 3 por identificación, 1 por fecha de nacimiento, 2 por programa y 2 por datos inconsistentes del estudiante;
+     - QUIM-999 no se lee.
+  4. ER 3.7 e: la variante de columnas ficticias, con su JSON de conector, da el mismo resultado en 3,01 s.
+  5. `iniciar-demo.ps1` abrió los puertos 3000 y 5173 y registró «Sincronización nocturna desactivada». Dos solicitudes de activación por `/api/acceso/solicitar-activacion` (docente y `+est01`) respondieron 202 y emitieron 2 tokens, sin errores de envío en el registro. La recepción en Gmail la confirma Ivan.
+  6. Cierre por PID: al detener el backend lanzado, el script cerró Vite y terminó con código 0, sin puertos ocupados.
