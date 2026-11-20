@@ -92,6 +92,12 @@ describe('Informes de riesgo (CUD10, Jefe)', () => {
     expect(await screen.findByText('Cálculo Integral')).toBeInTheDocument();
     expect(screen.queryByText('Generando el informe…')).toBeNull();
   });
+});
+
+describe('Informes de riesgo: resultado y exportación (CUD10)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('201: totales con sus definiciones y el resumen', async () => {
     simularApi({

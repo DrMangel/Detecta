@@ -100,6 +100,32 @@ export function PlanNivelacion({
   );
 }
 
+/**
+ * Envío del plan: un solo envío a la vez (useEnvio) y, tras un resultado
+ * incierto, registro bloqueado mientras el Jefe siga en la vista.
+ */
+function useRegistroPlan(alRegistrar: (plan: Plan) => void) {
+  const [bloqueado, setBloqueado] = useState(false);
+  const envio = useEnvio();
+
+  const registrar = async (datos: DatosPlan) => {
+    if (bloqueado) {
+      return;
+    }
+    const resultado = await envio.ejecutar(() => registrarSinReintento(datos));
+    if (resultado === undefined) {
+      return;
+    }
+    if (resultado.tipo === 'incierto') {
+      setBloqueado(true);
+      return;
+    }
+    alRegistrar(resultado.valor);
+  };
+
+  return { ...envio, bloqueado, registrar };
+}
+
 function FormularioPlan({
   idCaso,
   antecedentes,
@@ -114,14 +140,11 @@ function FormularioPlan({
   const [cronograma, setCronograma] = useState('');
   const [idsCursos, setIdsCursos] = useState<readonly string[]>([]);
   const [errorCampos, setErrorCampos] = useState<string | null>(null);
-  const [bloqueado, setBloqueado] = useState(false);
-  const { enviando, enEspera, error, ejecutar } = useEnvio();
+  const { enviando, enEspera, error, bloqueado, registrar } =
+    useRegistroPlan(alRegistrar);
 
-  const registrar = async (evento: FormEvent) => {
+  const enviar = (evento: FormEvent) => {
     evento.preventDefault();
-    if (bloqueado) {
-      return;
-    }
     const datos = {
       idCaso,
       idsCursos: [...idsCursos],
@@ -131,22 +154,13 @@ function FormularioPlan({
     };
     const falta = faltante(datos);
     setErrorCampos(falta);
-    if (falta !== null) {
-      return;
+    if (falta === null) {
+      void registrar(datos);
     }
-    const resultado = await ejecutar(() => registrarSinReintento(datos));
-    if (resultado === undefined) {
-      return;
-    }
-    if (resultado.tipo === 'incierto') {
-      setBloqueado(true);
-      return;
-    }
-    alRegistrar(resultado.valor);
   };
 
   return (
-    <form className={controles['formulario']} onSubmit={registrar} noValidate>
+    <form className={controles['formulario']} onSubmit={enviar} noValidate>
       <CampoTexto
         rotulo={ROTULOS_JEFE.tutorNombre}
         valor={tutorNombre}

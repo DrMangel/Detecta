@@ -99,7 +99,9 @@ describe('Plan de nivelación (CUD05)', () => {
     ).toBeInTheDocument();
     expect(posts(llamadas)).toHaveLength(0);
   });
+});
 
+describe('Plan de nivelación: registro y finalización (CUD05)', () => {
   it('registra: mensaje, datos del plan y «Finalizar plan»; al finalizar queda «Finalizado»', async () => {
     const { llamadas, usuario } = await abrirPlan({
       estado: 201,
@@ -138,7 +140,9 @@ describe('Plan de nivelación (CUD05)', () => {
     expect(posts(llamadas)).toHaveLength(1);
     expect(screen.queryByRole('button', { name: 'Finalizar plan' })).toBeNull();
   });
+});
 
+describe('Plan de nivelación: fallos ciertos (CUD05)', () => {
   it('503 permite reintentar con los datos conservados', async () => {
     let intentos = 0;
     const { llamadas, usuario } = await abrirPlan(() => {

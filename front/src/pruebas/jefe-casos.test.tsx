@@ -86,7 +86,7 @@ describe('Bandeja de casos pendientes (CUD04)', () => {
   });
 });
 
-describe('Detalle y canalización (CUD04)', () => {
+describe('Detalle del caso (CUD04)', () => {
   it('alerta: origen, nivel, justificación, nota, asistencia y antecedentes', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
@@ -136,7 +136,9 @@ describe('Detalle y canalización (CUD04)', () => {
     expect(screen.queryByText('Motivo')).toBeNull();
     expect(screen.queryByText('Necesito apoyo en Cálculo.')).toBeNull();
   });
+});
 
+describe('Canalización del caso (CUD04)', () => {
   it('la ruta no tiene valor por defecto y «Canalizar caso» espera la elección (ajuste A)', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
@@ -208,7 +210,9 @@ describe('Detalle y canalización (CUD04)', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Canalizar caso' })).toBeNull();
   });
+});
 
+describe('Canalización: conflictos y error de red (CUD04)', () => {
   it.each([
     'El caso ya fue canalizado',
     'El programa del estudiante no tiene Jefe de Departamento configurado.',
