@@ -89,6 +89,24 @@ export interface Dictamen {
   estado: EstadoCaso;
 }
 
+export interface CitaEntrada {
+  fechaHora: string;
+  modalidad: Modalidad;
+}
+
+export interface ResultadoEntrada {
+  tipo: TipoAsesoria;
+  observaciones: string;
+  acuerdos: string;
+  asistencia: boolean;
+  requiereSeguimiento: boolean;
+  presentaRiesgoCritico: boolean;
+}
+
+export interface RespuestaCita {
+  cita: Cita;
+}
+
 export interface DatosDictamen {
   idCaso: string;
   pertinente: boolean;
@@ -127,4 +145,53 @@ export function confirmarConsentimiento(
   idCaso: string,
 ): Promise<{ consentimientoConfirmado: boolean }> {
   return pedir({ metodo: 'POST', ruta: `${rutaCaso(idCaso)}/consentimiento` });
+}
+
+export function programarPrimeraCita(
+  idCaso: string,
+  cuerpo: CitaEntrada,
+): Promise<RespuestaCita> {
+  return pedir({
+    metodo: 'POST',
+    ruta: `/pertinencia/${encodeURIComponent(idCaso)}/citas`,
+    cuerpo,
+  });
+}
+
+export function reprogramarCita(
+  idCita: string,
+  cuerpo: CitaEntrada,
+): Promise<RespuestaCita> {
+  return pedir({
+    metodo: 'POST',
+    ruta: `/atencion/citas/${encodeURIComponent(idCita)}/reprogramacion`,
+    cuerpo,
+  });
+}
+
+export function registrarResultado(
+  idCaso: string,
+  idCita: string,
+  cuerpo: ResultadoEntrada,
+): Promise<{ mensaje: string; cita: Cita }> {
+  return pedir({
+    metodo: 'POST',
+    ruta: `${rutaCaso(idCaso)}/citas/${encodeURIComponent(idCita)}/resultado`,
+    cuerpo,
+  });
+}
+
+export function programarSeguimiento(
+  idCaso: string,
+  cuerpo: CitaEntrada,
+): Promise<RespuestaCita> {
+  return pedir({
+    metodo: 'POST',
+    ruta: `${rutaCaso(idCaso)}/seguimiento`,
+    cuerpo,
+  });
+}
+
+export function cerrarCaso(idCaso: string): Promise<{ mensaje: string }> {
+  return pedir({ metodo: 'POST', ruta: `${rutaCaso(idCaso)}/cierre` });
 }
