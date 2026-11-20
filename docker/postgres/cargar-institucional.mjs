@@ -56,17 +56,22 @@ export function prepararCarga(argv, entorno) {
     throw new Error('La variante alternativa solo se permite en institucional_entrega.');
   }
 
-  const demo = base === 'institucional_entrega';
-  const sufijo = opciones.variante === 'alternativa' ? '-alternativa' : '';
-  const prefijo = demo ? 'institucional_entrega' : 'institucional_demo';
+  // La Tabla 25 usa el esquema de institucional_demo.sql (sin nombre de base
+  // en el archivo) con el CSV propio de cada base; la variante alternativa
+  // tiene su propio SQL porque cambian las columnas (decisión 5 de Ivan, F5a).
+  const alternativa = opciones.variante === 'alternativa';
   return {
     base,
     variante: opciones.variante,
-    tabla: opciones.variante === 'alternativa'
+    tabla: alternativa
       ? 'matricula_institucional_alternativa'
       : 'matricula_institucional',
-    sql: `./${prefijo}${sufijo}.sql`,
-    csv: `./${prefijo}${sufijo}.csv`,
+    sql: alternativa
+      ? './institucional_entrega-alternativa.sql'
+      : './institucional_demo.sql',
+    csv: alternativa
+      ? './institucional_entrega-alternativa.csv'
+      : `./${base}.csv`,
     soloValidar: opciones.soloValidar,
   };
 }

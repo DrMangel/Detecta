@@ -12,6 +12,8 @@ test('permite la carga de la Tabla 25 solo en institucional_entrega', () => {
   const carga = prepararCarga(['--base', 'institucional_entrega'], {});
   assert.equal(carga.base, 'institucional_entrega');
   assert.equal(carga.csv, './institucional_entrega.csv');
+  // Mismo esquema que institucional_demo: se reutiliza su SQL, sin copia.
+  assert.equal(carga.sql, './institucional_demo.sql');
 });
 
 test('la variante de columnas ficticias no reemplaza la carga principal', () => {
