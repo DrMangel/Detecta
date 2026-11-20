@@ -19,6 +19,7 @@ import { BandejaCasos } from './paginas/jefe-departamento/bandeja-casos';
 import { PaginaDetalleCaso } from './paginas/jefe-departamento/detalle-caso';
 import { InformesRiesgo } from './paginas/jefe-departamento/informes-riesgo';
 import { EspacioPsicologo } from './paginas/psicologo/espacio-psicologo';
+import { PaginaExpedientePsicologo } from './paginas/psicologo/expediente';
 import type { Rol } from './servicios-api/tipos';
 
 /*
@@ -67,6 +68,11 @@ const RUTAS_PROTEGIDAS: readonly {
     pantalla: <InformesRiesgo />,
   },
   { ruta: '/psicologo', rol: 'PSICOLOGO', pantalla: <EspacioPsicologo /> },
+  {
+    ruta: '/psicologo/casos/:idCaso',
+    rol: 'PSICOLOGO',
+    pantalla: <PaginaExpedientePsicologo />,
+  },
 ];
 
 export function Aplicacion() {

@@ -15,7 +15,7 @@ const ROLES: [Rol, string, string][] = [
   ['ESTUDIANTE', '/estudiante', 'Consulta académica'],
   ['DOCENTE', '/docente', 'Consulta de curso'],
   ['JEFE_DEPARTAMENTO', '/jefe-departamento', 'Casos pendientes'],
-  ['PSICOLOGO', '/psicologo', 'Psicólogo'],
+  ['PSICOLOGO', '/psicologo', 'Remisiones'],
 ];
 
 async function iniciarComo(correo: string, contrasena: string) {
@@ -35,6 +35,9 @@ describe('Inicio de sesión por rol', () => {
       const { llamadas } = simularApi({
         'GET /acceso/sesion': SIN_SESION,
         'POST /acceso/iniciar-sesion': { estado: 200, cuerpo: sesionDe(rol) },
+        ...(rol === 'PSICOLOGO'
+          ? { 'GET /atencion/casos': { estado: 200, cuerpo: [] } }
+          : {}),
       });
       renderizar('/');
       await iniciarComo(
@@ -51,7 +54,9 @@ describe('Inicio de sesión por rol', () => {
       // Espacio vacío: solo el título dentro del contenido principal. Los del
       // Estudiante (F1), del Docente (F2) y del Jefe (F3) ya tienen contenido.
       if (rol === 'PSICOLOGO') {
-        expect(screen.getByRole('main').children).toHaveLength(1);
+        expect(
+          screen.getByText('No hay remisiones para mostrar.'),
+        ).toBeInTheDocument();
       }
       // La bandeja del Jefe consulta al montar: se busca el inicio de sesión.
       const inicio = llamadas.find((l) => l.url.endsWith('/iniciar-sesion'));
@@ -161,6 +166,7 @@ describe('Sesión caducada y cierre de sesión', () => {
   it('cerrar sesión: POST /acceso/cerrar-sesion y vuelve al inicio de sesión', async () => {
     const { llamadas } = simularApi({
       'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('PSICOLOGO') },
+      'GET /atencion/casos': { estado: 200, cuerpo: [] },
       'POST /acceso/cerrar-sesion': { estado: 204 },
     });
     renderizar('/psicologo');
@@ -172,6 +178,7 @@ describe('Sesión caducada y cierre de sesión', () => {
     ).toBeInTheDocument();
     expect(llamadas.map((l) => `${l.metodo} ${l.url}`)).toEqual([
       'GET /api/acceso/sesion',
+      'GET /api/atencion/casos',
       'POST /api/acceso/cerrar-sesion',
     ]);
   });
