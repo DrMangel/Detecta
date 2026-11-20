@@ -15,6 +15,14 @@ export interface OpcionesProveedorCorreoExterno {
   clave: string;
   remitente: string;
   remitenteNombre: string;
+  /** Rechaza el dominio reservado `.invalid` en el entorno de demostración. */
+  rechazarEjemploInvalid?: boolean;
+  /**
+   * Demostración (F5a): solo se envía a la dirección indicada o, si termina
+   * en `*` antes de la arroba, a las que empiezan por ese prefijo en ese
+   * dominio (alias `detectasoportetecnico+*@gmail.com`).
+   */
+  destinoPermitido?: string | null;
   /** Plazo global por envío; 5 s por defecto (ER Tabla 1). */
   plazoMs?: number;
   /**
@@ -46,12 +54,16 @@ export class ProveedorCorreoExterno implements ProveedorCorreo {
   readonly #transporte: Transporter;
   readonly #remitente: { name: string; address: string };
   readonly #plazoMs: number;
+  readonly #rechazarEjemploInvalid: boolean;
+  readonly #destinoPermitido: string | null;
 
   constructor(
     opciones: OpcionesProveedorCorreoExterno,
     transporte?: Transporter,
   ) {
     this.#plazoMs = opciones.plazoMs ?? PLAZO_ENVIO_MS;
+    this.#rechazarEjemploInvalid = opciones.rechazarEjemploInvalid ?? false;
+    this.#destinoPermitido = opciones.destinoPermitido?.toLowerCase() ?? null;
     this.#remitente = {
       name: opciones.remitenteNombre,
       address: opciones.remitente,
@@ -83,6 +95,14 @@ export class ProveedorCorreoExterno implements ProveedorCorreo {
     asunto: string,
     cuerpoHtml: string,
   ): Promise<boolean> {
+    // Demostración (F5a): ningún correo sale hacia direcciones reservadas o
+    // ajenas a los alias de soporte; se corta antes de abrir la conexión.
+    const normalizado = destino.trim().toLowerCase();
+    const reservado =
+      this.#rechazarEjemploInvalid && normalizado.endsWith('@ejemplo.invalid');
+    if (reservado || !cumplePatron(normalizado, this.#destinoPermitido)) {
+      throw new ErrorEnvioCorreo('DESTINATARIO_NO_PERMITIDO');
+    }
     // Un salto de línea en el asunto permitiría inyectar cabeceras (ajuste C).
     if (/[\r\n]/.test(asunto)) {
       throw new ErrorEnvioCorreo('ASUNTO_INVALIDO');
@@ -116,6 +136,29 @@ export class ProveedorCorreoExterno implements ProveedorCorreo {
   onModuleDestroy(): void {
     this.#transporte.close();
   }
+}
+
+/**
+ * `patron` ya viene validado por validacion-entorno.ts: dirección exacta o
+ * prefijo local con `*` final; el comodín no admite arroba ni espacios.
+ */
+function cumplePatron(destino: string, patron: string | null): boolean {
+  if (patron === null) {
+    return true;
+  }
+  const comodin = patron.indexOf('*');
+  if (comodin === -1) {
+    return destino === patron;
+  }
+  const prefijo = patron.slice(0, comodin);
+  const dominio = patron.slice(comodin + 1);
+  const medio = destino.slice(prefijo.length, destino.length - dominio.length);
+  return (
+    destino.startsWith(prefijo) &&
+    destino.endsWith(dominio) &&
+    destino.length > prefijo.length + dominio.length &&
+    !/[@\s]/.test(medio)
+  );
 }
 
 /** Sustituye cualquier error por uno que solo lleva códigos técnicos. */

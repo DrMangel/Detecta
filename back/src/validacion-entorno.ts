@@ -49,6 +49,13 @@ export interface VariablesEntorno {
   SINCRONIZACION_SECRETO: string | null;
   /** Correo saliente (B5): SMTP con Brevo, o desactivado explícitamente. */
   CORREO: ConfiguracionCorreoEntorno;
+  /** Bloquea dominios de ejemplo al enviar desde el entorno de demostración. */
+  CORREO_RECHAZAR_EJEMPLO_INVALID: boolean;
+  /**
+   * Patrón de destinatarios admitidos en demostración (F5a), p. ej.
+   * `detectasoportetecnico+*@gmail.com`; null no restringe.
+   */
+  CORREO_DESTINO_PERMITIDO: string | null;
   /**
    * Hilos de libuv (B9, ajuste 3a): opcional, 4 por defecto. Se valida aquí,
    * pero lo aplica hilos-libuv.ts al arrancar, antes de cargar este módulo.
@@ -235,6 +242,25 @@ export function validarEntorno(
     errores.push('COOKIE_SEGURA debe ser true en producción');
   }
 
+  const rechazarEjemploInvalid =
+    leerTexto(crudas['CORREO_RECHAZAR_EJEMPLO_INVALID']) ?? 'false';
+  if (rechazarEjemploInvalid !== 'true' && rechazarEjemploInvalid !== 'false') {
+    errores.push('CORREO_RECHAZAR_EJEMPLO_INVALID debe ser true o false');
+  }
+
+  // Lista permitida de la demostración (F5a): una dirección exacta o un
+  // prefijo local terminado en «*» con dominio fijo; nada de comodines libres.
+  const destinoPermitido =
+    leerTexto(crudas['CORREO_DESTINO_PERMITIDO'])?.toLowerCase() ?? null;
+  if (
+    destinoPermitido !== null &&
+    !/^[^\s@*]+\*?@[^\s@*]+\.[^\s@*]+$/.test(destinoPermitido)
+  ) {
+    errores.push(
+      'CORREO_DESTINO_PERMITIDO debe ser una dirección o un prefijo terminado en * con dominio fijo',
+    );
+  }
+
   // URL_FRONTEND se normaliza a su origen exacto (esquema, host y puerto):
   // es el único origen admitido por CORS, sin comodines.
   let origenFrontend: string | undefined;
@@ -292,6 +318,8 @@ export function validarEntorno(
     ...(enteros as Record<ClaveEntero, number>),
     ...(opcionales as Record<ClaveEnteroOpcional, number>),
     COOKIE_SEGURA: cookieSegura === 'true',
+    CORREO_RECHAZAR_EJEMPLO_INVALID: rechazarEjemploInvalid === 'true',
+    CORREO_DESTINO_PERMITIDO: destinoPermitido,
     URL_FRONTEND: origenFrontend as string,
     NODE_ENV: nodeEnv as EntornoEjecucion,
   };
