@@ -562,4 +562,19 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   - correos distintos para un mismo estudiante;
   - programas y curso añadidos que anulaban los casos de rechazo de B4;
   - respaldo de enlaces borrado tras el éxito.
-- **Verificación real:** pendiente (ver el informe de cierre de F5a).
+- **Verificación real (20/11/2026, Claude Code, autorizada por Ivan):**
+  1. `preparar-demo.ps1 -Reiniciar`, código 0:
+     - 5 migraciones en `detecta_entrega`;
+     - 80 filas en `institucional_entrega`;
+     - datos iniciales: 2 programas, 3 cuentas y 3 cursos;
+     - 3 enlaces en el archivo de respaldo, que no se mostró.
+
+     El tamaño de las demás bases y las filas de `detecta`, `institucional_demo` y `detecta_pruebas` coinciden antes y después. `detecta_app` solo tiene `SELECT`, `INSERT` y `UPDATE`; `institucional_lector` solo tiene `SELECT` sobre las dos vistas.
+  2. ER 3.4: la sincronización de ISOF-101 actualizó 60 registros en **2,82 s** medidos con `Measure-Command`. La cifra incluye el arranque de Node y de NestJS; la meta es de 10 s.
+  3. Sincronización de todos los cursos, en 3,10 s:
+     - 67 registros actualizados;
+     - omisiones: 3 por calificación o asistencia fuera de rango, 3 por identificación, 1 por fecha de nacimiento, 2 por programa y 2 por datos inconsistentes del estudiante;
+     - QUIM-999 no se lee.
+  4. ER 3.7 e: la variante de columnas ficticias, con su JSON de conector, da el mismo resultado en 3,01 s.
+  5. `iniciar-demo.ps1` abrió los puertos 3000 y 5173 y registró «Sincronización nocturna desactivada». Dos solicitudes de activación por `/api/acceso/solicitar-activacion` (docente y `+est01`) respondieron 202 y emitieron 2 tokens, sin errores de envío en el registro. La recepción en Gmail la confirma Ivan.
+  6. Cierre por PID: al detener el backend lanzado, el script cerró Vite y terminó con código 0, sin puertos ocupados.
