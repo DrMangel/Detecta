@@ -27,6 +27,7 @@ export interface Informe {
 export interface FiltrosInforme {
   periodo: string;
   idCurso: string;
+  idPrograma?: string;
 }
 
 /** 201 con el informe, o 200 con el mensaje si no hay datos (sd_CUD10 3.a). */

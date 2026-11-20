@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { CampoTexto } from './campo-texto';
 import controles from './controles.module.css';
 import {
@@ -10,6 +10,7 @@ import { formatearFechaHora } from './formato';
 import { guardarArchivo } from './guardar-archivo';
 import { MensajeError, MensajeInformativo } from './mensaje-error';
 import { useEnvio } from './use-envio';
+import { useConsulta } from './use-consulta';
 import {
   exportarInforme,
   generarInforme,
@@ -17,9 +18,16 @@ import {
   type Informe,
   type ResultadoInforme,
 } from '../servicios-api/informes';
+import { consultarProgramas } from '../servicios-api/programas';
 import { LIMITES } from '../servicios-api/limites';
 import estilos from '../paginas/jefe-departamento/jefe-departamento.module.css';
 import { PlantillaJefe } from '../paginas/jefe-departamento/plantilla-jefe-departamento';
+import { PlantillaPsicologo } from '../paginas/psicologo/plantilla-psicologo';
+import {
+  ROTULOS_INFORMES_PSICOLOGO,
+  TEXTO_SIN_PROGRAMAS,
+  TITULOS_PSICOLOGO,
+} from '../paginas/psicologo/textos';
 import {
   ROTULOS_JEFE,
   TEXTO_GENERANDO_INFORME,
@@ -73,6 +81,130 @@ export function InformesRiesgo() {
           ))}
       </div>
     </PlantillaJefe>
+  );
+}
+
+/** Misma IU y resultado de F3, con selección de programa para CUD10 (F4c). */
+export function InformesRiesgoPsicologo() {
+  const { datos: programas, error: errorProgramas } = useConsulta(
+    consultarProgramas,
+    'programas',
+  );
+  const [resultado, setResultado] = useState<ResultadoInforme | null>(null);
+  const { enviando, enEspera, error, ejecutar } = useEnvio();
+
+  const generar = async (filtros: FiltrosInforme) => {
+    setResultado(null);
+    setResultado((await ejecutar(() => generarInforme(filtros))) ?? null);
+  };
+
+  return (
+    <PlantillaPsicologo titulo={TITULOS_PSICOLOGO.informes}>
+      <FiltrosInformePsicologo
+        programas={programas}
+        ocupado={enviando || enEspera}
+        alGenerar={(filtros) => void generar(filtros)}
+      />
+      {enviando && <p role="status">{TEXTO_GENERANDO_INFORME}</p>}
+      <MensajeError mensaje={errorProgramas ?? error} />
+      <div aria-busy={enviando}>
+        {resultado !== null &&
+          ('mensaje' in resultado ? (
+            <MensajeInformativo mensaje={resultado.mensaje} />
+          ) : (
+            <InformeGenerado informe={resultado.informe} />
+          ))}
+      </div>
+    </PlantillaPsicologo>
+  );
+}
+
+function FiltrosInformePsicologo({
+  programas,
+  ocupado,
+  alGenerar,
+}: {
+  programas: Awaited<ReturnType<typeof consultarProgramas>> | null;
+  ocupado: boolean;
+  alGenerar: (filtros: FiltrosInforme) => void;
+}) {
+  const idProgramaDom = useId();
+  const [periodo, setPeriodo] = useState('');
+  const [idCurso, setIdCurso] = useState('');
+  const [indicePrograma, setIndicePrograma] = useState('');
+  const [errorPeriodo, setErrorPeriodo] = useState<string | null>(null);
+
+  const enviar = (evento: FormEvent) => {
+    evento.preventDefault();
+    if (periodo.trim() === '') {
+      setErrorPeriodo(TEXTO_INDIQUE_PERIODO);
+      return;
+    }
+    const programa =
+      indicePrograma === '' ? undefined : programas?.[Number(indicePrograma)];
+    if (programa === undefined || idCurso.trim() === '') {
+      return;
+    }
+    setErrorPeriodo(null);
+    alGenerar({
+      periodo: periodo.trim(),
+      idPrograma: programa.idPrograma,
+      idCurso: idCurso.trim(),
+    });
+  };
+
+  return (
+    <>
+      <form className={controles['formulario']} onSubmit={enviar} noValidate>
+        <CampoTexto
+          rotulo={ROTULOS_PERIODO.periodo}
+          valor={periodo}
+          alCambiar={setPeriodo}
+          maximo={LIMITES.periodo}
+          ayuda={ROTULOS_PERIODO.ayuda}
+          requerido
+          error={errorPeriodo}
+        />
+        <div className={controles['campo']}>
+          <label htmlFor={idProgramaDom}>
+            {ROTULOS_INFORMES_PSICOLOGO.programa}
+          </label>
+          <select
+            id={idProgramaDom}
+            value={indicePrograma}
+            onChange={(evento) => setIndicePrograma(evento.target.value)}
+            disabled={programas === null || programas.length === 0 || ocupado}
+            required
+          >
+            <option value="">
+              {ROTULOS_INFORMES_PSICOLOGO.seleccionarPrograma}
+            </option>
+            {(programas ?? []).map((programa, indice) => (
+              <option key={indice} value={String(indice)}>
+                {programa.nombre}
+              </option>
+            ))}
+          </select>
+          {programas?.length === 0 && (
+            <MensajeInformativo mensaje={TEXTO_SIN_PROGRAMAS} />
+          )}
+        </div>
+        <CampoTexto
+          rotulo={ROTULOS_COMUNES.codigoCurso}
+          valor={idCurso}
+          alCambiar={setIdCurso}
+          maximo={LIMITES.identificador}
+          requerido
+        />
+        <button
+          type="submit"
+          className={controles['boton']}
+          disabled={ocupado || indicePrograma === '' || idCurso.trim() === ''}
+        >
+          {ROTULOS_JEFE.generarInforme}
+        </button>
+      </form>
+    </>
   );
 }
 

@@ -18,7 +18,8 @@
 /* :where() no suma especificidad: las reglas de cada rol (por ejemplo, el
    alto de las áreas de texto) ganan sin depender del orden del CSS. */
 :where(.campo) input,
-:where(.campo) textarea {
+:where(.campo) textarea,
+:where(.campo) select {
   min-height: 2.75rem;
   padding: var(--espacio-2) var(--espacio-3);
   border: 1px solid var(--color-borde);

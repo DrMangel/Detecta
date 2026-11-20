@@ -518,3 +518,20 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
 | M7 | Casos del psicólogo / reprogramar: p95 de 161 / 276 ms |
 
 **Pool de conexiones:** se mantiene en 10 por falta de evidencia a favor de otro valor. El barrido realista (10, 20 y 30, una repetición) fue inválido: M4 corrió sin los datos del escenario y sus respuestas fueron 401. En estrés, el control salió fuera de rango y no hubo mejora demostrable.
+
+## 12. F4c: informes del Psicólogo (aprobada)
+
+- Rama `fase/f4c-psicologo-informes`, creada desde `main` (`ac3fea8`). Reutiliza `IU_Informes` y la plantilla existente del Psicólogo; `GET /programas` alimenta el selector, que muestra nombres y mantiene los identificadores fuera del DOM. El Psicólogo envía `{periodo, idPrograma, idCurso}`; el cuerpo del Jefe permanece `{periodo, idCurso}`.
+- El backend inspeccionado devuelve 200 con `No hay datos para el periodo seleccionado` si curso/programa/período no producen datos; curso inexistente devuelve 400. Se añadieron pruebas de componente para el caso sin datos, sin poder confirmarlo mediante HTTP real.
+- Front verificado: 246 pruebas (29 archivos), typecheck, lint, format:check y build correctos. La suite nueva cubre programas vacíos/errores, selección sin IDs en DOM/almacenamiento, cuerpo Psicólogo, respuesta sin datos y descarga PDF simulada. Las 6 pruebas existentes del Jefe siguen sin cambios.
+- Primer intento de verificación real (superado por el siguiente punto): el proceso arrancó con `CORREO_MODO=desactivado` confirmado en su registro, pero no abrió el puerto 3000; por seguridad no se enviaron peticiones. No se generó ningún informe. Quedan sin confirmar el caso curso ajeno a programa, el cuerpo real del Psicólogo, el PDF no vacío y la comparación real del cuerpo del Jefe. La verificación visual queda no verificada en navegador y pasa a F5b.
+- Textos provisionales aprobados para revisar en F5: `Informes de riesgo` y `No hay programas disponibles.`; `Programa` y `Seleccione un programa` ya estaban aprobados.
+- Verificación real y visual (20/11/2026, Claude Code, en la rama; backend recompilado con `CORREO_MODO=desactivado` como variable del proceso, confirmado en su registro; cuenta del Psicólogo y del Jefe):
+  1. `GET /programas`: 200, ordenado por nombre, cada elemento solo con `{idPrograma, nombre}`.
+  2. `POST /informes`: 201 con `idPrograma` en el cuerpo enviado. Se generó un único informe: CALC-201, 2026-2, programa SIS.
+  3. Curso de otro programa: 200 con «No hay datos para el periodo seleccionado»; la interfaz muestra ese texto.
+  4. PDF: 200, `application/pdf`, empieza con `%PDF-`.
+  5. Navegador a 1280 y 360 px: sin desbordes; el selector usa valores por posición; ningún `idPrograma` en el DOM ni en atributos; `localStorage` y `sessionStorage` en 0; la descarga del PDF funciona.
+  6. El cuerpo del Jefe sigue sin `idPrograma`.
+  7. Observación: el Jefe de un programa puede descargar el informe de su programa generado por el Psicólogo, porque la regla filtra por programa y no por autor (a verificar contra el ER).
+- Pendiente para F5b: inconsistencia de anchos entre el aviso «sin datos» del Jefe (ancho completo), el formulario (720 px) y la tarjeta del Psicólogo (848 px); botón deshabilitado con poco contraste; favicon pendiente.

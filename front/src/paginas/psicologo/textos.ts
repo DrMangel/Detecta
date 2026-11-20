@@ -13,7 +13,17 @@ export const TITULOS_PSICOLOGO = {
   remisiones: 'Remisiones',
   /** Nuevo provisional de F4a. */
   expediente: 'Expediente de atención psicológica',
+  /** Provisional aprobado en F3. */
+  informes: 'Informes de riesgo',
 } as const;
+
+export const ROTULOS_INFORMES_PSICOLOGO = {
+  programa: 'Programa',
+  seleccionarPrograma: 'Seleccione un programa',
+} as const;
+
+/** Texto provisional aprobado para el selector vacío; revisar en F5. */
+export const TEXTO_SIN_PROGRAMAS = 'No hay programas disponibles.';
 
 export const ROTULOS_PSICOLOGO = {
   casosSinAsignar: 'Sin asignar',
