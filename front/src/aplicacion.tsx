@@ -17,6 +17,7 @@ import { MisSolicitudes } from './paginas/estudiante/mis-solicitudes';
 import { PaginaSolicitarAcompanamiento } from './paginas/estudiante/solicitar-acompanamiento';
 import { BandejaCasos } from './paginas/jefe-departamento/bandeja-casos';
 import { PaginaDetalleCaso } from './paginas/jefe-departamento/detalle-caso';
+import { InformesRiesgo } from './paginas/jefe-departamento/informes-riesgo';
 import { EspacioPsicologo } from './paginas/psicologo/espacio-psicologo';
 import type { Rol } from './servicios-api/tipos';
 
@@ -59,6 +60,11 @@ const RUTAS_PROTEGIDAS: readonly {
     ruta: '/jefe-departamento/casos/:idCaso',
     rol: 'JEFE_DEPARTAMENTO',
     pantalla: <PaginaDetalleCaso />,
+  },
+  {
+    ruta: '/jefe-departamento/informes',
+    rol: 'JEFE_DEPARTAMENTO',
+    pantalla: <InformesRiesgo />,
   },
   { ruta: '/psicologo', rol: 'PSICOLOGO', pantalla: <EspacioPsicologo /> },
 ];
