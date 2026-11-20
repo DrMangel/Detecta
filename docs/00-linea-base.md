@@ -374,6 +374,17 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Cuentas de ejemplo | Las contraseñas del docente y del Jefe de ejemplo no se conocían: se emitió un enlace nuevo con `npm run datos:iniciales -- --enlace <correo>` y se canjeó por `POST /acceso/activar`, con correo desactivado. Las contraseñas nuevas solo están fuera del repositorio |
 | Datos de prueba en la base `detecta` (desarrollo) | La prueba manual de F3 dejó: la alerta de F2 de Pedro Tres (Cálculo Integral) canalizada a la ruta académica (`EN_NIVELACION`) con **1 plan** finalizado (tutor «Prueba manual F3 Tutor», código «T-F3-01», curso Cálculo Integral) y su evento `PLAN_FINALIZADO`; la solicitud académica de F1 de Luis Gomez Torres («me cuesta seguir el ritmo de Cálculo Integral») canalizada a psicología (`PENDIENTE`, ruta `PSICOLOGICA`), que queda para F4; y **1 informe** de 2026-2 de Cálculo Integral. **No son datos de demostración** |
 
+### Implementación parcial del frontend (F4a)
+
+| Tipo | Registro |
+|---|---|
+| Estado | F4a implementada; pendiente de verificación contra el backend real y en navegador. Pasaron **226 pruebas** de frontend. |
+| Desvío temporal respecto a `sd_CUD06` | La programación de la primera cita se difiere a F4b. Un caso aprobado sigue apareciendo en la bandeja como asignado para que F4b continúe desde ahí. |
+| Limitaciones | Ante un error de red no conciliable, el dictamen queda bloqueado contra reintentos en esa vista. El backend devuelve el mismo mensaje con barra para archivar y reorientar («Caso archivado / reorientado»); la interfaz presenta textos provisionales distintos según el estado conciliado. |
+| Traspaso obligatorio a F4b (R06) | Para un menor sin consentimiento confirmado, registrar el resultado de la asesoría o de la sesión atendida debe quedar bloqueado: ER R06, situación 2; Manual CUD08, precondición y extensión 1.a. |
+| Textos nuevos provisionales para revisar en F5 | Títulos: «Remisiones», «Expediente de atención psicológica». Navegación, secciones y campos: «Sin asignar», «Asignadas a mí», «Ver expediente», «Origen», «Ruta de atención», «Antecedentes académicos», «Citas», «Resultado de asesoría», «Modalidad», «Tipo de asesoría», «Observaciones», «Acuerdos», «Asistencia», «Requiere seguimiento», «Presenta riesgo crítico», «Consentimiento informado confirmado», «Psicólogo asignado», «Evaluar pertinencia», «Justificación», «Confirmar consentimiento». Valores legibles: estados del caso y de citas, modalidad, tipo de asesoría, origen y ruta psicológica. Mensajes/validación: «Registre la justificación», «No hay remisiones para mostrar.», «Información no disponible», «No se pudo confirmar el resultado. Para evitar repetir el dictamen, no puede enviarse de nuevo desde esta pantalla.», «El consentimiento informado está confirmado.», «Caso archivado» y «Caso reorientado». |
+| Cuenta de Psicólogo | No hay una cuenta ni credenciales de Psicólogo documentadas en el repositorio. El archivo de datos iniciales de ejemplo no contiene contraseñas; las define quien activa la cuenta. |
+
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
 | # | Tema | Fase límite | Estado |
