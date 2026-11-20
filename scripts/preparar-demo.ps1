@@ -9,7 +9,7 @@
   Tabla 25 en institucional_entrega y crea los datos iniciales.
 
   Los enlaces de activación que imprime datos-iniciales se guardan en
-  %LOCALAPPDATA%\detecta-demo\enlaces-activacion.txt, fuera del repositorio;
+  %USERPROFILE%\detecta-entrega\enlaces-activacion.txt, fuera del repositorio;
   el script solo muestra la ruta, nunca el contenido.
 
 .PARAMETER Reiniciar
@@ -28,7 +28,8 @@ $ErrorActionPreference = 'Stop'
 
 $raiz = Split-Path -Parent $PSScriptRoot
 $back = Join-Path $raiz 'back'
-$carpetaRespaldo = Join-Path $env:LOCALAPPDATA 'detecta-demo'
+# Decisión 3 de Ivan (F5a): nunca en %TEMP%, nunca impreso ni versionado.
+$carpetaRespaldo = Join-Path $env:USERPROFILE 'detecta-entrega'
 $archivoEnlaces = Join-Path $carpetaRespaldo 'enlaces-activacion.txt'
 $archivoErrores = Join-Path $carpetaRespaldo 'datos-iniciales-errores.txt'
 
