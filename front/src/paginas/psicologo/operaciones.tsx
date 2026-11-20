@@ -4,6 +4,7 @@ import controles from '../../componentes/controles.module.css';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useEnvio } from '../../componentes/use-envio';
 import { LIMITES } from '../../servicios-api/limites';
+import { ErrorApi } from '../../servicios-api/errores';
 import {
   consultarCasoPsicologo,
   cerrarCaso,
@@ -52,15 +53,23 @@ export function OperacionesExpediente({
   const [requiereSeguimiento, setRequiereSeguimiento] = useState(false);
   const [riesgo, setRiesgo] = useState(false);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [reintentoBloqueado, setReintentoBloqueado] = useState(false);
   const refrescar = async () => {
     const detalle = await consultarCasoPsicologo(idCaso);
     actualizar(detalle.caso);
   };
   const enviar = (accion: () => Promise<unknown>) =>
     void envio.ejecutar(async () => {
-      const respuesta = await accion();
-      await refrescar();
-      return respuesta;
+      try {
+        const respuesta = await accion();
+        await refrescar();
+        return respuesta;
+      } catch (error) {
+        if (error instanceof ErrorApi && error.estado === null) {
+          setReintentoBloqueado(true);
+        }
+        throw error;
+      }
     });
   const cita = (cuerpo: { fechaHora: string; modalidad: Modalidad }) => ({
     fechaHora: isoBogota(cuerpo.fechaHora),
@@ -95,6 +104,12 @@ export function OperacionesExpediente({
       <h2>Atención y seguimiento</h2>
       <p>Las fechas se interpretan en America/Bogota (UTC-5).</p>
       <MensajeError mensaje={envio.error} />
+      {reintentoBloqueado && (
+        <p role="status">
+          No se pudo confirmar la operación. Consulte de nuevo el expediente
+          antes de reintentar.
+        </p>
+      )}
       {caso.estado === 'EN_EVALUACION' && caso.citas.length === 0 && (
         <form
           className={controles['formulario']}
@@ -132,7 +147,7 @@ export function OperacionesExpediente({
           </label>
           <button
             className={controles['boton']}
-            disabled={envio.enviando || envio.enEspera}
+            disabled={reintentoBloqueado || envio.enviando || envio.enEspera}
           >
             Programar cita
           </button>
@@ -179,7 +194,9 @@ export function OperacionesExpediente({
               </label>
               <button
                 className={controles['boton']}
-                disabled={envio.enviando || envio.enEspera}
+                disabled={
+                  reintentoBloqueado || envio.enviando || envio.enEspera
+                }
               >
                 Reprogramar
               </button>
@@ -265,7 +282,10 @@ export function OperacionesExpediente({
               <button
                 className={controles['boton']}
                 disabled={
-                  requiereConsentimiento || envio.enviando || envio.enEspera
+                  requiereConsentimiento ||
+                  envio.enviando ||
+                  envio.enEspera ||
+                  reintentoBloqueado
                 }
               >
                 Registrar resultado
@@ -311,7 +331,7 @@ export function OperacionesExpediente({
           </label>
           <button
             className={controles['boton']}
-            disabled={envio.enviando || envio.enEspera}
+            disabled={reintentoBloqueado || envio.enviando || envio.enEspera}
           >
             Programar seguimiento
           </button>
@@ -322,7 +342,12 @@ export function OperacionesExpediente({
           <button
             type="button"
             className={controles['boton']}
-            disabled={!cierreCompleto || envio.enviando || envio.enEspera}
+            disabled={
+              reintentoBloqueado ||
+              !cierreCompleto ||
+              envio.enviando ||
+              envio.enEspera
+            }
             onClick={() =>
               enviar(async () => {
                 const r = await cerrarCaso(idCaso);
@@ -333,9 +358,9 @@ export function OperacionesExpediente({
           >
             Cerrar caso
           </button>
-          {mensaje && <p role="status">{mensaje}</p>}
         </div>
       )}
+      {mensaje && <p role="status">{mensaje}</p>}
     </section>
   );
 }

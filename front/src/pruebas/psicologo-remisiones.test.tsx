@@ -218,6 +218,13 @@ describe('Consentimiento de menores (CUD09)', () => {
     expect(
       await screen.findByText('El consentimiento informado está confirmado.'),
     ).toBeInTheDocument();
+    expect(
+      llamadas.filter(
+        (llamada) =>
+          llamada.metodo === 'GET' &&
+          llamada.url.endsWith(`/atencion/casos/${ID_CASO}`),
+      ),
+    ).toHaveLength(2);
     expect(llamadas.find((llamada) => llamada.metodo === 'POST')).toMatchObject(
       { cuerpo: undefined },
     );
