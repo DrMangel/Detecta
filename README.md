@@ -153,6 +153,9 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 | `POST /planes/:idPlan/finalizacion` | Jefe | 200; plan FINALIZADO; el caso sigue EN_NIVELACION |
 | `POST /informes` `{periodo, idPrograma?, idCurso}` | Jefe o Psicólogo | 201 con los totales; 200 `{mensaje}` si no hay datos. `idPrograma` es obligatorio para el Psicólogo y no se admite para el Jefe (usa el programa que dirige) |
 | `GET /informes/:idInforme/pdf` | Jefe o Psicólogo | PDF adjunto (`informe-riesgo.pdf`); el Jefe solo los de su programa |
+| `GET /programas` | Psicólogo | 200 `[{idPrograma, nombre}]`, ordenado por nombre en español; 401 sin sesión y 403 para otros roles |
+
+`GET /programas` es de solo lectura; la respuesta autenticada lleva `Cache-Control: no-store`. El Jefe no usa esta ruta: sus informes usan el programa que dirige.
 
 - **Cursos del plan:** solo cursos en los que el estudiante tiene registro académico. El tutor es un dato informativo (nombre y código obligatorios).
 - **Qué cuenta el informe:** alertas de la asignatura y el periodo; casos cerrados o archivados con origen en una alerta de la asignatura (no los reorientados, ni las solicitudes voluntarias, ni los casos de la ruta académica); planes que refuerzan la asignatura, contados aparte. Solo datos agregados, iguales para el Jefe y el Psicólogo.

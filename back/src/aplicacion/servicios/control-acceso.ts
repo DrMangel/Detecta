@@ -40,6 +40,7 @@ export const MATRIZ_PERMISOS: Readonly<Record<Rol, readonly string[]>> = {
   ],
   // sd_CUD06 (incluye CUD07, CUD08 y CUD09), sd_CUD10; R05, R06, R07.
   [Rol.PSICOLOGO]: [
+    'listarProgramas',
     'listarCasosPsicologo',
     'evaluarPertinencia',
     'programarCita',
