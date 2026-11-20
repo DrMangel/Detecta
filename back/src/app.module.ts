@@ -6,6 +6,7 @@ import { ModuloAcceso } from './controladores/modulo-acceso';
 import { ModuloAlertasSolicitudes } from './controladores/modulo-alertas-solicitudes';
 import { ModuloCasosAtencion } from './controladores/modulo-casos-atencion';
 import { ModuloPlanesInformes } from './controladores/modulo-planes-informes';
+import { ModuloProgramas } from './controladores/modulo-programas';
 import { ModuloSincronizacion } from './controladores/modulo-sincronizacion';
 import { ModuloIntegracion } from './integracion/modulo-integracion';
 import { ModuloNotificacion } from './controladores/modulo-notificacion';
@@ -96,6 +97,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
     ModuloAlertasSolicitudes,
     ModuloCasosAtencion,
     ModuloPlanesInformes,
+    ModuloProgramas,
   ],
 })
 export class AppModule {}
