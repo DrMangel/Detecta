@@ -7,6 +7,7 @@ import {
   type AlertaEmitida,
 } from '../../servicios-api/docente';
 import { useEnvio } from '../../componentes/use-envio';
+import tabla from '../../componentes/tabla.module.css';
 import estilos from './docente.module.css';
 import { PlantillaDocente } from './plantilla-docente';
 import {
@@ -60,7 +61,7 @@ export function AlertasEmitidas() {
 
 function TablaAlertas({ alertas }: { alertas: readonly AlertaEmitida[] }) {
   return (
-    <table className={estilos['tabla']}>
+    <table className={tabla['tabla']}>
       <thead>
         <tr>
           <th scope="col">{ROTULOS_DOCENTE.fecha}</th>
@@ -74,10 +75,7 @@ function TablaAlertas({ alertas }: { alertas: readonly AlertaEmitida[] }) {
       <tbody>
         {alertas.map((alerta) => (
           <tr key={alerta.idAlerta}>
-            <td
-              className={estilos['numero']}
-              data-rotulo={ROTULOS_DOCENTE.fecha}
-            >
+            <td className={tabla['numero']} data-rotulo={ROTULOS_DOCENTE.fecha}>
               {formatearFecha(alerta.fecha)}
             </td>
             <th scope="row" data-rotulo={ROTULOS_DOCENTE.estudiante}>
@@ -88,7 +86,7 @@ function TablaAlertas({ alertas }: { alertas: readonly AlertaEmitida[] }) {
               {NOMBRE_NIVEL_RIESGO[alerta.nivelRiesgo]}
             </td>
             <td
-              className={estilos['texto']}
+              className={tabla['texto']}
               data-rotulo={ROTULOS_DOCENTE.justificacion}
             >
               {alerta.descripcion}

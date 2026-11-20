@@ -1,3 +1,4 @@
+import { ROTULOS_COMUNES } from '../../componentes/etiquetas';
 import type { TipoApoyo } from '../../servicios-api/estudiante';
 
 /*
@@ -23,19 +24,11 @@ export const TITULOS_ESTUDIANTE = {
 } as const;
 
 export const ROTULOS_ESTUDIANTE = {
+  ...ROTULOS_COMUNES,
   asignatura: 'Asignatura',
-  nota: 'Nota',
-  asistencia: 'Asistencia',
-  ultimaSincronizacion: 'Última sincronización',
   alertas: 'Alertas',
-  fecha: 'Fecha',
-  nivelRiesgo: 'Nivel de riesgo',
   descripcion: 'Descripción',
-  tipoApoyo: 'Tipo de apoyo',
-  motivo: 'Motivo',
-  disponibilidad: 'Disponibilidad horaria',
   disponibilidadOpcional: 'Disponibilidad horaria (opcional)',
-  estado: 'Estado',
   codigo: 'Código de rastreo',
   enviar: 'Enviar solicitud',
 } as const;

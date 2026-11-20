@@ -14,6 +14,9 @@ describe('LIMITES', () => {
       descripcion: 2000,
       motivo: 2000,
       disponibilidad: 500,
+      tutorNombre: 150,
+      tutorCodigo: 20,
+      cronograma: 2000,
     });
   });
 });

@@ -12,4 +12,8 @@ export const LIMITES = {
   descripcion: 2000,
   motivo: 2000,
   disponibilidad: 500,
+  /** Plan de nivelación (CUD05) */
+  tutorNombre: 150,
+  tutorCodigo: 20,
+  cronograma: 2000,
 } as const;

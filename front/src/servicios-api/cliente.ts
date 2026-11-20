@@ -75,15 +75,11 @@ async function enviar(peticion: Peticion): Promise<Response> {
   }
 }
 
-export async function pedir<T>(peticion: Peticion): Promise<T> {
-  const respuesta = await enviar(peticion);
-  const datos = await leerCuerpo(respuesta);
-  if (respuesta.ok) {
-    return datos as T;
-  }
+/** Error uniforme de una respuesta no exitosa; un 401 avisa a la sesión. */
+async function fallo(respuesta: Response, peticion: Peticion): Promise<never> {
   const error = errorDeRespuesta({
     estado: respuesta.status,
-    cuerpo: datos,
+    cuerpo: await leerCuerpo(respuesta),
     retryAfter: respuesta.headers.get('Retry-After'),
     textos403: peticion.textos403,
   });
@@ -91,4 +87,26 @@ export async function pedir<T>(peticion: Peticion): Promise<T> {
     alSesionInvalida?.(error.message);
   }
   throw error;
+}
+
+export async function pedir<T>(peticion: Peticion): Promise<T> {
+  const respuesta = await enviar(peticion);
+  if (!respuesta.ok) {
+    return fallo(respuesta, peticion);
+  }
+  return (await leerCuerpo(respuesta)) as T;
+}
+
+/**
+ * Descarga un archivo por GET (F3, CUD10 paso 6). Devuelve solo el
+ * contenido: el nombre lo pone quien llama, porque entre orígenes el CORS
+ * del backend no expone Content-Disposition (ajuste C de F3).
+ */
+export async function descargar(ruta: string): Promise<Blob> {
+  const peticion: Peticion = { metodo: 'GET', ruta };
+  const respuesta = await enviar(peticion);
+  if (!respuesta.ok) {
+    return fallo(respuesta, peticion);
+  }
+  return respuesta.blob();
 }

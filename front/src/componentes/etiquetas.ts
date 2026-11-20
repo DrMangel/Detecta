@@ -40,6 +40,26 @@ export const TEXTO_INDIQUE_PERIODO = 'Indique el periodo académico.';
 
 /* ---------- Nuevos compartidos (provisionales, planes de F1 y F2) ---------- */
 
+/**
+ * Rótulos que repiten varios roles (F3: el Jefe usa los del Docente y del
+ * Estudiante). «Justificación» viene de R01 y de sd_CUD03.
+ */
+export const ROTULOS_COMUNES = {
+  codigoCurso: 'Código del curso',
+  curso: 'Curso',
+  estudiante: 'Estudiante',
+  nota: 'Nota',
+  asistencia: 'Asistencia',
+  fecha: 'Fecha',
+  estado: 'Estado',
+  nivelRiesgo: 'Nivel de riesgo',
+  justificacion: 'Justificación',
+  tipoApoyo: 'Tipo de apoyo',
+  motivo: 'Motivo',
+  disponibilidad: 'Disponibilidad horaria',
+  ultimaSincronizacion: 'Última sincronización',
+} as const;
+
 /** Consulta por periodo (FormularioPeriodo) y rótulos que la acompañan. */
 export const ROTULOS_PERIODO = {
   periodo: 'Periodo académico',

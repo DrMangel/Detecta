@@ -3,6 +3,7 @@ import {
   NOMBRE_ESTADO,
   NOMBRE_NIVEL_RIESGO,
   NOMBRE_TIPO_APOYO,
+  ROTULOS_COMUNES,
   TEXTO_INDIQUE_PERIODO,
   TEXTO_INFORMACION_NO_DISPONIBLE,
 } from './etiquetas';
@@ -28,5 +29,15 @@ describe('etiquetas compartidas', () => {
   it('textos transcritos y reutilizados del backend', () => {
     expect(TEXTO_INFORMACION_NO_DISPONIBLE).toBe('Información no disponible');
     expect(TEXTO_INDIQUE_PERIODO).toBe('Indique el periodo académico.');
+  });
+
+  it('los rótulos comunes conservan el texto que tenían en F1 y F2', () => {
+    expect(ROTULOS_COMUNES).toMatchObject({
+      codigoCurso: 'Código del curso',
+      nivelRiesgo: 'Nivel de riesgo',
+      justificacion: 'Justificación',
+      motivo: 'Motivo',
+      disponibilidad: 'Disponibilidad horaria',
+    });
   });
 });

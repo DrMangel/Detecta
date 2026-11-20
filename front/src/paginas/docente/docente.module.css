@@ -1,9 +1,7 @@
 /*
  * Pantallas del Docente (F2). Uso principal desde computador de escritorio
- * (ER 3.3.4): tablas con encabezados semánticos. A menos de 48rem cada fila
- * se apila como tarjeta, con el rótulo de la columna tomado de data-rotulo,
- * para no desbordar a 360 px. Controles de al menos 44 px. Tokens de
- * estilos/base.css.
+ * (ER 3.3.4); la tabla está en componentes/tabla.module.css (F3). Controles
+ * de al menos 44 px. Tokens de estilos/base.css.
  */
 
 .grupo legend {
@@ -114,98 +112,4 @@
 
 .registro dd {
   margin: 0;
-}
-
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-superficie);
-}
-
-.tabla th,
-.tabla td {
-  padding: var(--espacio-2) var(--espacio-3);
-  border-bottom: 1px solid var(--color-borde);
-  text-align: left;
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-
-.tabla thead th {
-  font-weight: 700;
-  border-bottom-width: 2px;
-}
-
-.tabla tbody th {
-  font-weight: 600;
-}
-
-.numero {
-  font-variant-numeric: tabular-nums;
-}
-
-.tabla td.accion {
-  text-align: right;
-}
-
-.texto {
-  white-space: pre-line;
-}
-
-/* Solo para lectores de pantalla. */
-.oculto {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (max-width: 47.99rem) {
-  .tabla thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-  }
-
-  .tabla,
-  .tabla tbody,
-  .tabla tr,
-  .tabla th,
-  .tabla td {
-    display: block;
-  }
-
-  .tabla {
-    background: transparent;
-  }
-
-  .tabla tr {
-    margin-bottom: var(--espacio-2);
-    padding: var(--espacio-2) 0;
-    background: var(--color-superficie);
-    border: 1px solid var(--color-borde);
-    border-radius: var(--radio);
-  }
-
-  .tabla th,
-  .tabla td {
-    border-bottom: none;
-    padding: var(--espacio-1) var(--espacio-3);
-  }
-
-  .tabla [data-rotulo]::before {
-    content: attr(data-rotulo) ': ';
-    font-weight: 600;
-  }
-
-  .tabla td.accion {
-    text-align: left;
-  }
 }
