@@ -43,9 +43,23 @@ describe('contratos del Psicólogo', () => {
       },
     });
 
-    await evaluarPertinencia('caso-1', true, 'Evaluación pertinente');
-    await evaluarPertinencia('caso-1', false, 'No procede', false);
-    await evaluarPertinencia('caso-1', false, 'Corresponde a otra área', true);
+    await evaluarPertinencia({
+      idCaso: 'caso-1',
+      pertinente: true,
+      justificacion: 'Evaluación pertinente',
+    });
+    await evaluarPertinencia({
+      idCaso: 'caso-1',
+      pertinente: false,
+      justificacion: 'No procede',
+      reorientar: false,
+    });
+    await evaluarPertinencia({
+      idCaso: 'caso-1',
+      pertinente: false,
+      justificacion: 'Corresponde a otra área',
+      reorientar: true,
+    });
 
     expect(llamadas.map(({ cuerpo }) => cuerpo)).toEqual([
       { pertinente: true, justificacion: 'Evaluación pertinente' },

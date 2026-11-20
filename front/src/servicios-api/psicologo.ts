@@ -89,6 +89,13 @@ export interface Dictamen {
   estado: EstadoCaso;
 }
 
+export interface DatosDictamen {
+  idCaso: string;
+  pertinente: boolean;
+  justificacion: string;
+  reorientar?: boolean;
+}
+
 const rutaCaso = (idCaso: string) =>
   `/atencion/casos/${encodeURIComponent(idCaso)}`;
 
@@ -102,19 +109,16 @@ export function consultarCasoPsicologo(
   return pedir<DetallePsicologo>({ metodo: 'GET', ruta: rutaCaso(idCaso) });
 }
 
-export function evaluarPertinencia(
-  idCaso: string,
-  pertinente: boolean,
-  justificacion: string,
-  reorientar?: boolean,
-): Promise<Dictamen> {
+export function evaluarPertinencia(datos: DatosDictamen): Promise<Dictamen> {
   return pedir<Dictamen>({
     metodo: 'POST',
-    ruta: `/pertinencia/${encodeURIComponent(idCaso)}`,
+    ruta: `/pertinencia/${encodeURIComponent(datos.idCaso)}`,
     cuerpo: {
-      pertinente,
-      justificacion,
-      ...(reorientar === undefined ? {} : { reorientar }),
+      pertinente: datos.pertinente,
+      justificacion: datos.justificacion,
+      ...(datos.reorientar === undefined
+        ? {}
+        : { reorientar: datos.reorientar }),
     },
   });
 }
