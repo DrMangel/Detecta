@@ -395,6 +395,22 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | Pendientes F5b | Revisar detalle de expediente (caso 2), DOM y visual a 360/1280 px (caso 8), y el bloqueo conservador del reintento de dictamen tras error de red. |
 | Casos que quedaron en `detecta` | El caso académico F3 quedó en `EN_EVALUACION`, aprobado y asignado al Psicólogo para F4b; una de las dos solicitudes psicosociales F1 quedó `ARCHIVADO` y asignada; la otra continúa `PENDIENTE` y sin asignar. Las dos justificaciones escritas llevan el prefijo «Prueba manual F4a». |
 
+### F4b: atención psicológica
+
+- Estado: implementada. Verificación real en backend completada con `CORREO_MODO=desactivado` confirmado en el registro; 229 pruebas de frontend pasan. Lint, typecheck, format:check y build pasan. El servidor se detuvo y no quedan procesos `node`.
+- Alcance: primera cita, reprogramación, resultado, seguimiento, cierre y consentimiento en el expediente del Psicólogo. El resultado queda bloqueado en la interfaz si el DTO indica que el estudiante requiere consentimiento y este no está confirmado (ER R06, situación 2; Manual CUD08, precondición y extensión 1.a). El DTO sí expone `requiereConsentimiento` y `consentimientoConfirmado`; no se infiere edad.
+- Zona horaria: los campos de cita representan `America/Bogota` (UTC-5), se envían como ISO 8601 con `-05:00` y se muestran en esa zona. El backend rechaza fechas no futuras con «La fecha de la cita debe ser posterior a la actual.»
+- Cierre: el DTO distingue asesoría completa mediante `citas[].asesoria.observaciones`; la regla de dominio solo exige observaciones no vacías en la última cita. El botón se habilita con ese dato.
+- Informes: no existe `GET /programas` en los controladores ni está documentado en README. Los informes del Psicólogo quedan fuera de F4b y se proponen para F4c, después del mini-backend B10: ruta de solo lectura `GET /programas`, guard de rol, DTO `{idPrograma, nombre}`, pruebas unitarias, de integración y e2e y actualización del README. F4b extrae IU_Informes a `front/src/componentes/`; los informes actuales del Jefe deben continuar pasando sin cambios.
+- D17/D20/D23: no afectan el alcance; F4b no cambia asignaciones de jefes, sincronización institucional ni asignación docente-curso.
+- Verificación real, adulto: la bandeja y expediente devolvieron el caso aprobado en F4a; primera cita 201, reprogramación 200, resultado 201, seguimiento 201, resultado de seguimiento 201 y cierre 200. Fecha pasada: 400 con el mensaje del backend indicado arriba.
+- Pruebas de componente: el formulario envía la fecha de Bogotá con offset `-05:00` y muestra el error HTTP de fecha pasada literalmente; el bloqueo R06 y la ausencia de identificadores/almacenamiento también tienen cobertura.
+- Verificación real, menor: ISOF-101 contenía dos menores con correo `@ejemplo.invalid`; se activó uno sin sincronizar ni recargar datos. Solicitud 201, aprobación 200, cita 201, resultado preconsentimiento 409 «No se puede registrar la atención sin consentimiento», consentimiento ficticio de desarrollo 200, resultado 201, seguimiento 201, resultado de seguimiento 201 y cierre 200.
+- Casos que quedaron en `detecta`: el caso adulto de F4a y la solicitud psicosocial «Prueba manual F4b» quedaron `CERRADO`; se conservaron la solicitud F1 pendiente y el caso F4a archivado. Todos los textos escritos en la prueba llevan el prefijo requerido.
+- Credencial de menor: `%TEMP%\detecta-f4b-menor-credencial.txt` (solo ruta; contenido secreto, fuera del repositorio).
+- Etiquetas provisionales de resultado: `ORIENTACION` → «Orientación», `SEGUIMIENTO` → «Seguimiento»; asistencia `true` → «Asistió», `false` → «No asistió».
+- Verificación con navegador: DOM de identificadores cubierto en prueba de componente; visual a 360 y 1280 px no verificada en navegador y pasa a F5b.
+
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
 | # | Tema | Fase límite | Estado |
