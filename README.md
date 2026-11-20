@@ -88,6 +88,10 @@ La estructura sigue el diagrama de paquetes ([`docs/diagramas/paquetes.png`](doc
    npm run start:prod
    ```
 
+## Entorno de demostración (F5a)
+
+Para presentar DETECTA con datos ficticios, aislado del entorno de desarrollo, en las bases `detecta_entrega` e `institucional_entrega`, consulte [`demo/README.md`](demo/README.md). Ahí están la instalación, la preparación (`scripts\preparar-demo.ps1`), el arranque con un solo comando (`scripts\iniciar-demo.ps1`) y el guion de integración CSV → base institucional → sincronización → DETECTA.
+
 ## Sincronización con la base institucional (B4)
 
 - **Solo se sincronizan estudiantes**, con sus notas y su asistencia (ER Tabla 2).
