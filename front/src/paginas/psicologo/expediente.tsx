@@ -42,6 +42,7 @@ import {
   type EstadoCaso,
 } from '../../servicios-api/psicologo';
 import { PlantillaPsicologo, RUTAS_PSICOLOGO } from './plantilla-psicologo';
+import { OperacionesExpediente } from './operaciones';
 import estilos from './psicologo.module.css';
 import {
   MENSAJE_DICTAMEN_POR_ESTADO,
@@ -122,6 +123,13 @@ function ContenidoExpediente({
       <DatosOrigen caso={caso} />
       <Antecedentes antecedentes={detalle.antecedentes} />
       <Citas citas={caso.citas} />
+      {caso.psicologo !== null && (
+        <OperacionesExpediente
+          idCaso={idCaso}
+          caso={caso}
+          actualizar={setCaso}
+        />
+      )}
       {caso.requiereConsentimiento && !caso.consentimientoConfirmado && (
         <Consentimiento
           idCaso={idCaso}

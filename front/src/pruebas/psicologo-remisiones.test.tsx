@@ -93,6 +93,66 @@ const DETALLE = {
 };
 
 describe('Consentimiento de menores (CUD09)', () => {
+  it('bloquea registrar un resultado hasta que el DTO confirme consentimiento y no expone identificadores ni almacenamiento', async () => {
+    const { llamadas } = simularApi({
+      'GET /acceso/sesion': SESION,
+      [`GET /atencion/casos/${ID_CASO}`]: {
+        estado: 200,
+        cuerpo: {
+          ...DETALLE,
+          caso: {
+            ...DETALLE.caso,
+            estado: 'CITADO',
+            psicologo: { id: 'psicologo-secreto', nombre: 'Psicólogo' },
+            citas: [{ ...DETALLE.caso.citas[0], asesoria: null }],
+          },
+        },
+      },
+    });
+    renderizarAplicacion(RUTA);
+    expect(
+      await screen.findByText(
+        'Confirme el consentimiento informado antes de registrar asesoría o resultado.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Registrar resultado' }),
+    ).toBeDisabled();
+    expect(llamadas.some((llamada) => llamada.url.includes('/resultado'))).toBe(
+      false,
+    );
+    const identificadores = [
+      ID_CASO,
+      'estudiante-secreto',
+      'origen-secreto',
+      'cita-secreto',
+      'asesoria-secreta',
+      'registro-secreto',
+      'curso-secreto',
+      'psicologo-secreto',
+    ];
+    const atributos = Array.from(document.body.querySelectorAll('*')).flatMap(
+      (elemento) => Array.from(elemento.attributes),
+    );
+    expect(
+      identificadores.some((id) => document.body.textContent?.includes(id)),
+    ).toBe(false);
+    expect(
+      atributos.some(
+        (atributo) =>
+          [
+            'id',
+            ...['aria-', 'data-'].flatMap((prefijo) => [
+              atributo.name.startsWith(prefijo) ? atributo.name : '',
+            ]),
+          ].includes(atributo.name) &&
+          identificadores.some((id) => atributo.value.includes(id)),
+      ),
+    ).toBe(false);
+    expect(Object.keys(localStorage)).toHaveLength(0);
+    expect(Object.keys(sessionStorage)).toHaveLength(0);
+  });
+
   it('R06: no ofrece registrar el resultado de atención en F4a mientras el DTO exige consentimiento', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
