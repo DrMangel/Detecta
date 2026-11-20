@@ -14,11 +14,7 @@ import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
 const ROLES: [Rol, string, string][] = [
   ['ESTUDIANTE', '/estudiante', 'Consulta académica'],
   ['DOCENTE', '/docente', 'Consulta de curso'],
-  [
-    'JEFE_DEPARTAMENTO',
-    '/jefe-departamento',
-    'Jefe de Departamento de Programa',
-  ],
+  ['JEFE_DEPARTAMENTO', '/jefe-departamento', 'Casos pendientes'],
   ['PSICOLOGO', '/psicologo', 'Psicólogo'],
 ];
 
@@ -53,11 +49,13 @@ describe('Inicio de sesión por rol', () => {
       await waitFor(() => expect(document.title).toBe(`${titulo} · DETECTA`));
       expect(screen.getByText(`Usuario ${rol}`)).toBeInTheDocument();
       // Espacio vacío: solo el título dentro del contenido principal. Los del
-      // Estudiante (F1) y del Docente (F2) ya tienen contenido.
-      if (rol !== 'ESTUDIANTE' && rol !== 'DOCENTE') {
+      // Estudiante (F1), del Docente (F2) y del Jefe (F3) ya tienen contenido.
+      if (rol === 'PSICOLOGO') {
         expect(screen.getByRole('main').children).toHaveLength(1);
       }
-      expect(llamadas.at(-1)?.cuerpo).toEqual({
+      // La bandeja del Jefe consulta al montar: se busca el inicio de sesión.
+      const inicio = llamadas.find((l) => l.url.endsWith('/iniciar-sesion'));
+      expect(inicio?.cuerpo).toEqual({
         correo: `${rol.toLowerCase()}@ejemplo.edu.co`,
         contrasena: 'clave-12345678',
       });
