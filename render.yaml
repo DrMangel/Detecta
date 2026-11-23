@@ -1,10 +1,6 @@
 # Blueprint de Render para el despliegue de demostración de DETECTA (F6).
 # Sin secretos: las claves (base de datos, JWT, SMTP) se cargan a mano en el
-# panel de Render (ER 3.6.2).
-#
-# PASO 0 (prueba de concepto, temporal): el servicio web arranca
-# scripts/f6-prueba-concepto/servidor.mjs en lugar del backend. Tras el
-# informe del paso 0, startCommand y envVars pasan al backend real.
+# panel de Render (ER 3.6.2). Guía: demo/README.md, «Despliegue en línea».
 services:
   # API (NestJS). Ohio (J9). Plan gratuito: se duerme tras 15 min sin tráfico.
   - type: web
@@ -17,7 +13,7 @@ services:
     # --include=dev: nest build necesita las dependencias de desarrollo aunque
     # el servicio corra con NODE_ENV=production.
     buildCommand: npm ci --include=dev && npm run build
-    startCommand: node ../scripts/f6-prueba-concepto/servidor.mjs
+    startCommand: npm run start:prod
     autoDeployTrigger: commit
     # Variables del backend (back/.env.example). Las de «sync: false» son
     # secretas o propias del proyecto de Neon: Ivan las carga a mano en el
