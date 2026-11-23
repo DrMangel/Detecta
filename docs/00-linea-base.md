@@ -154,6 +154,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - El usuario de base de datos de la aplicación no tiene permiso de eliminación (ER 3.7 c: el historial de alertas y casos no se elimina).
 - Las rutas REST, los DTO y los códigos de error **no están definidos** en los diagramas; el agente debe proponerlos en el plan de cada fase y esperar aprobación.
 - Las rutas de `/acceso` están definidas desde B3: `POST /acceso/iniciar-sesion`, `POST /acceso/cerrar-sesion`, `POST /acceso/solicitar-activacion`, `POST /acceso/activar` y `GET /acceso/sesion`. Las demás rutas siguen sin definirse.
+- **`GET /salud` (F6, cambio operativo aprobado por Ivan):** ruta pública, sin sesión, sin base de datos y sin limitador. Responde 200 con el cuerpo fijo `{"estado":"ok"}`. Solo sirve para que el monitor externo mantenga despierto el servicio gratuito (J3). No está en los diagramas ni cambia ningún caso de uso.
 - **Restricción de despliegue:** la cookie de sesión es `SameSite=Strict`, así que el front y la API deben estar en el mismo sitio (mismo dominio registrable). Si el front corre en otro origen, se necesita CORS con credenciales solo para `URL_FRONTEND` (ya implementado en B3).
 
 ## 6. Requisitos no funcionales relevantes para el backend (ER)
@@ -414,6 +415,25 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - Textos provisionales de F4b para revisar en F5: «Atención y seguimiento», «Las fechas se interpretan en America/Bogota (UTC-5).», «Programar primera cita», «Fecha y hora (Bogotá)», «Nueva fecha y hora (Bogotá)», «Programar cita», «Reprogramar», «Registrar resultado», «Confirme el consentimiento informado antes de registrar asesoría o resultado.», «Requiere seguimiento», «Presenta riesgo crítico», «Programar seguimiento», «Cerrar caso» y «No se pudo confirmar la operación. Consulte de nuevo el expediente antes de reintentar.» Etiquetas de valores: `ORIENTACION` → «Orientación», `SEGUIMIENTO` → «Seguimiento»; asistencia `true` → «Asistió», `false` → «No asistió».
 - Verificación con navegador: DOM de identificadores cubierto en prueba de componente; visual a 360 y 1280 px no verificada en navegador y pasa a F5b.
 
+### Despliegue en línea (F6): nodos reales
+
+No hay diagrama de despliegue en `docs/diagramas/`. Estos son los nodos reales de la demostración pública (aprobados en el plan de F6, opción A):
+
+| Nodo | Plataforma | Contenido y conexión |
+|---|---|---|
+| Cliente | Navegador | HTTPS solo hacia `https://detecta-web.onrender.com` |
+| Servidor web | Render Static Site `detecta-web` (gratuito, CDN) | Front compilado (React). Reescritura `/api/*` → `https://detecta-api.onrender.com/*` (sin el prefijo) y `/*` → `/index.html` |
+| Servidor de aplicación | Render Web Service `detecta-api` (gratuito, Ohio; 0,1 CPU y 512 MB) | NestJS sobre Node 26.13.1 (`npm run start:prod`) |
+| Servidor de base de datos | Neon, proyecto `Detecta` (gratuito, `aws-us-east-2`, Ohio), PostgreSQL 18 | `detecta_entrega` (`detecta_app` y `detecta_migrador`) e `institucional_entrega` (`institucional_lector`), mismo modelo de permisos de F5a. Conexión directa, TLS `verify-full` (`PGSSLMODE`) |
+| Servicio externo de correo | Brevo, `smtp-relay.brevo.com:2525` (STARTTLS, TLS 1.3) | `ProveedorCorreo` por SMTP. Render gratis bloquea 25, 465 y 587 |
+
+**Diferencias con el ER y el Manual:**
+
+- **Disponibilidad (ER 1.3.1):** el ER supone un servicio disponible las 24 horas. En la demostración, el plan gratuito apaga el servicio web tras 15 minutos sin tráfico; despertarlo tarda alrededor de un minuto. Neon suspende el cómputo tras 5 minutos de inactividad. Se mitiga con un monitor externo sobre `GET /api/acceso/sesion`, ruta que no consulta la base.
+- **Cupo por IP del limitador:** detrás del proxy de Render, todas las peticiones llegan con la IP de socket `::1`, así que los cupos por IP de D15 son globales (D39).
+- **Correo:** el puerto pasa de 587 a 2525 solo por configuración (`CORREO_SMTP_PUERTO`). El código no cambia.
+- **Cambio operativo en `back/`:** `GET /salud` (`ControladorSalud`, registrado en `AppModule`) es la única ruta nueva. No está en los diagramas porque no es funcional: la necesita el monitor externo, que exige una respuesta 2xx (cron-job.org desactiva el trabajo tras unos 25 fallos seguidos) y no debe despertar Neon. No hay otros cambios de comportamiento en `back/` ni en `front/`. F6 agrega además configuración (`render.yaml`, `demo/.env.remoto.example`) y scripts.
+
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
 | # | Tema | Fase límite | Estado |
@@ -452,6 +472,8 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 | D36 | Pool de conexiones agotado antes del guard de sesión | B9 | Aceptada como limitación (19/11/2026). Si la base no entrega una conexión al guard dentro de `BD_DETECTA_CONEXION_ESPERA_MS`, la respuesta es un 500 genérico (`{"statusCode":500,"message":"Internal server error"}`, verificado: sin mensajes de `pg`, trazas ni nombres de tablas), dentro del plazo y sin colgarse. Solo las rutas responden 503 con su texto |
 | D37 | Lista de los cursos del docente | F5 o cierre del proyecto | Abierta (19/11/2026). No hay ruta que liste los cursos del docente: sd_CUD01 y sd_CUD03 parten de `seleccionarCurso(idCurso)` sin operación que dé la lista. En F2 el docente escribe el «Código del curso» (máximo 36 caracteres; R01, entradas: «código de asignatura»; D22). La usabilidad mejoraría con una ruta de lectura que liste los cursos del docente; se evalúa en F5 o al cierre del proyecto. No se tocó el backend |
 | D38 | Volver a un caso en nivelación o a un plan | F5 o cierre del proyecto | Abierta (19/11/2026). `GET /casos/pendientes` solo lista casos sin ruta, y no hay ruta que liste los casos en nivelación ni los planes: si el Jefe sale de la pantalla, no puede registrar ni finalizar un plan (el `idPlan` solo llega al crearlo). En F3 el plan se registra y se finaliza en la misma vista tras canalizar (sd_CUD04). Además, un segundo `POST /planes` duplica el plan (D29 admite varios por caso), `GET /casos/:idCaso` no revela si hay plan (canalizar a la ruta académica ya deja el caso `EN_NIVELACION`) y no hay clave de idempotencia: tras un error de red el front bloquea el reintento en la vista. Para la v4 o el cierre se evalúa una ruta de lectura de los planes del caso o una clave de idempotencia, junto con D37. No se tocó el backend |
+| D39 | Cupo por IP del limitador detrás del proxy de Render | F6 | Aceptada como limitación (22/11/2026, J2). En el despliegue el backend ve todas las peticiones con la IP de socket `::1`, y `X-Forwarded-For` no se usa (D15). Los cupos por IP pasan a ser globales: 100 fallos de inicio de sesión cada 15 min y 30 solicitudes de activación por hora, para todos los usuarios juntos. Los cupos por (IP, correo) y por correo siguen funcionando. Sin `trust proxy` ni cambios de backend |
+| D40 | Tiempo de inicio de sesión en el despliegue gratuito (ER 3.4: consultas en menos de 2 s) | F6 | Aceptada como limitación (22/11/2026, J7). Con bcrypt de costo 12 (D35) y 0,1 CPU del plan gratuito de Render, `POST /api/acceso/iniciar-sesion` midió de 1,71 a 2,52 s, y por la pantalla de 1,74 a 2,18 s. Las mediciones son desde Colombia contra Ohio, en caliente; en algunos casos se supera la meta. No se cambia el costo ni se contrata otro plan |
 
 **Notas de B9 sobre el §8:**
 - **ECONNRESET aislado:** apareció una sola vez, bajo sobrecarga extrema (escenario de estrés, pool 30, 200 usuarios con 5 s de reflexión y el event loop bloqueado hasta 3,4 s). El intento dedicado de reproducirlo (cliente keep-alive y pausa de 5,1 s) no lo reprodujo, así que `keepAliveTimeout` no se cambió. Causa probable, no confirmada: una carrera de keep-alive.
@@ -578,3 +600,50 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   4. ER 3.7 e: la variante de columnas ficticias, con su JSON de conector, da el mismo resultado en 3,01 s.
   5. `iniciar-demo.ps1` abrió los puertos 3000 y 5173 y registró «Sincronización nocturna desactivada». Dos solicitudes de activación por `/api/acceso/solicitar-activacion` (docente y `+est01`) respondieron 202 y emitieron 2 tokens, sin errores de envío en el registro. La recepción en Gmail la confirma Ivan.
   6. Cierre por PID: al detener el backend lanzado, el script cerró Vite y terminó con código 0, sin puertos ocupados.
+
+## 14. F6: despliegue en línea
+
+- Rama `fase/f6-despliegue`, creada desde `main` (`4544895`). Plan aprobado por Ivan con las decisiones J1 a J9. Guía de uso: [`demo/README.md`](../demo/README.md), «Despliegue en línea (F6)». Nodos reales y diferencias con el ER: §7, «Despliegue en línea (F6): nodos reales». Limitaciones: D39 y D40.
+- **Enlace público:** <https://detecta-web.onrender.com>. Solo datos ficticios (CSV y JSON de F5a), sin costo. Render (`detecta-web` estático y `detecta-api` Node 26, Ohio), Neon (PostgreSQL 18, `aws-us-east-2`) y Brevo SMTP en el puerto 2525.
+- **Paso 0 (prueba de concepto, retirada antes del PR):** comprobó en Render cuatro cosas:
+  - Node `v26.13.1`;
+  - que la reescritura `/api/*` quita el prefijo, conserva la consulta y el cuerpo, y deja pasar `Set-Cookie` y `Cookie`. En Chromium la cookie quedó en `detecta-web.onrender.com`, invisible desde JavaScript;
+  - el estado 429 con `Retry-After`;
+  - Brevo: el puerto 2525 negocia STARTTLS con TLS 1.3, y el 587 está bloqueado.
+- **Sin cambios de comportamiento** en `back/` ni en `front/`, salvo la ruta operativa `GET /salud` (más abajo). Archivos nuevos:
+  - `render.yaml` (Blueprint, 9 secretos con `sync: false`) y `demo/.env.remoto.example`;
+  - `scripts/preparar-remoto.ps1` y `.mjs` (con `-Reiniciar` y `-SoloVerificar`), `scripts/sincronizar-remoto.mjs` y `scripts/preactivar-remoto.mjs`.
+
+  Además, `validar-entorno-demo.mjs` gana el modo `--remoto` y `.gitignore` la excepción `!.env.remoto.example`.
+- **TLS hacia Neon sin cambiar código:** `PGSSLMODE=verify-full`, que lee la librería `pg`; el certificado es de Let's Encrypt con raíz ISRG Root X1. Se usa la conexión **directa**, porque el pooler no admite el parámetro de arranque `default_transaction_read_only` de la conexión institucional.
+- **Desviación del plan (técnica):** la imagen `postgres:18` no trae certificados raíz, y `verify-full` falló con «certificate verify failed» antes de crear nada. `psql` corre ahora en un contenedor temporal (`docker run --rm`) de la misma imagen, con las raíces de confianza de Node montadas en solo lectura. `detecta-postgres` no se modifica.
+- **Respaldo de las bases:** Neon gratis no ofrece respaldos automáticos. Solo permite restaurar a un punto en el tiempo dentro de una ventana de 6 horas (1 GB de historial de cambios) y guardar una instantánea manual. La forma de volver al estado inicial es `preparar-remoto.ps1 -Reiniciar`, seguido de la sincronización y la preactivación.
+- **Verificación real (22/11/2026, Claude Code, autorizada por Ivan):**
+  1. `preparar-remoto.ps1`, también con `-Reiniciar` al cierre:
+     - PostgreSQL 18;
+     - los 3 roles sin superusuario, createdb, createrole, replicación ni bypassrls, y el lector con `default_transaction_read_only=on`;
+     - `detecta_app` con SELECT e INSERT en 15 de 15 tablas, UPDATE en 14 de 15 (no en `evento_caso`), y DELETE, TRUNCATE, REFERENCES y TRIGGER en 0;
+     - rechazos reales de `DELETE`, `TRUNCATE` y `UPDATE` de `evento_caso` como `detecta_app`, y de la tabla base como lector;
+     - sin CONNECT cruzado entre bases;
+     - 5 migraciones, 80 filas (79 visibles en la vista), 2 programas, 3 cuentas y 3 cursos.
+
+     Las 8 bases locales conservaron su tamaño y las claves de los roles locales no cambiaron (comparación por huella md5).
+  2. **Backend real:** 401 de NestJS, cabeceras de seguridad con HSTS y CORS solo para `https://detecta-web.onrender.com`. Un origen ajeno no recibe cabeceras CORS.
+  3. **Sincronización:** `POST /api/sincronizacion`, HTTP 200 en 3,1 s y, tras el reinicio, en 2,7 s (meta: 10 s). 3 cursos, 67 registros actualizados y 11 omitidos, con el mismo desglose que en F5a.
+  4. **Preactivación (J8):** docente, jefe, psicólogo, estudiante adulto 2026001 y estudiante menor 2026005, por el flujo real (activar 204, iniciar sesión 200 con el rol correcto). Las credenciales están solo en `%USERPROFILE%\detecta-entrega\cuentas-evaluador.txt`; nunca se imprimieron.
+  5. **Inicio de sesión por la pantalla, los 5 roles:** cada uno llega a su espacio. La cookie es `HttpOnly`, `Secure` y `SameSite=Strict`, del dominio `detecta-web.onrender.com`, e invisible desde JavaScript. Tiempos en D40.
+  6. **Un flujo por rol:**
+     - docente: consulta de ISOF-101 y alerta de riesgo alto para 2026001;
+     - estudiante adulto: ve sus registros y la alerta, y radica una solicitud académica (código de rastreo, Pendiente);
+     - estudiante menor: radica una solicitud psicosocial;
+     - jefe: la bandeja muestra la alerta y la solicitud académica, pero no la psicosocial (D18). Canaliza a la ruta académica y registra un plan de nivelación;
+     - psicólogo: aprueba la pertinencia de la remisión del menor y programa una cita virtual. El caso queda «Citado».
+  7. **Correo (confirmado por Ivan en Gmail):** la activación de `+est04` llegó con un enlace a `https://detecta-web.onrender.com/activar`. La cita de `+est05` llegó con la línea genérica sobre el consentimiento del acudiente, sin mencionar psicología (D26).
+  8. **Arranque en frío:** tras 17,5 min sin tráfico, la primera petición tardó 22,7 s; la siguiente, 0,42 s, y el front, 0,37 s.
+  9. **Cierre:** con `-Reiniciar` se borraron los datos de la verificación; luego se sincronizó, se preactivaron de nuevo las 5 cuentas y se comprobaron sus inicios de sesión.
+- **Defecto encontrado, para F5b (prioridad 1, decisión de Ivan):** tras aprobar la pertinencia, el formulario «Programar primera cita» solo aparece al recargar el expediente. No se corrigió en F6.
+- **Monitor externo (J3) y `GET /salud`:** cron-job.org marca como fallida toda respuesta que no sea 2xx, así que el 401 de `GET /api/acceso/sesion` no sirve. Con aprobación de Ivan se añadió `GET /salud`, con pruebas escritas primero en rojo:
+  - unitaria: el controlador no tiene dependencias y devuelve siempre `{"estado":"ok"}`;
+  - e2e: responde 200 sin sesión, sin `Set-Cookie` y con las cabeceras de seguridad; 30 peticiones seguidas dan 200 sin 429; `POST` da 404.
+
+  Verificación de `back/` antes del merge: lint y typecheck sin errores, format:check correcto, `npm test` con 466 de 466 pruebas (30 suites) y `test:e2e` con 86 de 86 (12 suites). `front/` no cambia. El monitor sondea `https://detecta-web.onrender.com/api/salud` cada 10 minutos; nunca una ruta que consulte la base.

@@ -1,0 +1,67 @@
+﻿<#
+.SYNOPSIS
+  Prepara y verifica las bases remotas de la demostración en Neon (F6).
+
+.DESCRIPTION
+  Valida demo/.env.remoto, comprueba que Docker responda y que exista la
+  imagen local postgres:18 (su psql corre en un contenedor temporal; no se
+  modifica detecta-postgres ni se toca ninguna base local) y ejecuta
+  scripts/preparar-remoto.mjs:
+    1. comprueba que el servidor remoto sea PostgreSQL 18;
+    2. crea o actualiza los roles detecta_app, detecta_migrador e
+       institucional_lector, con el mismo modelo de F5a;
+    3. crea detecta_entrega e institucional_entrega con sus permisos;
+    4. migra detecta_entrega y carga la Tabla 25 en institucional_entrega;
+    5. crea los datos iniciales. Los enlaces van a
+       %USERPROFILE%\detecta-entrega\enlaces-activacion-remoto.txt, nunca a
+       la consola;
+    6. verifica atributos de los roles, privilegios y rechazos reales.
+  Sin -Reiniciar es idempotente: no borra bases ni datos.
+
+.PARAMETER Reiniciar
+  Antes del paso 2, elimina y recrea SOLO detecta_entrega e
+  institucional_entrega en Neon (cierra las conexiones abiertas). No toca
+  roles, otras bases ni nada local.
+
+.PARAMETER SoloVerificar
+  Solo ejecuta el paso 6.
+
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1 -Reiniciar
+#>
+param(
+  [switch]$Reiniciar,
+  [switch]$SoloVerificar
+)
+if ($Reiniciar -and $SoloVerificar) {
+  throw 'Use -Reiniciar o -SoloVerificar, no los dos.'
+}
+
+$ErrorActionPreference = 'Stop'
+
+$raiz = Split-Path -Parent $PSScriptRoot
+& node (Join-Path $raiz 'scripts/validar-entorno-demo.mjs') --remoto
+if ($LASTEXITCODE -ne 0) {
+  throw 'demo/.env.remoto no es válido (ver mensajes anteriores).'
+}
+# No descarga imágenes: usa la misma de detecta-postgres (docker-compose.yml).
+$imagen = & docker image ls postgres:18 --format '{{.ID}}'
+if ($LASTEXITCODE -ne 0) {
+  throw 'Docker no responde. Iníciese Docker Desktop y repítase el comando.'
+}
+if ("$imagen".Trim() -eq '') {
+  throw 'No está la imagen local postgres:18 (la de detecta-postgres); este script no la descarga.'
+}
+
+$argumentos = @((Join-Path $raiz 'scripts/preparar-remoto.mjs'))
+if ($SoloVerificar) {
+  $argumentos += '--solo-verificar'
+}
+if ($Reiniciar) {
+  $argumentos += '--reiniciar'
+}
+& node @argumentos
+if ($LASTEXITCODE -ne 0) {
+  throw 'Falló la preparación remota (ver mensajes anteriores).'
+}
+Write-Host 'Bases remotas preparadas y verificadas.'

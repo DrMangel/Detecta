@@ -1,10 +1,12 @@
 # Dependencias
 node_modules/
 
-# Variables de entorno y credenciales (ER 3.6.2): solo se versiona .env.example
+# Variables de entorno y credenciales (ER 3.6.2): solo se versionan los
+# ejemplos sin valores (.env.example y, desde F6, demo/.env.remoto.example)
 .env
 .env.*
 !.env.example
+!.env.remoto.example
 
 # Archivos generados
 dist/

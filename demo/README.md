@@ -121,10 +121,83 @@ Después:
 2. Repita el paso 3. El resultado debe ser el mismo que con la Tabla 25.
 3. Restaure el valor original de `CONECTOR_CONFIGURACION`.
 
+## Despliegue en línea (F6)
+
+Enlace público: <https://detecta-web.onrender.com>. Solo usa los datos ficticios de esta carpeta, sin costo.
+
+### Arquitectura
+
+| Nodo | Servicio | Función |
+|---|---|---|
+| Navegador | — | Habla solo con `detecta-web.onrender.com` por HTTPS |
+| `detecta-web` | Render, sitio estático (plan gratuito) | Sirve el front compilado (`VITE_URL_API=/api`). Reescribe `/api/*` hacia la API, sin el prefijo, y el resto hacia `index.html` |
+| `detecta-api` | Render, servicio web Node 26 (plan gratuito, Ohio) | El backend NestJS (`npm run start:prod`) |
+| Neon, proyecto `Detecta` | PostgreSQL 18 (plan gratuito, `aws-us-east-2`, Ohio) | Bases `detecta_entrega` e `institucional_entrega`, con los mismos roles y permisos de F5a. Conexión directa (sin `-pooler`) con TLS `verify-full` |
+| Brevo | SMTP `smtp-relay.brevo.com:2525` con STARTTLS | Correo. Render gratis bloquea los puertos 25, 465 y 587 |
+
+**Por qué el reenvío de `/api`:** `onrender.com` está en la Public Suffix List, así que dos subdominios suyos son sitios distintos. Con el reenvío, el navegador ve un solo sitio y la cookie de sesión conserva `HttpOnly`, `Secure` y `SameSite=Strict` sin cambios. CORS sigue admitiendo solo `https://detecta-web.onrender.com`.
+
+La configuración está en [`render.yaml`](../render.yaml), que Render usa como Blueprint. Lo que no es secreto va en el archivo; los 9 secretos (`sync: false`) se cargan a mano en **detecta-api → Environment**:
+
+- `BD_DETECTA_HOST`, `BD_DETECTA_CONTRASENA`, `BD_INSTITUCIONAL_HOST`, `BD_INSTITUCIONAL_CONTRASENA`;
+- `JWT_SECRETO`, `SINCRONIZACION_SECRETO`;
+- `CORREO_SMTP_USUARIO`, `CORREO_SMTP_CLAVE`, `CORREO_REMITENTE`.
+
+Render despliega desde `main` (J4): los dos servicios declaran `branch: main` y el Blueprint se sincroniza desde `main`. Durante F6 desplegó desde `fase/f6-despliegue`.
+
+### Preparar las bases remotas
+
+1. Copie [`demo/.env.remoto.example`](.env.remoto.example) a `demo/.env.remoto`. No se versiona.
+2. Complete los hosts y la cadena **directa** del dueño de Neon (con «Connection pooling» desactivado), las contraseñas de los tres roles, `JWT_SECRETO` y `SINCRONIZACION_SECRETO`. Este último debe ser el mismo que en Render.
+3. Ejecute:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1                # prepara y verifica
+   powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1 -SoloVerificar # solo verifica
+   powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1 -Reiniciar     # borra y recrea solo las dos bases remotas
+   ```
+
+   Después de `-Reiniciar`, repita la sincronización y la preactivación del apartado siguiente.
+
+El script necesita Docker y la imagen local `postgres:18`. `psql` corre en un contenedor temporal (`docker run --rm`), porque esa imagen no trae certificados raíz y `verify-full` necesita uno: se le montan en solo lectura las raíces de confianza que trae Node. No modifica `detecta-postgres` ni ninguna base local, y es idempotente: no borra bases ni datos. Hace lo siguiente:
+
+1. comprueba que el servidor sea PostgreSQL 18;
+2. crea o actualiza los roles, las bases y sus permisos;
+3. aplica las migraciones y carga la Tabla 25;
+4. crea los datos iniciales. Los enlaces van a `%USERPROFILE%\detecta-entrega\enlaces-activacion-remoto.txt`;
+5. verifica los atributos de los roles, cuenta los privilegios de `detecta_app` e intenta de verdad, dentro de transacciones revertidas, un `DELETE`, un `TRUNCATE`, un `UPDATE` de `evento_caso` y una lectura de la tabla base como lector. Todos deben ser rechazados.
+
+### Sincronizar y preactivar las cuentas del evaluador
+
+Desde la raíz, con el servicio `detecta-api` activo:
+
+```powershell
+node scripts/sincronizar-remoto.mjs   # POST /api/sincronizacion con el secreto; muestra el resultado
+node scripts/preactivar-remoto.mjs    # activa 5 cuentas por el flujo real (J8)
+```
+
+`preactivar-remoto.mjs` funciona así:
+
+- emite un enlace de un solo uso (`datos-iniciales --enlace`) y activa la cuenta con una contraseña aleatoria mediante `POST /api/acceso/activar`;
+- comprueba el inicio de sesión;
+- lo hace con el docente, el jefe, el psicólogo, el estudiante adulto 2026001 y el estudiante menor 2026005;
+- guarda las credenciales solo en `%USERPROFILE%\detecta-entrega\cuentas-evaluador.txt`. Ivan decide por qué canal se entregan.
+
+Cada ejecución renueva todas las contraseñas.
+
+### Antes de la sustentación
+
+- **El servicio se duerme.** Render apaga el servicio gratuito tras 15 minutos sin tráfico, y el primer acceso tarda alrededor de un minuto.
+- **Monitor externo (J3).** Sondea cada 10 minutos `GET https://detecta-web.onrender.com/api/salud`, que responde **200** con `{"estado":"ok"}`. Es una ruta pública que no consulta la base, no usa el limitador ni crea sesión. Así Neon puede seguir suspendiéndose y no consume cómputo. Nunca use una ruta que consulte la base. Un servicio despierto todo el mes gasta como máximo 744 de las 750 horas gratuitas, así que no cree otro servicio web en el espacio de trabajo.
+- **Sin monitor.** Abra el enlace 3 a 5 minutos antes de la presentación.
+- **Una semana antes,** revise en Neon el consumo de cómputo (100 CU-h al mes) y en Brevo el de correos (300 al día).
+- **Respaldo.** Neon gratis no hace respaldos automáticos. Solo permite restaurar a un punto en el tiempo dentro de las últimas 6 horas y guardar una instantánea manual. Para volver al estado inicial, use `-Reiniciar`, sincronice y preactive.
+- **Tiempo de inicio de sesión.** Con 0,1 CPU, iniciar sesión tarda unos 2 s y a veces más (D40).
+
 ## Pruebas de los scripts
 
 ```powershell
-node --test scripts/validar-entorno-demo.spec.mjs docker/postgres/cargar-institucional.spec.mjs
+node --test scripts/*.spec.mjs docker/postgres/cargar-institucional.spec.mjs
 ```
 
 Ejecute este comando desde la raíz del repositorio.
