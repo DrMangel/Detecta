@@ -16,17 +16,26 @@
        %USERPROFILE%\detecta-entrega\enlaces-activacion-remoto.txt, nunca a
        la consola;
     6. verifica atributos de los roles, privilegios y rechazos reales.
-  Es idempotente: no borra bases ni datos.
+  Sin -Reiniciar es idempotente: no borra bases ni datos.
+
+.PARAMETER Reiniciar
+  Antes del paso 2, elimina y recrea SOLO detecta_entrega e
+  institucional_entrega en Neon (cierra las conexiones abiertas). No toca
+  roles, otras bases ni nada local.
 
 .PARAMETER SoloVerificar
   Solo ejecuta el paso 6.
 
 .EXAMPLE
-  powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1
+  powershell -ExecutionPolicy Bypass -File scripts\preparar-remoto.ps1 -Reiniciar
 #>
 param(
+  [switch]$Reiniciar,
   [switch]$SoloVerificar
 )
+if ($Reiniciar -and $SoloVerificar) {
+  throw 'Use -Reiniciar o -SoloVerificar, no los dos.'
+}
 
 $ErrorActionPreference = 'Stop'
 
@@ -47,6 +56,9 @@ if ("$imagen".Trim() -eq '') {
 $argumentos = @((Join-Path $raiz 'scripts/preparar-remoto.mjs'))
 if ($SoloVerificar) {
   $argumentos += '--solo-verificar'
+}
+if ($Reiniciar) {
+  $argumentos += '--reiniciar'
 }
 & node @argumentos
 if ($LASTEXITCODE -ne 0) {

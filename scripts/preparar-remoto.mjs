@@ -195,6 +195,18 @@ function crearDatosIniciales() {
   }
 }
 
+// Igual que -Reiniciar de preparar-demo.ps1: solo las dos bases de la lista
+// blanca. WITH (FORCE) cierra las conexiones abiertas del servicio de Render,
+// cuyo pool vuelve a conectarse con las bases nuevas.
+function reiniciar(psql, identidades) {
+  psql(
+    'dueno',
+    identidades.baseDueno,
+    BASES.map((base) => `DROP DATABASE IF EXISTS ${base} WITH (FORCE);`).join('\n'),
+  );
+  console.log('Bases remotas eliminadas: detecta_entrega e institucional_entrega.');
+}
+
 function preparar(psql, identidades) {
   const version = psql('dueno', identidades.baseDueno, "SELECT current_setting('server_version_num')::int / 10000;\n");
   if (version !== '18') {
@@ -266,6 +278,9 @@ if (import.meta.main) {
     const entorno = parseEnv(readFileSync(join(RAIZ, 'demo', '.env.remoto'), 'utf8'));
     const identidades = identidadesDesdeEntorno(entorno);
     const psql = crearPsql(identidades, carpetaRaices);
+    if (process.argv.includes('--reiniciar')) {
+      reiniciar(psql, identidades);
+    }
     if (!process.argv.includes('--solo-verificar')) {
       preparar(psql, identidades);
     }
