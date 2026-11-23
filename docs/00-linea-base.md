@@ -154,6 +154,7 @@ Estas decisiones no están en los diagramas; vienen de Ivan (plan del backend y 
 - El usuario de base de datos de la aplicación no tiene permiso de eliminación (ER 3.7 c: el historial de alertas y casos no se elimina).
 - Las rutas REST, los DTO y los códigos de error **no están definidos** en los diagramas; el agente debe proponerlos en el plan de cada fase y esperar aprobación.
 - Las rutas de `/acceso` están definidas desde B3: `POST /acceso/iniciar-sesion`, `POST /acceso/cerrar-sesion`, `POST /acceso/solicitar-activacion`, `POST /acceso/activar` y `GET /acceso/sesion`. Las demás rutas siguen sin definirse.
+- **`GET /salud` (F6, cambio operativo aprobado por Ivan):** ruta pública, sin sesión, sin base de datos y sin limitador. Responde 200 con el cuerpo fijo `{"estado":"ok"}`. Solo sirve para que el monitor externo mantenga despierto el servicio gratuito (J3). No está en los diagramas ni cambia ningún caso de uso.
 - **Restricción de despliegue:** la cookie de sesión es `SameSite=Strict`, así que el front y la API deben estar en el mismo sitio (mismo dominio registrable). Si el front corre en otro origen, se necesita CORS con credenciales solo para `URL_FRONTEND` (ya implementado en B3).
 
 ## 6. Requisitos no funcionales relevantes para el backend (ER)
@@ -431,7 +432,7 @@ No hay diagrama de despliegue en `docs/diagramas/`. Estos son los nodos reales d
 - **Disponibilidad (ER 1.3.1):** el ER supone un servicio disponible las 24 horas. En la demostración, el plan gratuito apaga el servicio web tras 15 minutos sin tráfico; despertarlo tarda alrededor de un minuto. Neon suspende el cómputo tras 5 minutos de inactividad. Se mitiga con un monitor externo sobre `GET /api/acceso/sesion`, ruta que no consulta la base.
 - **Cupo por IP del limitador:** detrás del proxy de Render, todas las peticiones llegan con la IP de socket `::1`, así que los cupos por IP de D15 son globales (D39).
 - **Correo:** el puerto pasa de 587 a 2525 solo por configuración (`CORREO_SMTP_PUERTO`). El código no cambia.
-- **Sin cambios de comportamiento** en `back/` ni en `front/`. F6 solo agrega configuración (`render.yaml`, `demo/.env.remoto.example`) y scripts.
+- **Cambio operativo en `back/`:** `GET /salud` (`ControladorSalud`, registrado en `AppModule`) es la única ruta nueva. No está en los diagramas porque no es funcional: la necesita el monitor externo, que exige una respuesta 2xx (cron-job.org desactiva el trabajo tras unos 25 fallos seguidos) y no debe despertar Neon. No hay otros cambios de comportamiento en `back/` ni en `front/`. F6 agrega además configuración (`render.yaml`, `demo/.env.remoto.example`) y scripts.
 
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
@@ -609,7 +610,7 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   - que la reescritura `/api/*` quita el prefijo, conserva la consulta y el cuerpo, y deja pasar `Set-Cookie` y `Cookie`. En Chromium la cookie quedó en `detecta-web.onrender.com`, invisible desde JavaScript;
   - el estado 429 con `Retry-After`;
   - Brevo: el puerto 2525 negocia STARTTLS con TLS 1.3, y el 587 está bloqueado.
-- **Sin cambios de comportamiento** en `back/` ni en `front/`. Archivos nuevos:
+- **Sin cambios de comportamiento** en `back/` ni en `front/`, salvo la ruta operativa `GET /salud` (más abajo). Archivos nuevos:
   - `render.yaml` (Blueprint, 9 secretos con `sync: false`) y `demo/.env.remoto.example`;
   - `scripts/preparar-remoto.ps1` y `.mjs` (con `-Reiniciar` y `-SoloVerificar`), `scripts/sincronizar-remoto.mjs` y `scripts/preactivar-remoto.mjs`.
 
@@ -641,4 +642,8 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   8. **Arranque en frío:** tras 17,5 min sin tráfico, la primera petición tardó 22,7 s; la siguiente, 0,42 s, y el front, 0,37 s.
   9. **Cierre:** con `-Reiniciar` se borraron los datos de la verificación; luego se sincronizó, se preactivaron de nuevo las 5 cuentas y se comprobaron sus inicios de sesión.
 - **Defecto encontrado, para F5b (prioridad 1, decisión de Ivan):** tras aprobar la pertinencia, el formulario «Programar primera cita» solo aparece al recargar el expediente. No se corrigió en F6.
-- **Monitor externo (J3):** lo configura Ivan. Debe sondear cada 10 min `GET /api/acceso/sesion` y esperar un 401; nunca una ruta que consulte la base.
+- **Monitor externo (J3) y `GET /salud`:** cron-job.org marca como fallida toda respuesta que no sea 2xx, así que el 401 de `GET /api/acceso/sesion` no sirve. Con aprobación de Ivan se añadió `GET /salud`, con pruebas escritas primero en rojo:
+  - unitaria: el controlador no tiene dependencias y devuelve siempre `{"estado":"ok"}`;
+  - e2e: responde 200 sin sesión, sin `Set-Cookie` y con las cabeceras de seguridad; 30 peticiones seguidas dan 200 sin 429; `POST` da 404.
+
+  Verificación de `back/` antes del merge: lint y typecheck sin errores, format:check correcto, `npm test` con 466 de 466 pruebas (30 suites) y `test:e2e` con 86 de 86 (12 suites). `front/` no cambia. El monitor sondea `https://detecta-web.onrender.com/api/salud` cada 10 minutos; nunca una ruta que consulte la base.

@@ -188,7 +188,7 @@ Cada ejecución renueva todas las contraseñas.
 ### Antes de la sustentación
 
 - **El servicio se duerme.** Render apaga el servicio gratuito tras 15 minutos sin tráfico, y el primer acceso tarda alrededor de un minuto.
-- **Monitor externo (J3).** Sondea cada 10 minutos `GET https://detecta-web.onrender.com/api/acceso/sesion` y espera un **401**: esa ruta responde en el guard de sesión sin tocar la base. Así Neon puede seguir suspendiéndose y no consume cómputo. Nunca use una ruta que consulte la base. Un servicio despierto todo el mes gasta como máximo 744 de las 750 horas gratuitas, así que no cree otro servicio web en el espacio de trabajo.
+- **Monitor externo (J3).** Sondea cada 10 minutos `GET https://detecta-web.onrender.com/api/salud`, que responde **200** con `{"estado":"ok"}`. Es una ruta pública que no consulta la base, no usa el limitador ni crea sesión. Así Neon puede seguir suspendiéndose y no consume cómputo. Nunca use una ruta que consulte la base. Un servicio despierto todo el mes gasta como máximo 744 de las 750 horas gratuitas, así que no cree otro servicio web en el espacio de trabajo.
 - **Sin monitor.** Abra el enlace 3 a 5 minutos antes de la presentación.
 - **Una semana antes,** revise en Neon el consumo de cómputo (100 CU-h al mes) y en Brevo el de correos (300 al día).
 - **Respaldo.** Neon gratis no hace respaldos automáticos. Solo permite restaurar a un punto en el tiempo dentro de las últimas 6 horas y guardar una instantánea manual. Para volver al estado inicial, use `-Reiniciar`, sincronice y preactive.
