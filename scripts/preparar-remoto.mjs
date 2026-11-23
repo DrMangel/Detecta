@@ -6,20 +6,26 @@
 // Mismo modelo de F5a (demo/README.md): roles detecta_app (sin DELETE ni
 // TRUNCATE, ER 3.7 c), detecta_migrador (dueño del esquema) e
 // institucional_lector (solo lectura sobre las vistas), y las bases
-// detecta_entrega e institucional_entrega (J5). Se usa el psql 18 del
-// contenedor detecta-postgres con `docker exec` (no se instala nada ni se toca
-// ninguna base local); las credenciales viajan como variables de entorno del
-// proceso, nunca como argumentos, y no se imprimen (ER 3.6.2).
+// detecta_entrega e institucional_entrega (J5).
+//
+// psql 18 corre en un contenedor TEMPORAL (`docker run --rm`) de la misma
+// imagen que detecta-postgres: esa imagen no trae certificados raíz y
+// verify-full necesita uno. Se montan, en solo lectura, las raíces de Mozilla
+// que incluye Node (tls.rootCertificates). Así no se instala nada, no se
+// modifica detecta-postgres y no se toca ninguna base local. Las credenciales
+// viajan como variables de entorno del proceso, nunca como argumentos, y no
+// se imprimen (ER 3.6.2).
 
 import { spawnSync } from 'node:child_process';
-import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { rootCertificates } from 'node:tls';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { prepararCarga } from '../docker/postgres/cargar-institucional.mjs';
 
-const CONTENEDOR = 'detecta-postgres';
+const IMAGEN_PSQL = 'postgres:18';
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 const BACK = join(RAIZ, 'back');
 const ARCHIVO_ENTORNO = '../demo/.env.remoto';
@@ -65,7 +71,14 @@ export function ocultar(texto, secretos) {
     .reduce((acumulado, secreto) => acumulado.split(secreto).join('<oculto>'), texto);
 }
 
-function crearPsql(identidades) {
+/** Carpeta temporal con las raíces de Node; se borra al terminar. */
+function prepararRaices() {
+  const carpeta = mkdtempSync(join(tmpdir(), 'detecta-f6-raices-'));
+  writeFileSync(join(carpeta, 'raices.pem'), `${rootCertificates.join('\n')}\n`);
+  return carpeta;
+}
+
+function crearPsql(identidades, carpetaRaices) {
   const secretos = [
     identidades.dueno.clave,
     identidades.app.clave,
@@ -85,7 +98,7 @@ function crearPsql(identidades) {
       PGUSER: identidades[quien].usuario,
       PGPASSWORD: identidades[quien].clave,
       PGSSLMODE: 'verify-full',
-      PGSSLROOTCERT: 'system',
+      PGSSLROOTCERT: '/raices/raices.pem',
       CLAVE_APP: identidades.app.clave,
       CLAVE_MIGRADOR: identidades.migrador.clave,
       CLAVE_LECTOR: identidades.lector.clave,
@@ -97,7 +110,8 @@ function crearPsql(identidades) {
     const resultado = spawnSync(
       'docker',
       [
-        'exec', '-i', ...variables.flatMap((nombre) => ['-e', nombre]), CONTENEDOR,
+        'run', '--rm', '-i', '-v', `${carpetaRaices}:/raices:ro`,
+        ...variables.flatMap((nombre) => ['-e', nombre]), IMAGEN_PSQL,
         'psql', '-d', base, '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=terse', '-qtA', '-f', '-',
       ],
       { input: sql, env: entorno, encoding: 'utf8' },
@@ -247,16 +261,19 @@ function verificar(psql, identidades) {
 }
 
 if (import.meta.main) {
+  const carpetaRaices = prepararRaices();
   try {
     const entorno = parseEnv(readFileSync(join(RAIZ, 'demo', '.env.remoto'), 'utf8'));
     const identidades = identidadesDesdeEntorno(entorno);
-    const psql = crearPsql(identidades);
+    const psql = crearPsql(identidades, carpetaRaices);
     if (!process.argv.includes('--solo-verificar')) {
       preparar(psql, identidades);
     }
     verificar(psql, identidades);
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'Error inesperado.');
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    rmSync(carpetaRaices, { recursive: true, force: true });
   }
 }

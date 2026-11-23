@@ -3,8 +3,9 @@
   Prepara y verifica las bases remotas de la demostración en Neon (F6).
 
 .DESCRIPTION
-  Valida demo/.env.remoto, comprueba que detecta-postgres esté activo (se
-  usa su psql 18; no se toca ninguna base local) y ejecuta
+  Valida demo/.env.remoto, comprueba que Docker responda y que exista la
+  imagen local postgres:18 (su psql corre en un contenedor temporal; no se
+  modifica detecta-postgres ni se toca ninguna base local) y ejecuta
   scripts/preparar-remoto.mjs:
     1. comprueba que el servidor remoto sea PostgreSQL 18;
     2. crea o actualiza los roles detecta_app, detecta_migrador e
@@ -28,14 +29,20 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'demo-comun.ps1')
 
 $raiz = Split-Path -Parent $PSScriptRoot
 & node (Join-Path $raiz 'scripts/validar-entorno-demo.mjs') --remoto
 if ($LASTEXITCODE -ne 0) {
   throw 'demo/.env.remoto no es válido (ver mensajes anteriores).'
 }
-Assert-PostgresActivo
+# No descarga imágenes: usa la misma de detecta-postgres (docker-compose.yml).
+$imagen = & docker image ls postgres:18 --format '{{.ID}}'
+if ($LASTEXITCODE -ne 0) {
+  throw 'Docker no responde. Iníciese Docker Desktop y repítase el comando.'
+}
+if ("$imagen".Trim() -eq '') {
+  throw 'No está la imagen local postgres:18 (la de detecta-postgres); este script no la descarga.'
+}
 
 $argumentos = @((Join-Path $raiz 'scripts/preparar-remoto.mjs'))
 if ($SoloVerificar) {
