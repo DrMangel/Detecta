@@ -19,9 +19,82 @@ services:
     buildCommand: npm ci --include=dev && npm run build
     startCommand: node ../scripts/f6-prueba-concepto/servidor.mjs
     autoDeployTrigger: commit
+    # Variables del backend (back/.env.example). Las de «sync: false» son
+    # secretas o propias del proyecto de Neon: Ivan las carga a mano en el
+    # panel (Render no las pide al actualizar un Blueprint existente).
     envVars:
       - key: NODE_VERSION
         value: "26"
+      - key: NODE_ENV
+        value: production
+      # Puerto por defecto de los servicios web de Render.
+      - key: PUERTO
+        value: "10000"
+      # TLS hacia Neon con verificación del certificado (lo lee pg).
+      - key: PGSSLMODE
+        value: verify-full
+      # Conexión DIRECTA de Neon (sin -pooler): el pooler no admite el
+      # parámetro de arranque default_transaction_read_only.
+      - key: BD_DETECTA_HOST
+        sync: false
+      - key: BD_DETECTA_PUERTO
+        value: "5432"
+      - key: BD_DETECTA_NOMBRE
+        value: detecta_entrega
+      - key: BD_DETECTA_USUARIO
+        value: detecta_app
+      - key: BD_DETECTA_CONTRASENA
+        sync: false
+      - key: BD_INSTITUCIONAL_HOST
+        sync: false
+      - key: BD_INSTITUCIONAL_PUERTO
+        value: "5432"
+      - key: BD_INSTITUCIONAL_NOMBRE
+        value: institucional_entrega
+      - key: BD_INSTITUCIONAL_USUARIO
+        value: institucional_lector
+      - key: BD_INSTITUCIONAL_CONTRASENA
+        sync: false
+      - key: JWT_SECRETO
+        sync: false
+      - key: SESION_DURACION_MIN
+        value: "60"
+      - key: COOKIE_SEGURA
+        value: "true"
+      - key: BCRYPT_COSTO
+        value: "12"
+      - key: ACTIVACION_DURACION_MIN
+        value: "30"
+      # Enlaces de activación y único origen admitido por CORS.
+      - key: URL_FRONTEND
+        value: https://detecta-web.onrender.com
+      - key: CONECTOR_CONFIGURACION
+        value: ../demo/conector-institucional.ejemplo.json
+      # SINCRONIZACION_HORA_NOCTURNA se omite: queda desactivada, como en
+      # F5a (el plan gratuito se duerme y no habría recuperación).
+      - key: SINCRONIZACION_SECRETO
+        sync: false
+      - key: CORREO_MODO
+        value: smtp
+      - key: CORREO_SMTP_HOST
+        value: smtp-relay.brevo.com
+      # Render gratis bloquea 25, 465 y 587; Brevo admite 2525 con STARTTLS
+      # (comprobado en el paso 0).
+      - key: CORREO_SMTP_PUERTO
+        value: "2525"
+      - key: CORREO_SMTP_USUARIO
+        sync: false
+      - key: CORREO_SMTP_CLAVE
+        sync: false
+      - key: CORREO_REMITENTE
+        sync: false
+      - key: CORREO_REMITENTE_NOMBRE
+        value: DETECTA
+      # Demostración: nunca @ejemplo.invalid y solo los alias autorizados.
+      - key: CORREO_RECHAZAR_EJEMPLO_INVALID
+        value: "true"
+      - key: CORREO_DESTINO_PERMITIDO
+        value: detectasoportetecnico+*@gmail.com
 
   # Front (React compilado). El navegador solo habla con este sitio: /api/* se
   # reescribe hacia la API y la cookie SameSite=Strict queda en el mismo sitio
