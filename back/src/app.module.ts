@@ -7,6 +7,7 @@ import { ModuloAlertasSolicitudes } from './controladores/modulo-alertas-solicit
 import { ModuloCasosAtencion } from './controladores/modulo-casos-atencion';
 import { ModuloPlanesInformes } from './controladores/modulo-planes-informes';
 import { ModuloProgramas } from './controladores/modulo-programas';
+import { ControladorSalud } from './controladores/controlador-salud';
 import { ModuloSincronizacion } from './controladores/modulo-sincronizacion';
 import { ModuloIntegracion } from './integracion/modulo-integracion';
 import { ModuloNotificacion } from './controladores/modulo-notificacion';
@@ -99,5 +100,7 @@ const ESPERA_ENTRE_REINTENTOS_MS = 1000;
     ModuloPlanesInformes,
     ModuloProgramas,
   ],
+  // F6: ruta de salud para el monitor externo (J3); sin dependencias.
+  controllers: [ControladorSalud],
 })
 export class AppModule {}
