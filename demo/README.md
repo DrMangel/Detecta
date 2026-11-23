@@ -143,7 +143,7 @@ La configuración está en [`render.yaml`](../render.yaml), que Render usa como 
 - `JWT_SECRETO`, `SINCRONIZACION_SECRETO`;
 - `CORREO_SMTP_USUARIO`, `CORREO_SMTP_CLAVE`, `CORREO_REMITENTE`.
 
-Render despliega desde la rama de la fase mientras dura y desde `main` después del merge (J4).
+Render despliega desde `main` (J4): los dos servicios declaran `branch: main` y el Blueprint se sincroniza desde `main`. Durante F6 desplegó desde `fase/f6-despliegue`.
 
 ### Preparar las bases remotas
 

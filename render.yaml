@@ -8,7 +8,7 @@ services:
     runtime: node
     plan: free
     region: ohio
-    branch: fase/f6-despliegue
+    branch: main
     rootDir: back
     # --include=dev: nest build necesita las dependencias de desarrollo aunque
     # el servicio corra con NODE_ENV=production.
@@ -98,7 +98,7 @@ services:
   - type: web
     name: detecta-web
     runtime: static
-    branch: fase/f6-despliegue
+    branch: main
     buildCommand: cd front && npm ci && npm run build
     staticPublishPath: front/dist
     autoDeployTrigger: commit
