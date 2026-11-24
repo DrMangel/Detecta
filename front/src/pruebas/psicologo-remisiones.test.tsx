@@ -463,6 +463,114 @@ describe('Evaluación de pertinencia (CUD07)', () => {
   });
 });
 
+describe('Aprobación de pertinencia sin recargar (F5b, defecto 1)', () => {
+  it('al aprobar aparece «Programar primera cita» sin volver a montar la vista', async () => {
+    let lecturas = 0;
+    const sinCitas = { ...DETALLE.caso, citas: [] };
+    const aprobado = {
+      ...sinCitas,
+      estado: 'EN_EVALUACION',
+      psicologo: { id: 'psicologo-secreto', nombre: 'Psicóloga de prueba' },
+    };
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      [`GET /atencion/casos/${ID_CASO}`]: () => {
+        lecturas += 1;
+        return {
+          estado: 200,
+          cuerpo: { ...DETALLE, caso: lecturas >= 3 ? aprobado : sinCitas },
+        };
+      },
+      [`POST /pertinencia/${ID_CASO}`]: {
+        estado: 200,
+        cuerpo: {
+          mensaje: 'Caso aprobado. Programe la cita',
+          estado: 'EN_EVALUACION',
+        },
+      },
+    });
+    const usuario = userEvent.setup();
+    renderizarAplicacion(RUTA);
+    await usuario.click(await screen.findByLabelText('Aprobar'));
+    await usuario.type(
+      screen.getByLabelText('Justificación'),
+      'Dictamen aprobado',
+    );
+    await usuario.click(
+      screen.getByRole('button', { name: 'Evaluar pertinencia' }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Programar primera cita' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Caso aprobado. Programe la cita'),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('En evaluación').length).toBeGreaterThan(0);
+    comprobarIdsOcultos([ID_CASO, 'psicologo-secreto']);
+  });
+
+  // El backend asigna el psicólogo también al archivar o reorientar
+  // (controlador-pertinencia), así que quien dictaminó puede releer el caso.
+  it.each([
+    ['Archivar', 'ARCHIVADO', 'Caso archivado'],
+    ['Reorientar', 'REORIENTADO', 'Caso reorientado'],
+  ] as const)(
+    '%s: la relectura no muestra error ni ofrece la primera cita',
+    async (opcion, estado, mensaje) => {
+      let lecturas = 0;
+      const sinCitas = { ...DETALLE.caso, citas: [] };
+      const dictaminado = {
+        ...sinCitas,
+        estado,
+        justificacion: 'Dictamen de prueba',
+        psicologo: { id: 'psicologo-secreto', nombre: 'Psicóloga de prueba' },
+      };
+      const { llamadas } = simularApi({
+        'GET /acceso/sesion': SESION,
+        [`GET /atencion/casos/${ID_CASO}`]: () => {
+          lecturas += 1;
+          return {
+            estado: 200,
+            cuerpo: {
+              ...DETALLE,
+              caso: lecturas >= 3 ? dictaminado : sinCitas,
+            },
+          };
+        },
+        [`POST /pertinencia/${ID_CASO}`]: {
+          estado: 200,
+          cuerpo: { mensaje, estado },
+        },
+      });
+      const usuario = userEvent.setup();
+      renderizarAplicacion(RUTA);
+      await usuario.click(await screen.findByLabelText(opcion));
+      await usuario.type(
+        screen.getByLabelText('Justificación'),
+        'Dictamen de prueba',
+      );
+      await usuario.click(
+        screen.getByRole('button', { name: 'Evaluar pertinencia' }),
+      );
+
+      expect(await screen.findByText(mensaje)).toBeInTheDocument();
+      expect(
+        await screen.findByText('Psicóloga de prueba'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Programar primera cita' }),
+      ).not.toBeInTheDocument();
+      expect(
+        llamadas.filter(
+          (llamada) => llamada.url === `/api/atencion/casos/${ID_CASO}`,
+        ),
+      ).toHaveLength(3);
+    },
+  );
+});
+
 describe('Límites y desenlaces de pertinencia', () => {
   it('429: muestra el mensaje y deshabilita el envío durante Retry-After', async () => {
     const mensaje = 'Demasiados intentos. Intente de nuevo más tarde.';
@@ -576,9 +684,10 @@ describe('Conciliación de aprobación', () => {
     await usuario.click(
       screen.getByRole('button', { name: 'Evaluar pertinencia' }),
     );
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Caso aprobado. Programe la cita',
-    );
+    // Tras la relectura (F5b) también se ve el estado «En evaluación».
+    expect(
+      await screen.findByText('Caso aprobado. Programe la cita'),
+    ).toBeInTheDocument();
     await usuario.click(
       screen.getAllByRole('link', { name: 'Remisiones' })[0]!,
     );

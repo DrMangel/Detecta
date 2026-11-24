@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router';
+import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter, useLocation, type InitialEntry } from 'react-router';
 import { vi } from 'vitest';
 import { Aplicacion } from '../aplicacion';
 import type { DatosSesion, Rol } from '../servicios-api/tipos';
@@ -85,7 +85,8 @@ function RutaActual() {
   return <div data-testid="ruta">{ubicacion.pathname}</div>;
 }
 
-export function renderizar(ruta: string) {
+/** `ruta` puede llevar estado de navegación (F5b: bandeja de origen). */
+export function renderizar(ruta: InitialEntry) {
   return render(
     <MemoryRouter initialEntries={[ruta]}>
       <Aplicacion />
@@ -93,3 +94,7 @@ export function renderizar(ruta: string) {
     </MemoryRouter>,
   );
 }
+
+/** El enlace de la navegación del rol con ese rótulo exacto (F5b). */
+export const enlaceMenu = (rotulo: string) =>
+  within(screen.getByRole('navigation')).getByRole('link', { name: rotulo });

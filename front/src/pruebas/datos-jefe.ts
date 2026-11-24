@@ -63,7 +63,18 @@ export const ANTECEDENTES = [
   },
 ];
 
-export const DETALLE_ALERTA = { caso: CASO_ALERTA, antecedentes: ANTECEDENTES };
+export const DETALLE_ALERTA = {
+  caso: CASO_ALERTA,
+  antecedentes: ANTECEDENTES,
+  planes: [],
+};
+
+/** El mismo caso ya canalizado a la ruta académica (F5b, D38). */
+export const CASO_ACADEMICO = {
+  ...CASO_ALERTA,
+  ruta: 'ACADEMICA',
+  estado: 'EN_NIVELACION',
+} as const;
 
 export const PLAN = {
   idPlan: 'plan-1',
@@ -76,6 +87,16 @@ export const PLAN = {
   cursos: [
     { idCurso: 'MAT-201', nombre: 'Cálculo Integral', periodo: '2026-2' },
   ],
+};
+
+/** Plan tal como llega en `planes` del detalle: sin idCaso ni fecha. */
+export const PLAN_CASO = {
+  idPlan: PLAN.idPlan,
+  estado: PLAN.estado,
+  tutorNombre: PLAN.tutorNombre,
+  tutorCodigo: PLAN.tutorCodigo,
+  cronograma: PLAN.cronograma,
+  cursos: PLAN.cursos,
 };
 
 export const INFORME = {

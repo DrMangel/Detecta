@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import controles from '../../componentes/controles.module.css';
 import {
   NOMBRE_TIPO_APOYO,
@@ -31,18 +31,25 @@ import {
   type Antecedente,
   type Caso,
   type DetalleCaso,
+  type PlanCaso,
   type RutaAtencion,
 } from '../../servicios-api/jefe-departamento';
 import { textoNivel } from './bandeja-casos';
 import estilos from './jefe-departamento.module.css';
 import { PlanNivelacion } from './plan-nivelacion';
-import { PlantillaJefe } from './plantilla-jefe-departamento';
+import {
+  esTipoBandeja,
+  PlantillaJefe,
+  RUTA_BANDEJA,
+  type TipoBandeja,
+} from './plantilla-jefe-departamento';
 import {
   NOMBRE_ORIGEN,
   NOMBRE_RUTA,
   ROTULOS_CASO,
   ROTULOS_JEFE,
   TEXTO_CANALIZADO,
+  TEXTO_VOLVER,
   TITULOS_JEFE,
 } from './textos';
 
@@ -57,10 +64,41 @@ import {
  * - La ruta no tiene valor por defecto y «Canalizar caso» sigue deshabilitado
  *   hasta elegirla (ajuste A); sin diálogo de confirmación.
  * - Ruta académica: el plan de nivelación aparece en la misma vista
- *   (sd_CUD04, «extend» CUD05; respuesta 1 de F3, D38).
+ *   (sd_CUD04, «extend» CUD05; respuesta 1 de F3), también al volver al caso
+ *   desde «En ruta académica», con los planes que trae el detalle (F5b, D38).
  */
 
+/** Caso canalizado con los planes que se conocen de él. */
+interface Canalizado {
+  caso: Caso;
+  planes: PlanCaso[];
+}
+
 const RUTAS: readonly RutaAtencion[] = ['ACADEMICA', 'PSICOLOGICA'];
+
+/*
+ * Bandeja de origen del detalle, para el enlace de regreso y el resalte del
+ * menú (F5b; Manual 3.1.2.2.6, Tabla 30). Manda la que envió la bandeja en
+ * el estado de navegación (la recarga lo conserva). Sin ella, o con un valor
+ * no permitido, decide la ruta del caso tal como se cargó; mientras carga o
+ * si la carga falla, «Casos pendientes». Canalizar no cambia el origen.
+ */
+const BANDEJA_POR_RUTA: Readonly<Record<RutaAtencion, TipoBandeja>> = {
+  ACADEMICA: 'rutaAcademica',
+  PSICOLOGICA: 'pendientes',
+};
+
+function origenDelDetalle(
+  estado: unknown,
+  ruta: RutaAtencion | null,
+): TipoBandeja {
+  const enviado =
+    typeof estado === 'object' && estado !== null && 'origen' in estado
+      ? estado.origen
+      : null;
+  if (esTipoBandeja(enviado)) return enviado;
+  return ruta === null ? 'pendientes' : BANDEJA_POR_RUTA[ruta];
+}
 
 export function PaginaDetalleCaso() {
   const { idCaso = '' } = useParams();
@@ -70,8 +108,15 @@ export function PaginaDetalleCaso() {
 
 function DetalleDelCaso({ idCaso }: { idCaso: string }) {
   const { datos, error } = useConsulta(() => consultarCaso(idCaso), idCaso);
+  const origen = origenDelDetalle(
+    useLocation().state,
+    datos?.caso.ruta ?? null,
+  );
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso}>
+    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso} origen={origen}>
+      <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
+        {TEXTO_VOLVER[origen]}
+      </Link>
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && <ContenidoCaso detalle={datos} />}
@@ -82,10 +127,12 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
 
 function ContenidoCaso({ detalle }: { detalle: DetalleCaso }) {
   const [caso, setCaso] = useState(detalle.caso);
+  const [planes, setPlanes] = useState(detalle.planes);
   const [canalizado, setCanalizado] = useState(false);
 
-  const alCanalizar = (nuevo: Caso) => {
-    setCaso(nuevo);
+  const alCanalizar = (nuevo: Canalizado) => {
+    setCaso(nuevo.caso);
+    setPlanes(nuevo.planes);
     setCanalizado(true);
   };
 
@@ -102,10 +149,11 @@ function ContenidoCaso({ detalle }: { detalle: DetalleCaso }) {
           }
         />
       )}
-      {canalizado && caso.ruta === 'ACADEMICA' && (
+      {caso.ruta === 'ACADEMICA' && (
         <PlanNivelacion
           idCaso={caso.idCaso}
           antecedentes={detalle.antecedentes}
+          planes={planes}
         />
       )}
     </>
@@ -215,17 +263,22 @@ function Antecedentes({
  * caso sin ruta, así que no hace falta consultar antes; después, el caso
  * releído dice si quedó en la ruta elegida. Reintentar es seguro: el
  * backend responde «El caso ya fue canalizado» (sd_CUD04 5.a).
+ * Un caso recién canalizado no tiene planes (POST /planes exige la ruta
+ * académica); el releído trae los suyos (F5b, D38).
  */
 function pasosCanalizacion(
   idCaso: string,
   ruta: RutaAtencion,
-): PasosEnvio<Caso> {
+): PasosEnvio<Canalizado> {
   return {
     consultarPrevias: async () => new Set<string>(),
-    enviar: () => canalizarCaso(idCaso, ruta),
+    enviar: async () => ({
+      caso: await canalizarCaso(idCaso, ruta),
+      planes: [],
+    }),
     buscar: async () => {
-      const { caso } = await consultarCaso(idCaso);
-      return caso.ruta === ruta ? caso : null;
+      const { caso, planes } = await consultarCaso(idCaso);
+      return caso.ruta === ruta ? { caso, planes } : null;
     },
   };
 }
@@ -235,7 +288,7 @@ function Canalizacion({
   alCanalizar,
 }: {
   idCaso: string;
-  alCanalizar: (caso: Caso) => void;
+  alCanalizar: (canalizado: Canalizado) => void;
 }) {
   const [ruta, setRuta] = useState<RutaAtencion | null>(null);
   const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();

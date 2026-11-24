@@ -132,6 +132,25 @@ export class RepositorioPersistenteCasoRiesgo
     );
   }
 
+  /** Ruta ACADEMICA del programa, más reciente primero (F5b, D38; D18). */
+  listarRutaAcademicaPorPrograma(idPrograma: string): Promise<CasoRiesgo[]> {
+    return this.cargarConsulta(
+      `SELECT c.id_caso AS id
+       FROM caso_riesgo c
+       JOIN persona e ON e.id = c.id_estudiante
+       JOIN origen_riesgo o ON o.id_origen = c.id_origen
+       WHERE c.ruta = $1 AND e.id_programa = $2
+         AND NOT (o.tipo = $3 AND o.tipo_apoyo = $4)
+       ORDER BY c.fecha_creacion DESC, c.id_caso`,
+      [
+        RutaAtencion.ACADEMICA,
+        idPrograma,
+        TIPO_SOLICITUD,
+        RutaAtencion.PSICOLOGICA,
+      ],
+    );
+  }
+
   /** Ruta PSICOLOGICA y estado PENDIENTE (7b). */
   listarPendientesRutaPsicologica(): Promise<CasoRiesgo[]> {
     return this.cargarConsulta(
@@ -375,7 +394,8 @@ export class RepositorioPersistentePlanNivelacion
     super(fuente, {
       objetivo: EsquemaPlanNivelacion,
       propiedadId: 'idPlan',
-      criterios: { estado: 'estado' },
+      // `caso`: planes de un caso para su detalle del Jefe (F5b, D38).
+      criterios: { estado: 'estado', caso: 'idCaso' },
       cargar: (cargador, ids) => cargador.planes(ids),
       escribir: escribirPlan,
     });

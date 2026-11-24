@@ -2,6 +2,7 @@ import type {
   EstadoPlan,
   RutaAtencion,
 } from '../../servicios-api/jefe-departamento';
+import type { TipoBandeja } from './plantilla-jefe-departamento';
 
 /*
  * Textos de las pantallas del Jefe de Departamento de Programa (F3), en los
@@ -44,6 +45,8 @@ export const TEXTO_CANALIZADO: Readonly<Record<RutaAtencion, string>> = {
 
 export const TITULOS_JEFE = {
   casosPendientes: 'Casos pendientes',
+  /** F5b, D38 (aprobado por Ivan). */
+  rutaAcademica: 'En ruta académica',
   detalleCaso: 'Detalle del caso',
   informes: 'Informes de riesgo',
 } as const;
@@ -74,7 +77,18 @@ export const NOMBRE_ESTADO_PLAN: Readonly<Record<EstadoPlan, string>> = {
   FINALIZADO: 'Finalizado',
 };
 
+/**
+ * Enlace de regreso del detalle a su bandeja de origen (F5b; Manual
+ * 3.1.2.2.6, Tabla 30, «Dar el control al usuario»; aprobado por Ivan).
+ */
+export const TEXTO_VOLVER: Readonly<Record<TipoBandeja, string>> = {
+  pendientes: 'Volver a casos pendientes',
+  rutaAcademica: 'Volver a casos en ruta académica',
+};
+
 export const TEXTO_SIN_CASOS = 'No hay casos pendientes';
+/** F5b, D38 (aprobado por Ivan). */
+export const TEXTO_SIN_CASOS_RUTA_ACADEMICA = 'No hay casos en ruta académica';
 export const TEXTO_SIN_CURSOS = 'Seleccione al menos un curso';
 
 /**

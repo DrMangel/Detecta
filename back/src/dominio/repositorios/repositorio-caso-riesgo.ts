@@ -18,6 +18,12 @@ export interface EstadoCasoDeOrigen {
 export interface RepositorioCasoRiesgo extends Repositorio<CasoRiesgo> {
   /** Bandeja del Jefe (sd_CUD04): casos PENDIENTE sin ruta del programa. */
   listarPendientesPorPrograma(idPrograma: string): Promise<CasoRiesgo[]>;
+  /**
+   * Casos del programa canalizados a la ruta ACADEMICA, del más reciente al
+   * más antiguo (F5b, D38; NO está en el diagrama de clases v3). Excluye en
+   * la consulta las solicitudes psicosociales (D18).
+   */
+  listarRutaAcademicaPorPrograma(idPrograma: string): Promise<CasoRiesgo[]>;
   /** Casos con ruta PSICOLOGICA en estado PENDIENTE (sd_CUD06). */
   listarPendientesRutaPsicologica(): Promise<CasoRiesgo[]>;
   /** Casos asignados al psicólogo (sd_CUD06). */

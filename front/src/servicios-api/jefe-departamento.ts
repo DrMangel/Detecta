@@ -66,6 +66,8 @@ export interface Antecedente {
 export interface DetalleCaso {
   caso: Caso;
   antecedentes: Antecedente[];
+  /** Planes del caso en ruta académica; vacío en otro caso (F5b, D38). */
+  planes: PlanCaso[];
 }
 
 export type EstadoPlan = 'ACTIVO' | 'FINALIZADO';
@@ -80,6 +82,9 @@ export interface Plan {
   cronograma: string;
   cursos: { idCurso: string; nombre: string; periodo: string }[];
 }
+
+/** Plan en el detalle del caso: sin idCaso ni fecha (F5b, D38). */
+export type PlanCaso = Omit<Plan, 'idCaso' | 'fecha'>;
 
 export interface DatosPlan {
   idCaso: string;
@@ -96,7 +101,12 @@ export function consultarCasosPendientes(): Promise<Caso[]> {
   return pedir<Caso[]>({ metodo: 'GET', ruta: '/casos/pendientes' });
 }
 
-/** Detalle con la visibilidad aplicada y los antecedentes académicos. */
+/** Casos del programa canalizados a la ruta académica (F5b, D38). */
+export function consultarCasosRutaAcademica(): Promise<Caso[]> {
+  return pedir<Caso[]>({ metodo: 'GET', ruta: '/casos/ruta-academica' });
+}
+
+/** Detalle con la visibilidad aplicada, los antecedentes académicos y los planes. */
 export function consultarCaso(idCaso: string): Promise<DetalleCaso> {
   return pedir<DetalleCaso>({ metodo: 'GET', ruta: rutaCaso(idCaso) });
 }

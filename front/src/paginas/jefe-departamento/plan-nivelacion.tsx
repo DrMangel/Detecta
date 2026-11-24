@@ -18,6 +18,7 @@ import {
   type Antecedente,
   type DatosPlan,
   type Plan,
+  type PlanCaso,
 } from '../../servicios-api/jefe-departamento';
 import { LIMITES } from '../../servicios-api/limites';
 import estilos from './jefe-departamento.module.css';
@@ -32,8 +33,15 @@ import {
 
 /*
  * Plan de nivelación académica (CUD05; sd_CUD04, «extend» CUD05 y su
- * extensión 1.a). Aparece tras canalizar a la ruta académica y en la misma
- * vista se registra y se finaliza (respuesta 1 de F3; D38).
+ * extensión 1.a). Aparece en el detalle de un caso en ruta académica, recién
+ * canalizado o reabierto desde «En ruta académica» (F5b, cierra D38):
+ *
+ * - Los planes del caso (D29 admite varios) se listan; cada plan activo con
+ *   «Finalizar plan» y los finalizados en solo lectura.
+ * - El formulario solo aparece si ningún plan conocido está activo, así no
+ *   se duplica un plan activo (D29). Los finalizados quedan encima.
+ * - «Plan de nivelación registrado» solo justo después de registrar, no al
+ *   reabrir el caso (decisión de Ivan en F5b).
  *
  * - Cursos: los del estudiante con registro académico (antecedentes del
  *   detalle); el backend rechaza cualquier otro.
@@ -78,23 +86,42 @@ function faltante(datos: DatosPlan): string | null {
 export function PlanNivelacion({
   idCaso,
   antecedentes,
+  planes,
 }: {
   idCaso: string;
   antecedentes: readonly Antecedente[];
+  planes: readonly PlanCaso[];
 }) {
   const idTitulo = useId();
-  const [plan, setPlan] = useState<Plan | null>(null);
+  const [lista, setLista] = useState(planes);
+  const [registrado, setRegistrado] = useState(false);
+
+  const alRegistrar = (plan: Plan) => {
+    setLista((previos) => [...previos, plan]);
+    setRegistrado(true);
+  };
+  const alFinalizar = (plan: PlanCaso) =>
+    setLista((previos) =>
+      previos.map((previo) => (previo.idPlan === plan.idPlan ? plan : previo)),
+    );
+
   return (
     <section aria-labelledby={idTitulo} className={controles['seccion']}>
       <h2 id={idTitulo}>{ROTULOS_JEFE.planNivelacion}</h2>
-      {plan === null ? (
+      <MensajeInformativo mensaje={registrado ? TEXTO_PLAN_REGISTRADO : null} />
+      {lista.map((plan) => (
+        <PlanRegistrado
+          key={plan.idPlan}
+          plan={plan}
+          alFinalizar={alFinalizar}
+        />
+      ))}
+      {!lista.some((plan) => plan.estado === 'ACTIVO') && (
         <FormularioPlan
           idCaso={idCaso}
           antecedentes={antecedentes}
-          alRegistrar={setPlan}
+          alRegistrar={alRegistrar}
         />
-      ) : (
-        <PlanRegistrado plan={plan} alFinalizar={setPlan} />
       )}
     </section>
   );
@@ -239,8 +266,8 @@ function PlanRegistrado({
   plan,
   alFinalizar,
 }: {
-  plan: Plan;
-  alFinalizar: (plan: Plan) => void;
+  plan: PlanCaso;
+  alFinalizar: (plan: PlanCaso) => void;
 }) {
   const { enviando, enEspera, error, ejecutar } = useEnvio();
 
@@ -253,7 +280,6 @@ function PlanRegistrado({
 
   return (
     <>
-      <MensajeInformativo mensaje={TEXTO_PLAN_REGISTRADO} />
       <dl className={estilos['datos']}>
         <div>
           <dt>{ROTULOS_COMUNES.estado}</dt>

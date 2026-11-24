@@ -30,6 +30,24 @@ const nombresTipo: Record<TipoAsesoria, string> = {
   SEGUIMIENTO: 'Seguimiento',
 };
 
+/*
+ * Valores por defecto de los formularios (F5b, Commit 3). Los formularios
+ * comparten estado, así que cada operación exitosa reinicia solo sus campos:
+ * programar, reprogramar o seguir una cita reinician CITA_POR_DEFECTO;
+ * registrar un resultado reinicia RESULTADO_POR_DEFECTO. Así la cita
+ * siguiente no hereda lo escrito para la anterior y un borrador de otro
+ * formulario se conserva. Tras un error no se reinicia nada.
+ */
+const CITA_POR_DEFECTO = { fecha: '', modalidad: 'PRESENCIAL' } as const;
+const RESULTADO_POR_DEFECTO = {
+  tipo: 'ORIENTACION',
+  observaciones: '',
+  acuerdos: '',
+  asistencia: 'true',
+  requiereSeguimiento: false,
+  riesgo: false,
+} as const;
+
 function isoBogota(valor: string): string {
   return `${valor}:00-05:00`;
 }
@@ -44,24 +62,48 @@ export function OperacionesExpediente({
   actualizar: (caso: CasoPsicologo) => void;
 }) {
   const envio = useEnvio();
-  const [fecha, setFecha] = useState('');
-  const [modalidad, setModalidad] = useState<Modalidad>('PRESENCIAL');
-  const [tipo, setTipo] = useState<TipoAsesoria>('ORIENTACION');
-  const [observaciones, setObservaciones] = useState('');
-  const [acuerdos, setAcuerdos] = useState('');
-  const [asistencia, setAsistencia] = useState('true');
-  const [requiereSeguimiento, setRequiereSeguimiento] = useState(false);
-  const [riesgo, setRiesgo] = useState(false);
+  const [fecha, setFecha] = useState<string>(CITA_POR_DEFECTO.fecha);
+  const [modalidad, setModalidad] = useState<Modalidad>(
+    CITA_POR_DEFECTO.modalidad,
+  );
+  const [tipo, setTipo] = useState<TipoAsesoria>(RESULTADO_POR_DEFECTO.tipo);
+  const [observaciones, setObservaciones] = useState<string>(
+    RESULTADO_POR_DEFECTO.observaciones,
+  );
+  const [acuerdos, setAcuerdos] = useState<string>(
+    RESULTADO_POR_DEFECTO.acuerdos,
+  );
+  const [asistencia, setAsistencia] = useState<string>(
+    RESULTADO_POR_DEFECTO.asistencia,
+  );
+  const [requiereSeguimiento, setRequiereSeguimiento] = useState<boolean>(
+    RESULTADO_POR_DEFECTO.requiereSeguimiento,
+  );
+  const [riesgo, setRiesgo] = useState<boolean>(RESULTADO_POR_DEFECTO.riesgo);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [reintentoBloqueado, setReintentoBloqueado] = useState(false);
+  const limpiarCita = () => {
+    setFecha(CITA_POR_DEFECTO.fecha);
+    setModalidad(CITA_POR_DEFECTO.modalidad);
+  };
+  const limpiarResultado = () => {
+    setTipo(RESULTADO_POR_DEFECTO.tipo);
+    setObservaciones(RESULTADO_POR_DEFECTO.observaciones);
+    setAcuerdos(RESULTADO_POR_DEFECTO.acuerdos);
+    setAsistencia(RESULTADO_POR_DEFECTO.asistencia);
+    setRequiereSeguimiento(RESULTADO_POR_DEFECTO.requiereSeguimiento);
+    setRiesgo(RESULTADO_POR_DEFECTO.riesgo);
+  };
   const refrescar = async () => {
     const detalle = await consultarCasoPsicologo(idCaso);
     actualizar(detalle.caso);
   };
-  const enviar = (accion: () => Promise<unknown>) =>
+  // `limpiar` corre solo si la acción no lanzó: un error conserva lo escrito.
+  const enviar = (accion: () => Promise<unknown>, limpiar?: () => void) =>
     void envio.ejecutar(async () => {
       try {
         const respuesta = await accion();
+        limpiar?.();
         await refrescar();
         return respuesta;
       } catch (error) {
@@ -75,10 +117,14 @@ export function OperacionesExpediente({
     fechaHora: isoBogota(cuerpo.fechaHora),
     modalidad: cuerpo.modalidad,
   });
-  const registrar = (evento: FormEvent, accion: () => Promise<unknown>) => {
+  const registrar = (
+    evento: FormEvent,
+    accion: () => Promise<unknown>,
+    limpiar: () => void,
+  ) => {
     evento.preventDefault();
     setMensaje(null);
-    enviar(accion);
+    enviar(accion, limpiar);
   };
   const ultima = [...caso.citas]
     .sort((a, b) => Date.parse(a.fechaHora) - Date.parse(b.fechaHora))
@@ -114,11 +160,14 @@ export function OperacionesExpediente({
         <form
           className={controles['formulario']}
           onSubmit={(e) =>
-            registrar(e, () =>
-              programarPrimeraCita(
-                idCaso,
-                cita({ fechaHora: fecha, modalidad }),
-              ),
+            registrar(
+              e,
+              () =>
+                programarPrimeraCita(
+                  idCaso,
+                  cita({ fechaHora: fecha, modalidad }),
+                ),
+              limpiarCita,
             )
           }
         >
@@ -162,11 +211,14 @@ export function OperacionesExpediente({
             <form
               className={controles['formulario']}
               onSubmit={(e) =>
-                registrar(e, () =>
-                  reprogramarCita(
-                    c.idCita,
-                    cita({ fechaHora: fecha, modalidad }),
-                  ),
+                registrar(
+                  e,
+                  () =>
+                    reprogramarCita(
+                      c.idCita,
+                      cita({ fechaHora: fecha, modalidad }),
+                    ),
+                  limpiarCita,
                 )
               }
             >
@@ -206,15 +258,18 @@ export function OperacionesExpediente({
             <form
               className={controles['formulario']}
               onSubmit={(e) =>
-                registrar(e, () =>
-                  registrarResultado(idCaso, c.idCita, {
-                    tipo,
-                    observaciones,
-                    acuerdos,
-                    asistencia: asistencia === 'true',
-                    requiereSeguimiento,
-                    presentaRiesgoCritico: riesgo,
-                  }),
+                registrar(
+                  e,
+                  () =>
+                    registrarResultado(idCaso, c.idCita, {
+                      tipo,
+                      observaciones,
+                      acuerdos,
+                      asistencia: asistencia === 'true',
+                      requiereSeguimiento,
+                      presentaRiesgoCritico: riesgo,
+                    }),
+                  limpiarResultado,
                 )
               }
             >
@@ -298,11 +353,14 @@ export function OperacionesExpediente({
         <form
           className={controles['formulario']}
           onSubmit={(e) =>
-            registrar(e, () =>
-              programarSeguimiento(
-                idCaso,
-                cita({ fechaHora: fecha, modalidad }),
-              ),
+            registrar(
+              e,
+              () =>
+                programarSeguimiento(
+                  idCaso,
+                  cita({ fechaHora: fecha, modalidad }),
+                ),
+              limpiarCita,
             )
           }
         >
