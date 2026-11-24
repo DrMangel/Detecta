@@ -297,6 +297,15 @@ describe('Atención psicológica (F4b)', () => {
       fechaHora: '2026-11-29T10:00:00-05:00',
       modalidad: 'VIRTUAL',
     });
+    // F5b, Commit 3: el segundo resultado lleva solo lo escrito para él.
+    expect(writes[4]?.cuerpo).toEqual({
+      tipo: 'ORIENTACION',
+      observaciones: 'Resultado del seguimiento',
+      acuerdos: '',
+      asistencia: true,
+      requiereSeguimiento: false,
+      presentaRiesgoCritico: false,
+    });
   });
 
   it.each([
@@ -456,6 +465,219 @@ describe('Atención psicológica (F4b)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'No se puede registrar la atención sin consentimiento',
     );
+  });
+});
+
+/** Cita sin asesoría para montar el formulario «Registrar resultado». */
+const CITA_SIN_RESULTADO = {
+  idCita: 'cita-1',
+  fechaHora: '2026-11-25T14:00:00.000Z',
+  modalidad: 'PRESENCIAL',
+  estado: 'PROGRAMADA',
+  asesoria: null,
+};
+
+const valorDe = (rotulo: string) =>
+  (screen.getByLabelText(rotulo) as HTMLInputElement).value;
+const marcada = (rotulo: string) =>
+  (screen.getByLabelText(rotulo) as HTMLInputElement).checked;
+
+/** Llena «Registrar resultado» con valores distintos de los por defecto. */
+async function llenarResultado(
+  usuario: ReturnType<typeof userEvent.setup>,
+  observaciones: string,
+  acuerdos: string,
+) {
+  await usuario.type(screen.getByLabelText('Observaciones'), observaciones);
+  await usuario.type(screen.getByLabelText('Acuerdos'), acuerdos);
+  await usuario.selectOptions(screen.getByLabelText('Tipo'), 'SEGUIMIENTO');
+  await usuario.selectOptions(screen.getByLabelText('Asistencia'), 'false');
+  await usuario.click(screen.getByLabelText('Requiere seguimiento'));
+  await usuario.click(screen.getByLabelText('Presenta riesgo crítico'));
+}
+
+describe('Formularios tras cada operación (F5b, Commit 3)', () => {
+  it('tras cada éxito, el formulario siguiente aparece vacío y con los valores por defecto', async () => {
+    const caso: { estado: string; citas: Array<Record<string, unknown>> } = {
+      ...detalle.caso,
+      citas: [],
+    };
+    const { llamadas } = api({
+      [`GET /atencion/casos/${ID}`]: () => ({
+        estado: 200,
+        cuerpo: { caso: { ...caso, citas: [...caso.citas] }, antecedentes: [] },
+      }),
+      [`POST /pertinencia/${ID}/citas`]: () => {
+        caso.estado = 'CITADO';
+        caso.citas = [{ ...CITA_SIN_RESULTADO, modalidad: 'VIRTUAL' }];
+        return { estado: 201, cuerpo: { cita: caso.citas[0] } };
+      },
+      [`POST /atencion/casos/${ID}/citas/cita-1/resultado`]: (cuerpo) => {
+        caso.citas = [
+          {
+            ...caso.citas[0],
+            asesoria: {
+              idAsesoria: 'asesoria-1',
+              fecha: '2026-11-25T14:00:00.000Z',
+              ...cuerpoRegistro(cuerpo),
+            },
+          },
+        ];
+        return {
+          estado: 201,
+          cuerpo: { mensaje: 'Resultado registrado', cita: caso.citas[0] },
+        };
+      },
+      [`POST /atencion/casos/${ID}/seguimiento`]: () => {
+        caso.estado = 'EN_SEGUIMIENTO';
+        caso.citas = [
+          ...caso.citas,
+          {
+            ...CITA_SIN_RESULTADO,
+            idCita: 'cita-2',
+            fechaHora: '2026-11-29T15:00:00.000Z',
+          },
+        ];
+        return { estado: 201, cuerpo: { cita: caso.citas[1]! } };
+      },
+      [`POST /atencion/casos/${ID}/citas/cita-2/resultado`]: () => ({
+        estado: 201,
+        cuerpo: { mensaje: 'Resultado registrado', cita: caso.citas[1]! },
+      }),
+    });
+    const usuario = userEvent.setup();
+    renderizar(`/psicologo/casos/${ID}`);
+
+    // Programar la cita en Virtual → «Reprogramar» vacío y en Presencial.
+    await usuario.type(
+      await screen.findByLabelText('Fecha y hora (Bogotá)'),
+      '2026-11-25T09:00',
+    );
+    await usuario.selectOptions(screen.getByLabelText('Modalidad'), 'VIRTUAL');
+    await usuario.click(screen.getByRole('button', { name: 'Programar cita' }));
+    await screen.findByRole('heading', { name: /Cita:/ });
+    expect(valorDe('Nueva fecha y hora (Bogotá)')).toBe('');
+    expect(valorDe('Modalidad')).toBe('PRESENCIAL');
+
+    // Resultado con todo cambiado → «Programar seguimiento» vacío.
+    await llenarResultado(usuario, 'Primera', 'Acuerdo uno');
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar resultado' }),
+    );
+    await screen.findByRole('heading', { name: 'Programar seguimiento' });
+    expect(valorDe('Fecha y hora (Bogotá)')).toBe('');
+
+    // Seguimiento → el resultado de la cita 2 aparece vacío.
+    await usuario.type(
+      screen.getByLabelText('Fecha y hora (Bogotá)'),
+      '2026-11-29T10:00',
+    );
+    await usuario.click(
+      screen.getByRole('button', { name: 'Programar seguimiento' }),
+    );
+    expect(
+      await screen.findAllByRole('heading', { name: /Cita:/ }),
+    ).toHaveLength(2);
+    expect(valorDe('Observaciones')).toBe('');
+    expect(valorDe('Acuerdos')).toBe('');
+    expect(valorDe('Tipo')).toBe('ORIENTACION');
+    expect(valorDe('Asistencia')).toBe('true');
+    expect(marcada('Requiere seguimiento')).toBe(false);
+    expect(marcada('Presenta riesgo crítico')).toBe(false);
+
+    await usuario.type(screen.getByLabelText('Observaciones'), 'Segunda');
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar resultado' }),
+    );
+    const segundo = () =>
+      llamadas.find((l) => l.url.endsWith('/cita-2/resultado'));
+    await waitFor(() => expect(segundo()).toBeDefined());
+    expect(segundo()?.cuerpo).toEqual({
+      tipo: 'ORIENTACION',
+      observaciones: 'Segunda',
+      acuerdos: '',
+      asistencia: true,
+      requiereSeguimiento: false,
+      presentaRiesgoCritico: false,
+    });
+  });
+
+  it('un error al registrar el resultado conserva lo escrito para reintentar', async () => {
+    api({
+      [`GET /atencion/casos/${ID}`]: {
+        estado: 200,
+        cuerpo: {
+          caso: {
+            ...detalle.caso,
+            estado: 'CITADO',
+            citas: [CITA_SIN_RESULTADO],
+          },
+          antecedentes: [],
+        },
+      },
+      [`POST /atencion/casos/${ID}/citas/cita-1/resultado`]: {
+        estado: 503,
+        cuerpo: { message: 'Error al registrar el resultado' },
+      },
+    });
+    const usuario = userEvent.setup();
+    renderizar(`/psicologo/casos/${ID}`);
+    await screen.findByLabelText('Observaciones');
+    await llenarResultado(usuario, 'Texto a conservar', 'Acuerdo a conservar');
+    await usuario.click(
+      screen.getByRole('button', { name: 'Registrar resultado' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Error al registrar el resultado',
+    );
+    expect(valorDe('Observaciones')).toBe('Texto a conservar');
+    expect(valorDe('Acuerdos')).toBe('Acuerdo a conservar');
+    expect(valorDe('Tipo')).toBe('SEGUIMIENTO');
+    expect(valorDe('Asistencia')).toBe('false');
+    expect(marcada('Requiere seguimiento')).toBe(true);
+    expect(marcada('Presenta riesgo crítico')).toBe(true);
+  });
+
+  it('reprogramar con éxito no borra el borrador de «Registrar resultado»', async () => {
+    const caso = {
+      ...detalle.caso,
+      estado: 'CITADO',
+      citas: [CITA_SIN_RESULTADO],
+    };
+    api({
+      [`GET /atencion/casos/${ID}`]: () => ({
+        estado: 200,
+        cuerpo: { caso: { ...caso, citas: [...caso.citas] }, antecedentes: [] },
+      }),
+      'POST /atencion/citas/cita-1/reprogramacion': () => {
+        caso.citas = [
+          {
+            ...CITA_SIN_RESULTADO,
+            modalidad: 'VIRTUAL',
+            estado: 'REPROGRAMADA',
+          },
+        ];
+        return { estado: 200, cuerpo: { cita: caso.citas[0] } };
+      },
+    });
+    const usuario = userEvent.setup();
+    renderizar(`/psicologo/casos/${ID}`);
+    await usuario.type(
+      await screen.findByLabelText('Observaciones'),
+      'Borrador en curso',
+    );
+    await usuario.type(screen.getByLabelText('Acuerdos'), 'Acuerdo en curso');
+    await usuario.type(
+      screen.getByLabelText('Nueva fecha y hora (Bogotá)'),
+      '2026-11-26T10:00',
+    );
+    await usuario.selectOptions(screen.getByLabelText('Modalidad'), 'VIRTUAL');
+    await usuario.click(screen.getByRole('button', { name: 'Reprogramar' }));
+    await screen.findByRole('heading', { name: /Cita:.*Virtual/ });
+    expect(valorDe('Nueva fecha y hora (Bogotá)')).toBe('');
+    expect(valorDe('Modalidad')).toBe('PRESENCIAL');
+    expect(valorDe('Observaciones')).toBe('Borrador en curso');
+    expect(valorDe('Acuerdos')).toBe('Acuerdo en curso');
   });
 });
 
