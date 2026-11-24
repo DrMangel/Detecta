@@ -2,10 +2,12 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import {
+  CASO_ACADEMICO,
   CASO_ALERTA,
   DETALLE_ALERTA,
   ID_CASO_SECRETO,
   PLAN,
+  PLAN_CASO,
 } from './datos-jefe';
 import {
   renderizar,
@@ -179,5 +181,97 @@ describe('Plan de nivelación: fallos ciertos (CUD05)', () => {
     await screen.findByText(/No se pudo confirmar si el plan fue registrado/);
     expect(localStorage.length).toBe(0);
     expect(sessionStorage.length).toBe(0);
+  });
+});
+
+/** Reabre un caso ya canalizado a la ruta académica con estos planes. */
+function reabrir(planes: readonly unknown[]) {
+  const api = simularApi({
+    'GET /acceso/sesion': SESION,
+    [`GET /casos/${ID_CASO_SECRETO}`]: {
+      estado: 200,
+      cuerpo: { ...DETALLE_ALERTA, caso: CASO_ACADEMICO, planes },
+    },
+    'POST /planes': {
+      estado: 201,
+      cuerpo: { mensaje: 'Plan de nivelación registrado', plan: PLAN },
+    },
+    'POST /planes/plan-1/finalizacion': {
+      estado: 200,
+      cuerpo: { plan: { ...PLAN, estado: 'FINALIZADO' } },
+    },
+  });
+  renderizar(`/jefe-departamento/casos/${ID_CASO_SECRETO}`);
+  return { ...api, usuario: userEvent.setup() };
+}
+
+describe('Volver al plan de un caso en ruta académica (F5b, D38)', () => {
+  it('plan activo: se ve con «Finalizar plan», sin formulario ni aviso de registro, y se finaliza', async () => {
+    const { usuario, llamadas } = reabrir([PLAN_CASO]);
+    expect(
+      await screen.findByRole('button', { name: 'Finalizar plan' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Marta Ruiz')).toBeInTheDocument();
+    expect(screen.getByText('Activo')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar plan' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Canalizar caso' })).toBeNull();
+    expect(screen.queryByText('Plan de nivelación registrado')).toBeNull();
+    // Solo la página: el arnés de pruebas pinta la URL, que lleva el id.
+    const pagina = document.querySelector('main')?.innerHTML ?? '';
+    expect(pagina).not.toContain(ID_CASO_SECRETO);
+    expect(pagina).not.toContain(PLAN.idPlan);
+
+    await usuario.click(screen.getByRole('button', { name: 'Finalizar plan' }));
+    expect(await screen.findByText('Finalizado')).toBeInTheDocument();
+    expect(
+      llamadas.some((l) => l.url === '/api/planes/plan-1/finalizacion'),
+    ).toBe(true);
+  });
+
+  it('sin planes: el formulario del plan, y al registrar el aviso de registro', async () => {
+    const { usuario } = reabrir([]);
+    expect(
+      await screen.findByRole('button', { name: 'Registrar plan' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Finalizar plan' })).toBeNull();
+    await llenar(usuario);
+    await usuario.click(screen.getByRole('button', { name: 'Registrar plan' }));
+    expect(
+      await screen.findByText('Plan de nivelación registrado'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Finalizar plan' }),
+    ).toBeInTheDocument();
+  });
+
+  it('tras «Finalizar plan»: el plan queda en solo lectura y el formulario aparece debajo', async () => {
+    const { usuario } = reabrir([PLAN_CASO]);
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Finalizar plan' }),
+    );
+    const finalizado = await screen.findByText('Finalizado');
+    const registrar = await screen.findByRole('button', {
+      name: 'Registrar plan',
+    });
+    expect(screen.queryByRole('button', { name: 'Finalizar plan' })).toBeNull();
+    expect(screen.queryByText('Activo')).toBeNull();
+    expect(
+      finalizado.compareDocumentPosition(registrar) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('solo planes finalizados: se ven en solo lectura encima del formulario', async () => {
+    reabrir([{ ...PLAN_CASO, estado: 'FINALIZADO' }]);
+    const registrar = await screen.findByRole('button', {
+      name: 'Registrar plan',
+    });
+    const finalizado = screen.getByText('Finalizado');
+    expect(screen.queryByRole('button', { name: 'Finalizar plan' })).toBeNull();
+    expect(screen.queryByText('Plan de nivelación registrado')).toBeNull();
+    expect(
+      finalizado.compareDocumentPosition(registrar) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });

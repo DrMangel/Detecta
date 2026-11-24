@@ -56,7 +56,12 @@ const RUTAS_PROTEGIDAS: readonly {
   {
     ruta: '/jefe-departamento',
     rol: 'JEFE_DEPARTAMENTO',
-    pantalla: <BandejaCasos />,
+    pantalla: <BandejaCasos tipo="pendientes" />,
+  },
+  {
+    ruta: '/jefe-departamento/ruta-academica',
+    rol: 'JEFE_DEPARTAMENTO',
+    pantalla: <BandejaCasos tipo="rutaAcademica" />,
   },
   {
     ruta: '/jefe-departamento/casos/:idCaso',

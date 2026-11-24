@@ -13,7 +13,7 @@ import { ServicioNotificacion } from '../src/aplicacion/servicios/servicio-notif
 import { AppModule } from '../src/app.module';
 import { configurarAplicacion } from '../src/configurar-aplicacion';
 import type { InformeDto } from '../src/controladores/controlador-informes';
-import type { PlanDto } from '../src/controladores/controlador-plan-nivelacion';
+import type { PlanDto } from '../src/controladores/respuestas-casos';
 import { Curso } from '../src/dominio/entidades/curso';
 import { Docente } from '../src/dominio/entidades/docente';
 import { RegistroAcademico } from '../src/dominio/entidades/registro-academico';

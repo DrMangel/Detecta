@@ -131,7 +131,8 @@ Todas las rutas exigen sesión y el rol correspondiente (403 fuera del rol). El 
 | Ruta | Rol | Respuesta |
 |---|---|---|
 | `GET /casos/pendientes` | Jefe | Bandeja del programa que dirige: casos pendientes sin ruta (alertas y solicitudes académicas) |
-| `GET /casos/:idCaso` | Jefe | Detalle con antecedentes académicos; nunca expediente psicológico |
+| `GET /casos/ruta-academica` | Jefe | Casos del programa que dirige canalizados a la ruta académica, del más reciente al más antiguo; misma forma que la bandeja (F5b, D38) |
+| `GET /casos/:idCaso` | Jefe | Detalle con antecedentes académicos y `planes: [{idPlan, estado, tutorNombre, tutorCodigo, cursos, cronograma}]` (vacío si no hay plan o si el caso no está en ruta académica; F5b, D38); nunca expediente psicológico |
 | `POST /casos/:idCaso/canalizacion` `{ruta}` | Jefe | 200; psicológica: correo a los psicólogos; 409 si ya fue canalizado |
 | `POST /pertinencia/:idCaso` `{pertinente, justificacion, reorientar?}` | Psicólogo | 200; toma el caso y lo aprueba, archiva o reorienta |
 | `POST /pertinencia/:idCaso/citas` `{fechaHora, modalidad}` | Psicólogo | 201; primera cita; correo al estudiante |

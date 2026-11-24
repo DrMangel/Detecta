@@ -4,9 +4,11 @@ import type { CasoRiesgo } from '../dominio/entidades/caso-riesgo';
 import type { Cita } from '../dominio/entidades/cita';
 import type { EstadoCaso } from '../dominio/entidades/estado-caso';
 import type { EstadoCita } from '../dominio/entidades/estado-cita';
+import type { EstadoPlan } from '../dominio/entidades/estado-plan';
 import type { Modalidad } from '../dominio/entidades/modalidad';
 import type { NivelRiesgo } from '../dominio/entidades/nivel-riesgo';
 import type { Persona } from '../dominio/entidades/persona';
+import type { PlanNivelacion } from '../dominio/entidades/plan-nivelacion';
 import type { RegistroAcademico } from '../dominio/entidades/registro-academico';
 import type { RutaAtencion } from '../dominio/entidades/ruta-atencion';
 import type { SolicitudAcompanamiento } from '../dominio/entidades/solicitud-acompanamiento';
@@ -79,6 +81,45 @@ export interface CasoPsicologoDto extends CasoDto {
   /** CUD08 4.a: el riesgo crítico se resalta en el expediente. */
   presentaRiesgoCritico: boolean;
   citas: CitaDto[];
+}
+
+/** Plan en el detalle del caso del Jefe (F5b, D38): sin idCaso ni fecha. */
+export interface PlanCasoDto {
+  idPlan: string;
+  estado: EstadoPlan;
+  tutorNombre: string;
+  tutorCodigo: string;
+  cronograma: string;
+  cursos: { idCurso: string; nombre: string; periodo: string }[];
+}
+
+/** Respuesta de POST /planes y de su finalización (B8). */
+export interface PlanDto extends PlanCasoDto {
+  idCaso: string;
+  fecha: string;
+}
+
+export function planCaso(plan: PlanNivelacion): PlanCasoDto {
+  return {
+    idPlan: plan.idPlan,
+    estado: plan.estado,
+    tutorNombre: plan.tutorNombre,
+    tutorCodigo: plan.tutorCodigo,
+    cronograma: plan.cronograma,
+    cursos: plan.cursos.map((curso) => ({
+      idCurso: curso.idCurso,
+      nombre: curso.nombre,
+      periodo: curso.periodo,
+    })),
+  };
+}
+
+export function planDto(plan: PlanNivelacion): PlanDto {
+  return {
+    ...planCaso(plan),
+    idCaso: plan.caso.idCaso,
+    fecha: plan.fecha.toISOString(),
+  };
 }
 
 export interface DetalleDto<T> {

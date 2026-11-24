@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TEXTO_ERROR_RED } from '../servicios-api/errores';
 import {
+  CASO_ACADEMICO,
   CASO_ALERTA,
   CASO_SOLICITUD,
   DETALLE_ALERTA,
@@ -83,6 +84,52 @@ describe('Bandeja de casos pendientes (CUD04)', () => {
     expect(document.body.innerHTML).not.toContain(ID_ESTUDIANTE_SECRETO);
     await userEvent.setup().click(boton);
     expect(await screen.findByTestId('ruta')).toHaveTextContent(RUTA_DETALLE);
+  });
+});
+
+describe('Bandeja «En ruta académica» (F5b, D38)', () => {
+  it('el enlace de la navegación lleva a los casos en ruta académica y cada fila a su detalle, sin ids en el DOM', async () => {
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      'GET /casos/pendientes': { estado: 200, cuerpo: [] },
+      'GET /casos/ruta-academica': { estado: 200, cuerpo: [CASO_ACADEMICO] },
+      [DETALLE]: {
+        estado: 200,
+        cuerpo: { ...DETALLE_ALERTA, caso: CASO_ACADEMICO },
+      },
+    });
+    renderizar('/jefe-departamento');
+    const usuario = userEvent.setup();
+    await usuario.click(
+      await screen.findByRole('link', { name: 'En ruta académica' }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'En ruta académica' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'En ruta académica' }),
+    ).toHaveAttribute('aria-current', 'page');
+    const tabla = await screen.findByRole('table');
+    expect(
+      within(tabla).getByRole('rowheader', { name: 'Laura Gómez' }),
+    ).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toContain(ID_CASO_SECRETO);
+    expect(document.body.innerHTML).not.toContain(ID_ESTUDIANTE_SECRETO);
+    await usuario.click(
+      within(tabla).getByRole('button', { name: 'Detalle del caso' }),
+    );
+    expect(await screen.findByTestId('ruta')).toHaveTextContent(RUTA_DETALLE);
+  });
+
+  it('sin casos: «No hay casos en ruta académica»', async () => {
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      'GET /casos/ruta-academica': { estado: 200, cuerpo: [] },
+    });
+    renderizar('/jefe-departamento/ruta-academica');
+    expect(
+      await screen.findByText('No hay casos en ruta académica'),
+    ).toBeInTheDocument();
   });
 });
 

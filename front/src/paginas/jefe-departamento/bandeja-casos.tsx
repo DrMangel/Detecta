@@ -11,6 +11,7 @@ import tabla from '../../componentes/tabla.module.css';
 import { useConsulta } from '../../componentes/use-consulta';
 import {
   consultarCasosPendientes,
+  consultarCasosRutaAcademica,
   type Caso,
 } from '../../servicios-api/jefe-departamento';
 import { PlantillaJefe, RUTAS_JEFE } from './plantilla-jefe-departamento';
@@ -18,34 +19,49 @@ import {
   NOMBRE_ORIGEN,
   ROTULOS_CASO,
   TEXTO_SIN_CASOS,
+  TEXTO_SIN_CASOS_RUTA_ACADEMICA,
   TITULOS_JEFE,
 } from './textos';
 
 /*
- * Bandeja de casos pendientes del programa que dirige el Jefe (CUD04 pasos
- * 1 y 2; sd_CUD04 `listarCasosPendiente`). Solo llegan casos sin canalizar;
- * el backend excluye las solicitudes psicosociales (D18). El id del
+ * Bandejas del programa que dirige el Jefe, con la misma tabla:
+ * - «Casos pendientes» (CUD04 pasos 1 y 2; sd_CUD04 `listarCasosPendiente`):
+ *   solo casos sin canalizar.
+ * - «En ruta académica» (F5b, cierra D38): casos canalizados a la ruta
+ *   académica, para volver a registrar o finalizar su plan (CUD05, 1.a).
+ * El backend excluye las solicitudes psicosociales (D18). El id del
  * estudiante y el del caso no quedan en el DOM (como en F2): el botón de
  * cada fila navega al detalle y los ids del DOM son por posición.
  */
+
+const BANDEJAS = {
+  pendientes: {
+    consultar: consultarCasosPendientes,
+    titulo: TITULOS_JEFE.casosPendientes,
+    textoVacio: TEXTO_SIN_CASOS,
+  },
+  rutaAcademica: {
+    consultar: consultarCasosRutaAcademica,
+    titulo: TITULOS_JEFE.rutaAcademica,
+    textoVacio: TEXTO_SIN_CASOS_RUTA_ACADEMICA,
+  },
+} as const;
 
 /** Las solicitudes no traen nivel de riesgo: la celda queda con un guion. */
 export function textoNivel(nivel: Caso['nivelRiesgo']): string {
   return nivel === null ? '—' : NOMBRE_NIVEL_RIESGO[nivel];
 }
 
-export function BandejaCasos() {
-  const { datos: casos, error } = useConsulta(
-    consultarCasosPendientes,
-    'bandeja',
-  );
+export function BandejaCasos({ tipo }: { tipo: keyof typeof BANDEJAS }) {
+  const bandeja = BANDEJAS[tipo];
+  const { datos: casos, error } = useConsulta(bandeja.consultar, tipo);
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.casosPendientes}>
+    <PlantillaJefe titulo={bandeja.titulo}>
       <MensajeError mensaje={error} />
       <div aria-busy={casos === null && error === null}>
         {casos !== null &&
           (casos.length === 0 ? (
-            <p>{TEXTO_SIN_CASOS}</p>
+            <p>{bandeja.textoVacio}</p>
           ) : (
             <TablaCasos casos={casos} />
           ))}

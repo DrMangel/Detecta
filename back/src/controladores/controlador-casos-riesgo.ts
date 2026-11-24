@@ -21,10 +21,13 @@ import { JefeDepartamento } from '../dominio/entidades/jefe-departamento';
 import type { Persona } from '../dominio/entidades/persona';
 import { Rol } from '../dominio/entidades/rol';
 import { RutaAtencion } from '../dominio/entidades/ruta-atencion';
+import type { CasoRiesgo } from '../dominio/entidades/caso-riesgo';
 import type { RepositorioCasoRiesgo } from '../dominio/repositorios/repositorio-caso-riesgo';
+import type { RepositorioPlanNivelacion } from '../dominio/repositorios/repositorio-plan-nivelacion';
 import type { RepositorioRegistroAcademico } from '../dominio/repositorios/repositorio-registro-academico';
 import {
   REPOSITORIO_CASO_RIESGO,
+  REPOSITORIO_PLAN_NIVELACION,
   REPOSITORIO_REGISTRO_ACADEMICO,
 } from '../dominio/repositorios/tokens';
 import { ControladorBase } from './controlador-base';
@@ -32,8 +35,10 @@ import { conPersistencia, MENSAJE_ERROR_CONSULTA, regla } from './respuestas';
 import {
   antecedentes,
   casoJefe,
+  planCaso,
   type CasoDto,
   type DetalleDto,
+  type PlanCasoDto,
 } from './respuestas-casos';
 import { UsuarioSesion } from './sesion';
 import {
@@ -75,6 +80,8 @@ export class ControladorCasosRiesgo extends ControladorBase {
     private readonly casos: RepositorioCasoRiesgo,
     @Inject(REPOSITORIO_REGISTRO_ACADEMICO)
     private readonly registros: RepositorioRegistroAcademico,
+    @Inject(REPOSITORIO_PLAN_NIVELACION)
+    private readonly planes: RepositorioPlanNivelacion,
     @Inject(UNIDAD_TRABAJO)
     private readonly unidadTrabajo: UnidadTrabajo,
     private readonly notificacion: ServicioNotificacion,
@@ -96,14 +103,35 @@ export class ControladorCasosRiesgo extends ControladorBase {
   }
 
   /**
+   * GET /casos/ruta-academica (F5b, cierra D38; fuera del diagrama): casos
+   * del programa canalizados a la ruta académica, para volver a su plan.
+   * Misma forma que la bandeja. Va antes de `:idCaso` para que esa ruta no
+   * la capture.
+   */
+  @Get('ruta-academica')
+  async listarCasosRutaAcademica(
+    @UsuarioSesion() usuario: Persona,
+  ): Promise<CasoDto[]> {
+    const jefe = this.#jefe(usuario, 'listarCasosPendiente');
+    return conPersistencia(this.#registro, MENSAJE_ERROR_CONSULTA, async () =>
+      (
+        await this.casos.listarRutaAcademicaPorPrograma(
+          jefe.programa.idPrograma,
+        )
+      ).map((caso) => casoJefe(this.controlAcceso, jefe, caso)),
+    );
+  }
+
+  /**
    * GET /casos/:idCaso (fuera del diagrama, respuesta 5): el caso con la
    * visibilidad aplicada y los antecedentes académicos del estudiante.
+   * `planes` (F5b, D38): los del caso en ruta académica; vacío en otro caso.
    */
   @Get(':idCaso')
   async consultarCaso(
     @UsuarioSesion() usuario: Persona,
     @Param('idCaso') idCaso: string,
-  ): Promise<DetalleDto<CasoDto>> {
+  ): Promise<DetalleDto<CasoDto> & { planes: PlanCasoDto[] }> {
     const jefe = this.#jefe(usuario, 'listarCasosPendiente');
     return conPersistencia(this.#registro, MENSAJE_ERROR_CONSULTA, async () => {
       const caso =
@@ -122,8 +150,20 @@ export class ControladorCasosRiesgo extends ControladorBase {
       return {
         caso: casoJefe(this.controlAcceso, jefe, caso),
         antecedentes: antecedentes(registros),
+        planes: await this.#planesDe(caso),
       };
     });
+  }
+
+  /** Planes del caso, del más antiguo al más reciente (D29: puede haber varios). */
+  async #planesDe(caso: CasoRiesgo): Promise<PlanCasoDto[]> {
+    if (caso.ruta !== RutaAtencion.ACADEMICA) {
+      return [];
+    }
+    const planes = await this.planes.listar(new Map([['caso', caso.idCaso]]));
+    return [...planes]
+      .sort((a, b) => a.fecha.getTime() - b.fecha.getTime())
+      .map(planCaso);
   }
 
   /**

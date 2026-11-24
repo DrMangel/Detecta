@@ -15,6 +15,7 @@ import { Estudiante } from '../dominio/entidades/estudiante';
 import { JefeDepartamento } from '../dominio/entidades/jefe-departamento';
 import { NivelRiesgo } from '../dominio/entidades/nivel-riesgo';
 import type { Persona } from '../dominio/entidades/persona';
+import type { PlanNivelacion } from '../dominio/entidades/plan-nivelacion';
 import { Programa } from '../dominio/entidades/programa';
 import { Psicologo } from '../dominio/entidades/psicologo';
 import { RegistroAcademico } from '../dominio/entidades/registro-academico';
@@ -73,13 +74,28 @@ function casoAlerta(): CasoRiesgo {
     .generarCasoRiesgo();
 }
 
-function preparar(caso: CasoRiesgo | null) {
+function planDe(caso: CasoRiesgo): PlanNivelacion {
+  return jefe.estructurarPlanNivelacion(
+    caso,
+    [curso],
+    'Tutor Uno',
+    'T-01',
+    'Martes y jueves',
+  );
+}
+
+function preparar(
+  caso: CasoRiesgo | null,
+  planes: readonly PlanNivelacion[] = [],
+) {
   const repos = {
     casos: {
       buscarParaPrograma: jest.fn(async () => caso),
       listarPendientesPorPrograma: jest.fn(async () => (caso ? [caso] : [])),
+      listarRutaAcademicaPorPrograma: jest.fn(async () => (caso ? [caso] : [])),
       guardar: jest.fn(async () => undefined),
     },
+    planes: { listar: jest.fn(async () => [...planes]) },
     personas: {
       buscarJefePorPrograma: jest.fn(
         async () => jefe as JefeDepartamento | null,
@@ -100,6 +116,7 @@ function preparar(caso: CasoRiesgo | null) {
     new ControlAcceso(),
     repos.casos as never,
     repos.registros as never,
+    repos.planes as never,
     unidad,
     correo as unknown as ServicioNotificacion,
   );
@@ -134,10 +151,11 @@ describe('ControladorCasosRiesgo: permisos', () => {
     [ana, docente, psicologo].map(
       (p) => [p.obtenerRol(), p] as [string, Persona],
     ),
-  )('%s recibe 403 en las tres operaciones', async (_rol, persona) => {
+  )('%s recibe 403 en las cuatro operaciones', async (_rol, persona) => {
     const { controlador } = preparar(casoAlerta());
     for (const promesa of [
       controlador.listarCasosPendientes(persona),
+      controlador.listarCasosRutaAcademica(persona),
       controlador.consultarCaso(persona, 'X'),
       controlador.canalizarCaso(persona, 'X', { ruta: 'ACADEMICA' }),
     ]) {
@@ -302,4 +320,67 @@ describe('ControladorCasosRiesgo: lecturas con la visibilidad aplicada (D18)', (
       403,
     );
   });
+});
+
+describe('ControladorCasosRiesgo: ruta académica y sus planes (F5b, D38)', () => {
+  it('GET /casos/ruta-academica: casos del programa con la misma forma que la bandeja', async () => {
+    const caso = casoAlerta();
+    caso.canalizar(RutaAtencion.ACADEMICA);
+    const { controlador, repos } = preparar(caso);
+    const lista = await controlador.listarCasosRutaAcademica(jefe);
+    const pendientes = await controlador.listarCasosPendientes(jefe);
+    expect(repos.casos.listarRutaAcademicaPorPrograma).toHaveBeenCalledWith(
+      'P1',
+    );
+    expect(lista).toEqual(pendientes);
+    expect(lista[0]).toMatchObject({ idCaso: caso.idCaso, ruta: 'ACADEMICA' });
+  });
+
+  it('detalle en ruta académica: los planes del caso con sus seis campos', async () => {
+    const caso = casoAlerta();
+    caso.canalizar(RutaAtencion.ACADEMICA);
+    const plan = planDe(caso);
+    const { controlador, repos } = preparar(caso, [plan]);
+    const detalle = await controlador.consultarCaso(jefe, caso.idCaso);
+    expect(repos.planes.listar).toHaveBeenCalledWith(
+      new Map([['caso', caso.idCaso]]),
+    );
+    expect(detalle.planes).toEqual([
+      {
+        idPlan: plan.idPlan,
+        estado: 'ACTIVO',
+        tutorNombre: 'Tutor Uno',
+        tutorCodigo: 'T-01',
+        cursos: [{ idCurso: 'C1', nombre: 'Cálculo', periodo: '2026-2' }],
+        cronograma: 'Martes y jueves',
+      },
+    ]);
+  });
+
+  it('detalle en ruta académica sin plan: planes vacío', async () => {
+    const caso = casoAlerta();
+    caso.canalizar(RutaAtencion.ACADEMICA);
+    const { controlador } = preparar(caso);
+    expect((await controlador.consultarCaso(jefe, caso.idCaso)).planes).toEqual(
+      [],
+    );
+  });
+
+  it.each([
+    ['sin ruta', null],
+    ['ruta psicológica', RutaAtencion.PSICOLOGICA],
+  ] as const)(
+    'detalle %s: planes vacío y sin consultar los planes',
+    async (_nombre, ruta) => {
+      const caso = casoAlerta();
+      if (ruta !== null) {
+        caso.canalizar(ruta);
+      }
+      const { controlador, repos } = preparar(caso);
+      expect(
+        (await controlador.consultarCaso(jefe, caso.idCaso)).planes,
+      ).toEqual([]);
+      expect(repos.planes.listar).not.toHaveBeenCalled();
+    },
+  );
 });

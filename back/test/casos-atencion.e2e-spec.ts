@@ -276,6 +276,129 @@ describe('B7a: bandeja y canalización del Jefe (R03, sd_CUD04, D18)', () => {
     );
   });
 
+  it('F5b (D38): GET /casos/ruta-academica no la captura :idCaso; el detalle trae los planes para volver a registrar o finalizar', async () => {
+    const { caso } = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const jefe = 'j1@ejemplo.edu.co';
+    const detalle = () =>
+      pedir<DetalleDto<CasoDto> & { planes: Record<string, unknown>[] }>(
+        jefe,
+        'GET',
+        `/casos/${caso.idCaso}`,
+      );
+    expect((await detalle()).cuerpo.planes).toEqual([]);
+    expect(
+      (
+        await pedir(jefe, 'POST', `/casos/${caso.idCaso}/canalizacion`, {
+          ruta: 'ACADEMICA',
+        })
+      ).estado,
+    ).toBe(200);
+
+    // Si :idCaso la capturara, «ruta-academica» sería un caso no visible: 403.
+    const lista = await pedir<CasoDto[]>(jefe, 'GET', '/casos/ruta-academica');
+    expect(lista.estado).toBe(200);
+    expect(lista.cuerpo.map((c) => c.idCaso)).toContain(caso.idCaso);
+    expect(
+      (await pedir('d1@ejemplo.edu.co', 'GET', '/casos/ruta-academica')).estado,
+    ).toBe(403);
+
+    expect((await detalle()).cuerpo.planes).toEqual([]);
+    const registro = await pedir<{ plan: { idPlan: string } }>(
+      jefe,
+      'POST',
+      '/planes',
+      {
+        idCaso: caso.idCaso,
+        idsCursos: ['C1'],
+        tutorNombre: 'Luis Tutor',
+        tutorCodigo: 'T01',
+        cronograma: 'Semanal',
+      },
+    );
+    expect(registro.estado).toBe(201);
+    const [activo] = (await detalle()).cuerpo.planes;
+    expect(Object.keys(activo ?? {}).sort()).toEqual(
+      [
+        'cronograma',
+        'cursos',
+        'estado',
+        'idPlan',
+        'tutorCodigo',
+        'tutorNombre',
+      ].sort(),
+    );
+    expect(activo).toMatchObject({
+      idPlan: registro.cuerpo.plan.idPlan,
+      estado: 'ACTIVO',
+    });
+
+    expect(
+      (
+        await pedir(
+          jefe,
+          'POST',
+          `/planes/${registro.cuerpo.plan.idPlan}/finalizacion`,
+        )
+      ).estado,
+    ).toBe(200);
+    expect((await detalle()).cuerpo.planes).toMatchObject([
+      { estado: 'FINALIZADO' },
+    ]);
+  });
+
+  it('F5b (D29): con un plan finalizado se registra un plan nuevo en el mismo caso y el detalle trae los dos', async () => {
+    const { caso } = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const jefe = 'j1@ejemplo.edu.co';
+    const plan = {
+      idCaso: caso.idCaso,
+      idsCursos: ['C1'],
+      tutorNombre: 'Luis Tutor',
+      tutorCodigo: 'T01',
+      cronograma: '',
+    };
+    await pedir(jefe, 'POST', `/casos/${caso.idCaso}/canalizacion`, {
+      ruta: 'ACADEMICA',
+    });
+    const primero = await pedir<{ plan: { idPlan: string } }>(
+      jefe,
+      'POST',
+      '/planes',
+      plan,
+    );
+    expect(
+      (
+        await pedir(
+          jefe,
+          'POST',
+          `/planes/${primero.cuerpo.plan.idPlan}/finalizacion`,
+        )
+      ).estado,
+    ).toBe(200);
+
+    const segundo = await pedir<{ plan: { idPlan: string; estado: string } }>(
+      jefe,
+      'POST',
+      '/planes',
+      { ...plan, tutorNombre: 'Ana Tutora' },
+    );
+    expect(segundo.estado).toBe(201);
+    expect(segundo.cuerpo.plan.estado).toBe('ACTIVO');
+    const detalle = await pedir<{
+      planes: { idPlan: string; estado: string }[];
+    }>(jefe, 'GET', `/casos/${caso.idCaso}`);
+    expect(detalle.cuerpo.planes).toEqual([
+      expect.objectContaining({
+        idPlan: primero.cuerpo.plan.idPlan,
+        estado: 'FINALIZADO',
+      }),
+      expect.objectContaining({
+        idPlan: segundo.cuerpo.plan.idPlan,
+        estado: 'ACTIVO',
+        tutorNombre: 'Ana Tutora',
+      }),
+    ]);
+  });
+
   it('canalizar a psicología notifica a los psicólogos; el Jefe deja de ver el motivo; el estudiante ve ATENDIDA (D27 ajustada: la canalización cuenta)', async () => {
     const academica = await casoDeSolicitud(
       repos,

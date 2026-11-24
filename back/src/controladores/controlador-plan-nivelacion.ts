@@ -17,12 +17,11 @@ import {
 import { ControlAcceso } from '../aplicacion/servicios/control-acceso';
 import { ServicioNotificacion } from '../aplicacion/servicios/servicio-notificacion';
 import type { Curso } from '../dominio/entidades/curso';
-import type { EstadoPlan } from '../dominio/entidades/estado-plan';
 import { JefeDepartamento } from '../dominio/entidades/jefe-departamento';
 import type { Persona } from '../dominio/entidades/persona';
-import type { PlanNivelacion } from '../dominio/entidades/plan-nivelacion';
 import { ControladorBase } from './controlador-base';
 import { conPersistencia, regla } from './respuestas';
+import { planDto, type PlanDto } from './respuestas-casos';
 import { UsuarioSesion } from './sesion';
 import {
   leerCuerpo,
@@ -40,34 +39,6 @@ export const MENSAJES_PLAN = {
   errorRegistro: 'Error al registrar el plan de nivelación',
   bloqueoPlan: 'Otra sesión está modificando este plan. Intente de nuevo.',
 } as const;
-
-export interface PlanDto {
-  idPlan: string;
-  idCaso: string;
-  fecha: string;
-  estado: EstadoPlan;
-  tutorNombre: string;
-  tutorCodigo: string;
-  cronograma: string;
-  cursos: { idCurso: string; nombre: string; periodo: string }[];
-}
-
-function planDto(plan: PlanNivelacion): PlanDto {
-  return {
-    idPlan: plan.idPlan,
-    idCaso: plan.caso.idCaso,
-    fecha: plan.fecha.toISOString(),
-    estado: plan.estado,
-    tutorNombre: plan.tutorNombre,
-    tutorCodigo: plan.tutorCodigo,
-    cronograma: plan.cronograma,
-    cursos: plan.cursos.map((curso) => ({
-      idCurso: curso.idCurso,
-      nombre: curso.nombre,
-      periodo: curso.periodo,
-    })),
-  };
-}
 
 /**
  * Controlador `ControladorPlanNivelacion` (diagrama de clases v3; R04;

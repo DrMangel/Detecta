@@ -110,6 +110,80 @@ describe('buscarParaPrograma: visibilidad del Jefe en la consulta (ajuste A)', (
   });
 });
 
+describe('Ruta académica del Jefe y planes del caso (F5b, D38)', () => {
+  it('listarRutaAcademicaPorPrograma: solo ruta académica del programa, más reciente primero, sin psicosociales', async () => {
+    const antigua = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const reciente = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.ACADEMICA,
+    );
+    const aPsicologia = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const sinCanalizar = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const psicosocial = await casoDeSolicitud(
+      repos,
+      esc.e1,
+      RutaAtencion.PSICOLOGICA,
+    );
+    antigua.caso.canalizar(RutaAtencion.ACADEMICA);
+    reciente.caso.canalizar(RutaAtencion.ACADEMICA);
+    aPsicologia.caso.canalizar(RutaAtencion.PSICOLOGICA);
+    for (const caso of [antigua.caso, reciente.caso, aPsicologia.caso]) {
+      await repos.casos.guardar(caso);
+    }
+    // Fechas distintas para comprobar el orden sin depender del reloj.
+    await fuente.query(
+      `UPDATE caso_riesgo SET fecha_creacion = $2 WHERE id_caso = $1`,
+      [antigua.caso.idCaso, new Date('2026-01-01T12:00:00Z')],
+    );
+    await fuente.query(
+      `UPDATE caso_riesgo SET fecha_creacion = $2 WHERE id_caso = $1`,
+      [reciente.caso.idCaso, new Date('2026-06-01T12:00:00Z')],
+    );
+
+    const ids = (await repos.casos.listarRutaAcademicaPorPrograma('P1')).map(
+      (c) => c.idCaso,
+    );
+    expect(ids.indexOf(reciente.caso.idCaso)).toBeGreaterThanOrEqual(0);
+    expect(ids.indexOf(reciente.caso.idCaso)).toBeLessThan(
+      ids.indexOf(antigua.caso.idCaso),
+    );
+    for (const fuera of [aPsicologia, sinCanalizar, psicosocial]) {
+      expect(ids).not.toContain(fuera.caso.idCaso);
+    }
+    expect(
+      (await repos.casos.listarRutaAcademicaPorPrograma('P2')).map(
+        (c) => c.idCaso,
+      ),
+    ).not.toContain(antigua.caso.idCaso);
+  });
+
+  it('planes.listar por caso: solo los planes de ese caso', async () => {
+    const conPlanes = await casoDeAlerta(repos, esc.d1, esc.r1);
+    const otro = await casoDeAlerta(repos, esc.d1, esc.r1);
+    for (const { caso } of [conPlanes, otro]) {
+      caso.canalizar(RutaAtencion.ACADEMICA);
+      await repos.casos.guardar(caso);
+    }
+    const planes = [conPlanes.caso, conPlanes.caso, otro.caso].map((caso) =>
+      esc.j1.estructurarPlanNivelacion(caso, [esc.c1], 'Luis', 'T01', ''),
+    );
+    for (const plan of planes) {
+      await repos.planes.guardar(plan);
+    }
+
+    const leidos = await repos.planes.listar(
+      new Map([['caso', conPlanes.caso.idCaso]]),
+    );
+    expect(leidos.map((p) => p.idPlan).sort()).toEqual(
+      [planes[0]!.idPlan, planes[1]!.idPlan].sort(),
+    );
+    expect(await repos.planes.listar(new Map([['caso', 'NO-EXISTE']]))).toEqual(
+      [],
+    );
+  });
+});
+
 describe('Trazabilidad (respuesta 10)', () => {
   async function traza(idCaso: string) {
     const [fila] = await fuente.query<

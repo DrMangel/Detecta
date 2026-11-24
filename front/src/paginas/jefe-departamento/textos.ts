@@ -44,6 +44,8 @@ export const TEXTO_CANALIZADO: Readonly<Record<RutaAtencion, string>> = {
 
 export const TITULOS_JEFE = {
   casosPendientes: 'Casos pendientes',
+  /** F5b, D38 (aprobado por Ivan). */
+  rutaAcademica: 'En ruta académica',
   detalleCaso: 'Detalle del caso',
   informes: 'Informes de riesgo',
 } as const;
@@ -75,6 +77,8 @@ export const NOMBRE_ESTADO_PLAN: Readonly<Record<EstadoPlan, string>> = {
 };
 
 export const TEXTO_SIN_CASOS = 'No hay casos pendientes';
+/** F5b, D38 (aprobado por Ivan). */
+export const TEXTO_SIN_CASOS_RUTA_ACADEMICA = 'No hay casos en ruta académica';
 export const TEXTO_SIN_CURSOS = 'Seleccione al menos un curso';
 
 /**
