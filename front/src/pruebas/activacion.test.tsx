@@ -30,7 +30,9 @@ describe('Fijar contraseña con el enlace de activación', () => {
     expect(
       await screen.findByRole('heading', { name: 'Fijar contraseña' }),
     ).toBeInTheDocument();
-    expect(document.title).toBe('Fijar contraseña · DETECTA');
+    await waitFor(() =>
+      expect(document.title).toBe('Fijar contraseña · DETECTA'),
+    );
     // Borrado de inmediato, antes de cualquier acción del usuario.
     expect(reemplazo).toHaveBeenCalled();
     expect(window.location.hash).toBe('');

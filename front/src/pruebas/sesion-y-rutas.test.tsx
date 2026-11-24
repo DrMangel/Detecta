@@ -110,7 +110,9 @@ describe('Rutas protegidas por rol (ayuda de usabilidad)', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('ruta')).toHaveTextContent('/iniciar-sesion');
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(document.title).toBe('Iniciar sesión · DETECTA');
+    await waitFor(() =>
+      expect(document.title).toBe('Iniciar sesión · DETECTA'),
+    );
     expect(falso).toHaveBeenCalledTimes(1);
   });
 
