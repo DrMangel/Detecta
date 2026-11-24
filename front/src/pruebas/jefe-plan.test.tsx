@@ -10,6 +10,7 @@ import {
   PLAN_CASO,
 } from './datos-jefe';
 import {
+  enlaceMenu,
   renderizar,
   sesionDe,
   simularApi,
@@ -273,5 +274,96 @@ describe('Volver al plan de un caso en ruta académica (F5b, D38)', () => {
       finalizado.compareDocumentPosition(registrar) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+});
+
+/** Abre el detalle por URL, sin pasar por una bandeja. */
+function abrirDetalle(
+  detalle: Simulacion | (() => Promise<Simulacion>),
+  estado?: unknown,
+) {
+  simularApi({
+    'GET /acceso/sesion': SESION,
+    [`GET /casos/${ID_CASO_SECRETO}`]: detalle,
+  });
+  renderizar({
+    pathname: `/jefe-departamento/casos/${ID_CASO_SECRETO}`,
+    state: estado,
+  });
+}
+
+describe('Enlace de regreso sin bandeja de origen (F5b)', () => {
+  it('URL directa a un caso en ruta académica: «Volver a casos en ruta académica» y su resalte', async () => {
+    reabrir([]);
+    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    const volver = screen.getByRole('link', {
+      name: 'Volver a casos en ruta académica',
+    });
+    expect(volver).toHaveAttribute('href', '/jefe-departamento/ruta-academica');
+    expect(enlaceMenu('En ruta académica')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(enlaceMenu('Casos pendientes')).not.toHaveAttribute('aria-current');
+  });
+
+  it('URL directa a un caso pendiente: «Volver a casos pendientes»', async () => {
+    abrirDetalle({ estado: 200, cuerpo: DETALLE_ALERTA });
+    await screen.findByRole('button', { name: 'Canalizar caso' });
+    expect(
+      screen.getByRole('link', { name: 'Volver a casos pendientes' }),
+    ).toHaveAttribute('href', '/jefe-departamento');
+    expect(enlaceMenu('Casos pendientes')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('un origen no permitido en el estado equivale a «sin estado»', async () => {
+    abrirDetalle(
+      {
+        estado: 200,
+        cuerpo: { ...DETALLE_ALERTA, caso: CASO_ACADEMICO, planes: [] },
+      },
+      { origen: 'informes' },
+    );
+    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    expect(
+      screen.getByRole('link', { name: 'Volver a casos en ruta académica' }),
+    ).toBeInTheDocument();
+  });
+
+  it('mientras el caso carga: «Volver a casos pendientes»', async () => {
+    abrirDetalle(() => new Promise<Simulacion>(() => {}));
+    expect(
+      await screen.findByRole('link', { name: 'Volver a casos pendientes' }),
+    ).toHaveAttribute('href', '/jefe-departamento');
+    expect(
+      screen.getByRole('heading', { name: 'Detalle del caso' }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([403, 404])(
+    'si la carga falla (%i): «Volver a casos pendientes»',
+    async (estado) => {
+      abrirDetalle({
+        estado,
+        cuerpo: { message: 'No tiene permiso para esta operación' },
+      });
+      await screen.findByRole('alert');
+      expect(
+        screen.getByRole('link', { name: 'Volver a casos pendientes' }),
+      ).toHaveAttribute('href', '/jefe-departamento');
+    },
+  );
+
+  it('canalizar a la ruta académica no cambia el enlace de regreso', async () => {
+    await abrirPlan({ estado: 201 });
+    expect(
+      screen.getByRole('link', { name: 'Volver a casos pendientes' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Volver a casos en ruta académica' }),
+    ).toBeNull();
   });
 });

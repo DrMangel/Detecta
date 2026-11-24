@@ -10,7 +10,7 @@ import {
   ID_CASO_SECRETO,
   ID_ESTUDIANTE_SECRETO,
 } from './datos-jefe';
-import { renderizar, sesionDe, simularApi } from './utilidades';
+import { enlaceMenu, renderizar, sesionDe, simularApi } from './utilidades';
 
 /*
  * Criterio de cierre de F3, «el caso se canaliza a su ruta; el Jefe nunca ve
@@ -313,5 +313,94 @@ describe('Canalización: conflictos y error de red (CUD04)', () => {
     await usuario.click(boton);
     expect(await screen.findByRole('alert')).toHaveTextContent(TEXTO_ERROR_RED);
     expect(boton).toBeEnabled();
+  });
+});
+
+describe('Enlace de regreso del detalle (F5b, Manual 3.1.2.2.6, Tabla 30)', () => {
+  it('desde «Casos pendientes»: «Volver a casos pendientes», el menú la resalta y el enlace vuelve a ella', async () => {
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      'GET /casos/pendientes': { estado: 200, cuerpo: [CASO_ALERTA] },
+      [DETALLE]: { estado: 200, cuerpo: DETALLE_ALERTA },
+    });
+    renderizar('/jefe-departamento');
+    const usuario = userEvent.setup();
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Detalle del caso' }),
+    );
+    await screen.findByText('Inasistencias en las últimas semanas.');
+    const volver = screen.getByRole('link', {
+      name: 'Volver a casos pendientes',
+    });
+    expect(
+      screen.queryByRole('link', { name: 'Volver a casos en ruta académica' }),
+    ).toBeNull();
+    expect(enlaceMenu('Casos pendientes')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(enlaceMenu('En ruta académica')).not.toHaveAttribute('aria-current');
+    await usuario.click(volver);
+    expect(screen.getByTestId('ruta')).toHaveTextContent(
+      /^\/jefe-departamento$/,
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Casos pendientes' }),
+    ).toBeInTheDocument();
+  });
+
+  it('desde «En ruta académica»: «Volver a casos en ruta académica», el menú la resalta y el enlace vuelve a ella', async () => {
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      'GET /casos/ruta-academica': { estado: 200, cuerpo: [CASO_ACADEMICO] },
+      [DETALLE]: {
+        estado: 200,
+        cuerpo: { ...DETALLE_ALERTA, caso: CASO_ACADEMICO },
+      },
+    });
+    renderizar('/jefe-departamento/ruta-academica');
+    const usuario = userEvent.setup();
+    await usuario.click(
+      await screen.findByRole('button', { name: 'Detalle del caso' }),
+    );
+    const volver = await screen.findByRole('link', {
+      name: 'Volver a casos en ruta académica',
+    });
+    expect(enlaceMenu('En ruta académica')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(enlaceMenu('Casos pendientes')).not.toHaveAttribute('aria-current');
+    await usuario.click(volver);
+    expect(screen.getByTestId('ruta')).toHaveTextContent(
+      '/jefe-departamento/ruta-academica',
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'En ruta académica' }),
+    ).toBeInTheDocument();
+  });
+
+  it('la bandeja de origen manda sobre el estado del caso (canalizado en otra pestaña)', async () => {
+    simularApi({
+      'GET /acceso/sesion': SESION,
+      'GET /casos/pendientes': { estado: 200, cuerpo: [CASO_ALERTA] },
+      [DETALLE]: {
+        estado: 200,
+        cuerpo: { ...DETALLE_ALERTA, caso: CASO_ACADEMICO },
+      },
+    });
+    renderizar('/jefe-departamento');
+    await userEvent
+      .setup()
+      .click(await screen.findByRole('button', { name: 'Detalle del caso' }));
+    // Primero el caso cargado: mientras carga, el respaldo ya es «pendientes».
+    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    expect(
+      screen.getByRole('link', { name: 'Volver a casos pendientes' }),
+    ).toBeInTheDocument();
+    expect(enlaceMenu('Casos pendientes')).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
   });
 });

@@ -14,7 +14,11 @@ import {
   consultarCasosRutaAcademica,
   type Caso,
 } from '../../servicios-api/jefe-departamento';
-import { PlantillaJefe, RUTAS_JEFE } from './plantilla-jefe-departamento';
+import {
+  PlantillaJefe,
+  RUTAS_JEFE,
+  type TipoBandeja,
+} from './plantilla-jefe-departamento';
 import {
   NOMBRE_ORIGEN,
   ROTULOS_CASO,
@@ -31,7 +35,9 @@ import {
  *   académica, para volver a registrar o finalizar su plan (CUD05, 1.a).
  * El backend excluye las solicitudes psicosociales (D18). El id del
  * estudiante y el del caso no quedan en el DOM (como en F2): el botón de
- * cada fila navega al detalle y los ids del DOM son por posición.
+ * cada fila navega al detalle y los ids del DOM son por posición. La
+ * navegación lleva la bandeja de origen, para el enlace de regreso del
+ * detalle y el resalte del menú (F5b; Manual 3.1.2.2.6, Tabla 30).
  */
 
 const BANDEJAS = {
@@ -45,14 +51,14 @@ const BANDEJAS = {
     titulo: TITULOS_JEFE.rutaAcademica,
     textoVacio: TEXTO_SIN_CASOS_RUTA_ACADEMICA,
   },
-} as const;
+} as const satisfies Record<TipoBandeja, unknown>;
 
 /** Las solicitudes no traen nivel de riesgo: la celda queda con un guion. */
 export function textoNivel(nivel: Caso['nivelRiesgo']): string {
   return nivel === null ? '—' : NOMBRE_NIVEL_RIESGO[nivel];
 }
 
-export function BandejaCasos({ tipo }: { tipo: keyof typeof BANDEJAS }) {
+export function BandejaCasos({ tipo }: { tipo: TipoBandeja }) {
   const bandeja = BANDEJAS[tipo];
   const { datos: casos, error } = useConsulta(bandeja.consultar, tipo);
   return (
@@ -63,14 +69,20 @@ export function BandejaCasos({ tipo }: { tipo: keyof typeof BANDEJAS }) {
           (casos.length === 0 ? (
             <p>{bandeja.textoVacio}</p>
           ) : (
-            <TablaCasos casos={casos} />
+            <TablaCasos casos={casos} origen={tipo} />
           ))}
       </div>
     </PlantillaJefe>
   );
 }
 
-function TablaCasos({ casos }: { casos: readonly Caso[] }) {
+function TablaCasos({
+  casos,
+  origen,
+}: {
+  casos: readonly Caso[];
+  origen: TipoBandeja;
+}) {
   const prefijo = useId();
   const navegar = useNavigate();
   return (
@@ -108,7 +120,11 @@ function TablaCasos({ casos }: { casos: readonly Caso[] }) {
                   type="button"
                   className={controles['boton']}
                   aria-describedby={idNombre}
-                  onClick={() => void navegar(RUTAS_JEFE.caso(caso.idCaso))}
+                  onClick={() =>
+                    void navegar(RUTAS_JEFE.caso(caso.idCaso), {
+                      state: { origen },
+                    })
+                  }
                 >
                   {TITULOS_JEFE.detalleCaso}
                 </button>

@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import controles from '../../componentes/controles.module.css';
 import {
   NOMBRE_TIPO_APOYO,
@@ -37,13 +37,19 @@ import {
 import { textoNivel } from './bandeja-casos';
 import estilos from './jefe-departamento.module.css';
 import { PlanNivelacion } from './plan-nivelacion';
-import { PlantillaJefe } from './plantilla-jefe-departamento';
+import {
+  esTipoBandeja,
+  PlantillaJefe,
+  RUTA_BANDEJA,
+  type TipoBandeja,
+} from './plantilla-jefe-departamento';
 import {
   NOMBRE_ORIGEN,
   NOMBRE_RUTA,
   ROTULOS_CASO,
   ROTULOS_JEFE,
   TEXTO_CANALIZADO,
+  TEXTO_VOLVER,
   TITULOS_JEFE,
 } from './textos';
 
@@ -70,6 +76,30 @@ interface Canalizado {
 
 const RUTAS: readonly RutaAtencion[] = ['ACADEMICA', 'PSICOLOGICA'];
 
+/*
+ * Bandeja de origen del detalle, para el enlace de regreso y el resalte del
+ * menú (F5b; Manual 3.1.2.2.6, Tabla 30). Manda la que envió la bandeja en
+ * el estado de navegación (la recarga lo conserva). Sin ella, o con un valor
+ * no permitido, decide la ruta del caso tal como se cargó; mientras carga o
+ * si la carga falla, «Casos pendientes». Canalizar no cambia el origen.
+ */
+const BANDEJA_POR_RUTA: Readonly<Record<RutaAtencion, TipoBandeja>> = {
+  ACADEMICA: 'rutaAcademica',
+  PSICOLOGICA: 'pendientes',
+};
+
+function origenDelDetalle(
+  estado: unknown,
+  ruta: RutaAtencion | null,
+): TipoBandeja {
+  const enviado =
+    typeof estado === 'object' && estado !== null && 'origen' in estado
+      ? estado.origen
+      : null;
+  if (esTipoBandeja(enviado)) return enviado;
+  return ruta === null ? 'pendientes' : BANDEJA_POR_RUTA[ruta];
+}
+
 export function PaginaDetalleCaso() {
   const { idCaso = '' } = useParams();
   // Otro caso, otro detalle: estado nuevo.
@@ -78,8 +108,15 @@ export function PaginaDetalleCaso() {
 
 function DetalleDelCaso({ idCaso }: { idCaso: string }) {
   const { datos, error } = useConsulta(() => consultarCaso(idCaso), idCaso);
+  const origen = origenDelDetalle(
+    useLocation().state,
+    datos?.caso.ruta ?? null,
+  );
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso}>
+    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso} origen={origen}>
+      <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
+        {TEXTO_VOLVER[origen]}
+      </Link>
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && <ContenidoCaso detalle={datos} />}
