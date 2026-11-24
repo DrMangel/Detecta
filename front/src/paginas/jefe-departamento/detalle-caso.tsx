@@ -329,7 +329,6 @@ function Canalizacion({
         etiquetas={NOMBRE_RUTA}
         valor={ruta}
         alCambiar={setRuta}
-        clase={estilos['grupo']}
       />
       <MensajeError mensaje={error} />
       <button

@@ -68,6 +68,8 @@ describe('CampoTexto', () => {
     expect(campo).toHaveAccessibleDescription(
       'Por ejemplo: 2026-2 Indique el periodo académico.',
     );
+    // Error de campo en línea, con ícono y sin tarjeta (§4, D3b).
+    expect(screen.getByRole('alert')).toHaveClass('en-linea');
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Indique el periodo académico.',
     );

@@ -1,4 +1,5 @@
 import type { FormEvent, ReactNode } from 'react';
+import controles from './controles.module.css';
 import estilos from './formulario.module.css';
 import { NOMBRE_SISTEMA } from './textos';
 import { useTituloPestana } from './titulo-pestana';
@@ -41,7 +42,11 @@ export function BotonPrincipal({
   deshabilitado: boolean;
 }) {
   return (
-    <button type="submit" className={estilos['boton']} disabled={deshabilitado}>
+    <button
+      type="submit"
+      className={controles['boton']}
+      disabled={deshabilitado}
+    >
       {rotulo}
     </button>
   );

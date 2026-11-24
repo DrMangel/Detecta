@@ -91,7 +91,7 @@ export function CampoTexto(props: PropsCampoTexto) {
           {`${valor.length} / ${maximo}`}
         </p>
       )}
-      <MensajeError mensaje={error ?? null} id={idError} />
+      <MensajeError mensaje={error ?? null} id={idError} enLinea />
     </div>
   );
 }

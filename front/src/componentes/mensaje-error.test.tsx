@@ -26,6 +26,18 @@ describe('MensajeError', () => {
     const { container } = render(<MensajeError mensaje={null} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('en línea (error de campo, §4): role="alert", ícono y texto, sin tarjeta', () => {
+    render(
+      <MensajeError mensaje="Indique el periodo académico." id="e2" enLinea />,
+    );
+    const alerta = screen.getByRole('alert');
+    expect(alerta).toHaveTextContent('Indique el periodo académico.');
+    expect(alerta).toHaveAttribute('id', 'e2');
+    expect(alerta).toHaveClass('en-linea');
+    expect(alerta).not.toHaveClass('error');
+    expect(alerta.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+  });
 });
 
 describe('MensajeInformativo', () => {

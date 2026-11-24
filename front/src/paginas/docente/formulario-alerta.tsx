@@ -161,7 +161,6 @@ export function FormularioAlerta({
           valor={nivelRiesgo}
           alCambiar={setNivelRiesgo}
           invalido={vacio && nivelRiesgo === null}
-          clase={estilos['grupo']}
         />
 
         <CampoTexto
@@ -177,19 +176,19 @@ export function FormularioAlerta({
           clase={estilos['campo']}
         />
 
-        <MensajeError mensaje={errorCampos} id={idErrorCampos} />
+        <MensajeError mensaje={errorCampos} id={idErrorCampos} enLinea />
         <MensajeError mensaje={error} />
         <div className={estilos['acciones']}>
           <button
             type="submit"
-            className={estilos['boton']}
+            className={controles['boton']}
             disabled={enviando}
           >
             {ROTULOS_DOCENTE.emitirAlerta}
           </button>
           <button
             type="button"
-            className={estilos['botonSecundario']}
+            className={controles['boton-secundario']}
             disabled={enviando}
             onClick={alCerrar}
           >

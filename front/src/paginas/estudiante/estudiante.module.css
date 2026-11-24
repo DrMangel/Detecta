@@ -5,32 +5,9 @@
  * una rejilla. Usa los tokens de estilos/base.css.
  */
 
-.grupo legend {
-  font-weight: 600;
-}
-
 .campo textarea {
   min-height: 7rem;
   resize: vertical;
-}
-
-.campo input[aria-invalid='true'],
-.campo textarea[aria-invalid='true'] {
-  border-color: var(--color-error);
-}
-
-.grupo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-.grupo legend {
-  margin-bottom: var(--espacio-1);
-  padding: 0;
 }
 
 .aviso {

@@ -17,6 +17,7 @@ import {
 import { useConsulta } from '../../componentes/use-consulta';
 import oculto from '../../componentes/oculto.module.css';
 import tabla from '../../componentes/tabla.module.css';
+import controles from '../../componentes/controles.module.css';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
 import { PlantillaDocente } from './plantilla-docente';
@@ -187,7 +188,7 @@ function TablaCurso({
               <td className={tabla['accion']}>
                 <button
                   type="button"
-                  className={estilos['botonSecundario']}
+                  className={controles['boton-secundario']}
                   aria-describedby={idNombre}
                   onClick={(evento) => alAbrir(registro, evento)}
                 >

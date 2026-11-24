@@ -164,6 +164,8 @@ Los íconos acompañan a un texto visible; cuando comunican estado, el texto es 
 | **Cifra grande** (nuevo) | Número 36 px/800 con rótulo 14 px/700 y (opcional) definición 13 px debajo. |
 | **Diálogo** (nuevo) | Ver sección 7.6. |
 
+**Desviación aceptada (D3b):** Casillas y radios sueltos usan los controles nativos con accent-color (20 px) en lugar de una caja propia de 6 px de radio; decisión de Ivan en D3b por accesibilidad y teclado.
+
 ---
 
 ## 5. Alcance por rol y pantallas
@@ -364,7 +366,9 @@ No son nuevos (ya están en el front): los rótulos de columnas, «Información 
 2. **Fases, con auditoría y aprobación de Ivan entre cada una:**
    - **D1** Tokens, tipografía y base global (`base.css`, carga de fuente).
    - **D2** Plantilla con barra lateral, logo, íconos y comportamiento móvil.
-   - **D3** Componentes compartidos (campo, botones, selección, insignias, tarjeta, tabla compacta, fila abrible, mensajes, línea de estado, cifra grande).
+   - **D3** Componentes compartidos: insignias, línea de estado, cifra grande, tarjeta de función, enlace de regreso y mensajes.
+   - **D3b** Controles compartidos: botón primario y secundario, campos (con el error en línea) y selección en caja.
+   - La tabla compacta y cómoda, la fila abrible y la tarjeta se implementan con su primera pantalla de uso (D4 a D7), no en D3 (decisión de Ivan en D3).
    - **D4** Acceso, **inicio de los cuatro roles** y Estudiante.
    - **D5** Docente.
    - **D6** Jefe de Departamento.

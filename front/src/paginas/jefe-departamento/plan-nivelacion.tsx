@@ -245,7 +245,7 @@ function CursosDelPlan({
         : [...elegidos, idCurso],
     );
   return (
-    <fieldset className={estilos['grupo']}>
+    <fieldset className={controles['grupo']}>
       <legend>{ROTULOS_JEFE.cursosPlan}</legend>
       {cursos.length === 0 && <p>{TEXTO_INFORMACION_NO_DISPONIBLE}</p>}
       {cursos.map((curso) => (

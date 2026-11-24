@@ -42,7 +42,7 @@ export function ConsultaCurso() {
         {/* Sin código no se consulta (no hay texto aprobado para el vacío). */}
         <button
           type="submit"
-          className={estilos['boton']}
+          className={controles['boton']}
           disabled={buscado === ''}
         >
           {ROTULOS_PERIODO.consultar}

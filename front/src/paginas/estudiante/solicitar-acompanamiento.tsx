@@ -159,7 +159,6 @@ function SolicitarAcompanamiento() {
           etiquetas={NOMBRE_TIPO_APOYO}
           valor={tipoApoyo}
           alCambiar={borrador.setTipoApoyo}
-          clase={estilos['grupo']}
         />
 
         <AvisoQuienVe tipoApoyo={tipoApoyo} />

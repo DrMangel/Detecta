@@ -10,16 +10,19 @@ import estilos from './mensajes.module.css';
 export function MensajeError({
   mensaje,
   id,
+  enLinea = false,
 }: {
   mensaje: string | null;
   /** Para asociarlo a un campo con aria-describedby (F1, CUD02 5.a). */
   id?: string;
+  /** Error de campo: ícono y texto en línea, sin tarjeta (§4, Campo). */
+  enLinea?: boolean;
 }) {
   if (mensaje === null) {
     return null;
   }
   return (
-    <p role="alert" id={id} className={estilos['error']}>
+    <p role="alert" id={id} className={estilos[enLinea ? 'en-linea' : 'error']}>
       <Icono nombre="triangle-alert" />
       <span>{mensaje}</span>
     </p>

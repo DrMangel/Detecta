@@ -36,6 +36,22 @@
   border-color: var(--color-borde-verde);
 }
 
+/* Error de un campo (§4, Campo): ícono y texto, sin tarjeta. */
+.en-linea {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.en-linea svg {
+  flex: none;
+  margin-top: 0.0625rem;
+}
+
 .informativo {
   color: var(--color-primario-hover);
   background: var(--color-primario-tinte);
