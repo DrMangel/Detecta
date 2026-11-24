@@ -133,7 +133,9 @@ describe('Fijar contraseña con el enlace de activación', () => {
         name: 'Solicitar enlace de acceso',
       }),
     ).toBeInTheDocument();
-    expect(document.title).toBe('Solicitar enlace de acceso · DETECTA');
+    await waitFor(() =>
+      expect(document.title).toBe('Solicitar enlace de acceso · DETECTA'),
+    );
     expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument();
     expect(screen.queryByLabelText('Contraseña')).toBeNull();
   });
