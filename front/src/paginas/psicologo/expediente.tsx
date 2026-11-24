@@ -117,6 +117,18 @@ function ContenidoExpediente({
   const [mensajeConsentimiento, setMensajeConsentimiento] = useState<
     string | null
   >(null);
+  const relectura = useEnvio();
+  // POST /pertinencia solo devuelve {estado, mensaje}: sin releer, el caso
+  // seguiría sin psicólogo y «Programar primera cita» no aparecería hasta
+  // recargar (F5b, defecto 1). Si la relectura falla, el dictamen ya quedó.
+  const alDictaminar = async (mensaje: string) => {
+    setDictamenHecho(true);
+    setMensajeDictamen(mensaje);
+    const actual = await relectura.ejecutar(() =>
+      consultarCasoPsicologo(idCaso),
+    );
+    if (actual !== undefined) setCaso(actual.caso);
+  };
   return (
     <>
       <DatosCaso caso={caso} />
@@ -143,13 +155,11 @@ function ContenidoExpediente({
       {caso.psicologo === null && !dictamenHecho && (
         <Evaluacion
           idCaso={idCaso}
-          alCompletar={(mensaje) => {
-            setDictamenHecho(true);
-            setMensajeDictamen(mensaje);
-          }}
+          alCompletar={(mensaje) => void alDictaminar(mensaje)}
         />
       )}
       <MensajeInformativo mensaje={mensajeDictamen} />
+      <MensajeError mensaje={relectura.error} />
       {dictamenHecho && caso.psicologo !== null && (
         <MensajeInformativo mensaje={NOMBRE_ESTADO_CASO[caso.estado]} />
       )}
