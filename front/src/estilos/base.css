@@ -28,6 +28,12 @@
   /* Ámbar de F0 oscurecido (D1): 3:1 sobre blanco y sobre el fondo (WCAG 1.4.11). */
   --color-foco: #b87d00;
 
+  /* Insignia de estado neutra y bordes de los avisos (§4; D3). */
+  --color-neutro-fondo: #edf1f6;
+  --color-neutro-texto: #27323f;
+  --color-borde-azul: #c5daf2;
+  --color-borde-verde: #bfe3cc;
+
   /* Riesgo (§2.1): siempre con ícono y texto, nunca solo color. */
   --color-riesgo-bajo-fondo: #e3f4ea;
   --color-riesgo-bajo-texto: #14532d;

@@ -1,6 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import controles from '../../componentes/controles.module.css';
+import { EnlaceVolver } from '../../componentes/enlace-volver';
 import {
   NOMBRE_TIPO_APOYO,
   ROTULOS_COMUNES,
@@ -117,9 +118,9 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
       titulo={TITULOS_JEFE.detalleCaso}
       origen={origen}
       volver={
-        <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
+        <EnlaceVolver a={RUTA_BANDEJA[origen]}>
           {TEXTO_VOLVER[origen]}
-        </Link>
+        </EnlaceVolver>
       }
     >
       <MensajeError mensaje={error} />

@@ -1,0 +1,76 @@
+/*
+ * Línea de estado (especificación de diseño, §4): círculo de 28 px por paso
+ * (hecho: verde con check; actual: primario con punto; pendiente: gris),
+ * unidos por un trazo de 2 px. En celular los pasos pasan a otra línea.
+ */
+
+.linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1-5) var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  list-style: none;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-1);
+}
+
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Trazo de 2 px entre un paso y el siguiente. */
+.paso + .paso::before {
+  content: '';
+  flex: none;
+  width: var(--espacio-5);
+  height: 2px;
+  margin-right: 0.375rem;
+  background: var(--color-borde-suave);
+}
+
+.marca {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radio-pildora);
+}
+
+.hecho .marca {
+  background: var(--color-riesgo-bajo-fondo);
+  color: var(--color-riesgo-bajo-texto);
+}
+
+.actual {
+  font-weight: 700;
+}
+
+.actual .marca {
+  background: var(--color-primario);
+}
+
+.actual .marca::after {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radio-pildora);
+  background: var(--color-primario-texto);
+}
+
+.pendiente {
+  color: var(--color-texto-rotulo);
+}
+
+.pendiente .marca {
+  background: var(--color-neutro-fondo);
+}

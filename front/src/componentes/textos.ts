@@ -30,3 +30,13 @@ export const NOMBRE_SISTEMA = 'DETECTA';
 
 /** Texto alternativo del logo (especificación de diseño, §3.3). */
 export const TEXTO_LOGO = 'Logo de DETECTA';
+
+/**
+ * Estado de un paso de la línea de estado, solo para lectores de pantalla
+ * (F5b-diseño, D3; provisional). El paso actual se anuncia con
+ * aria-current="step".
+ */
+export const TEXTO_ESTADO_PASO = {
+  hecho: 'completado',
+  pendiente: 'pendiente',
+} as const;

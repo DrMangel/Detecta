@@ -4,12 +4,6 @@
  * solo lo propio del rol. Tokens de estilos/base.css.
  */
 
-/* Enlace de regreso del detalle a su bandeja (F5b); como en el Psicólogo. */
-.volver {
-  display: inline-block;
-  margin-bottom: var(--espacio-3);
-}
-
 /* Datos del caso, del plan y del informe: rótulo y valor en dos columnas. */
 .datos {
   display: grid;

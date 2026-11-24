@@ -7,6 +7,7 @@ import {
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
 import controles from '../../componentes/controles.module.css';
+import oculto from '../../componentes/oculto.module.css';
 import tabla from '../../componentes/tabla.module.css';
 import { useConsulta } from '../../componentes/use-consulta';
 import {
@@ -94,7 +95,7 @@ function TablaCasos({
           <th scope="col">{ROTULOS_CASO.origen}</th>
           <th scope="col">{ROTULOS_COMUNES.nivelRiesgo}</th>
           <th scope="col">
-            <span className={tabla['oculto']}>{TITULOS_JEFE.detalleCaso}</span>
+            <span className={oculto['oculto']}>{TITULOS_JEFE.detalleCaso}</span>
           </th>
         </tr>
       </thead>

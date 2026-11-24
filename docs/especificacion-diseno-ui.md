@@ -42,7 +42,11 @@ Principio: **conservar los nombres de variables existentes** y añadir los nuevo
 | `--color-primario-texto` | `#ffffff` | Sin cambio |
 | `--color-error` / `--color-error-fondo` | `#a4161a` / `#fdecec` | Sin cambio |
 | `--color-info` / `--color-info-fondo` | `#0b5132` / `#e6f4ec` | Sin cambio |
-| `--color-foco` | `#f2a900` | Sin cambio (anillo de foco de 3 px, ya existente) |
+| `--color-foco` | `#b87d00` | Anillo de foco de 3 px. Ajustado en D1: `#f2a900` daba 2,01:1 sobre blanco; `#b87d00` da 3,52:1 (WCAG 1.4.11) |
+| `--color-neutro-fondo` (nuevo, D3) | `#edf1f6` | Fondo de la insignia de estado neutra y del paso pendiente de la línea de estado (§4) |
+| `--color-neutro-texto` (nuevo, D3) | `#27323f` | Texto de la insignia de estado neutra (§4) |
+| `--color-borde-azul` (nuevo, D3) | `#c5daf2` | Borde del aviso informativo y de la tarjeta destacada del inicio (§4, §7.0) |
+| `--color-borde-verde` (nuevo, D3) | `#bfe3cc` | Borde del mensaje de confirmación (§4) |
 
 **Riesgo** (nuevos; siempre con ícono + texto):
 

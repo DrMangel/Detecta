@@ -4,6 +4,7 @@ import { ROTULOS_COMUNES } from '../../componentes/etiquetas';
 import { formatearFecha } from '../../componentes/formato';
 import { MensajeError } from '../../componentes/mensaje-error';
 import controles from '../../componentes/controles.module.css';
+import oculto from '../../componentes/oculto.module.css';
 import tabla from '../../componentes/tabla.module.css';
 import { useConsulta } from '../../componentes/use-consulta';
 import {
@@ -87,7 +88,7 @@ function TablaRemisiones({ casos }: { casos: readonly CasoPsicologo[] }) {
           <th scope="col">{ROTULOS_COMUNES.fecha}</th>
           <th scope="col">{ROTULOS_COMUNES.estado}</th>
           <th scope="col">
-            <span className={tabla['oculto']}>
+            <span className={oculto['oculto']}>
               {ROTULOS_PSICOLOGO.verExpediente}
             </span>
           </th>

@@ -38,11 +38,6 @@
   font-size: 1rem;
 }
 
-.volver {
-  display: inline-block;
-  margin-bottom: var(--espacio-3);
-}
-
 @media (max-width: 47.99rem) {
   .datos {
     grid-template-columns: minmax(0, 1fr);

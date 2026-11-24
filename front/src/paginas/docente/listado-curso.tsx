@@ -15,6 +15,7 @@ import {
   type RegistroCurso,
 } from '../../servicios-api/docente';
 import { useConsulta } from '../../componentes/use-consulta';
+import oculto from '../../componentes/oculto.module.css';
 import tabla from '../../componentes/tabla.module.css';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
@@ -155,7 +156,7 @@ function TablaCurso({
           <th scope="col">{ROTULOS_DOCENTE.nota}</th>
           <th scope="col">{ROTULOS_DOCENTE.asistencia}</th>
           <th scope="col">
-            <span className={tabla['oculto']}>
+            <span className={oculto['oculto']}>
               {ROTULOS_DOCENTE.emitirAlerta}
             </span>
           </th>

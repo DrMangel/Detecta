@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { CampoTexto } from '../../componentes/campo-texto';
 import {
   NOMBRE_NIVEL_RIESGO,
@@ -19,6 +19,7 @@ import {
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
 import controles from '../../componentes/controles.module.css';
+import { EnlaceVolver } from '../../componentes/enlace-volver';
 import tabla from '../../componentes/tabla.module.css';
 import { useConsulta } from '../../componentes/use-consulta';
 import { useEnvio } from '../../componentes/use-envio';
@@ -91,9 +92,9 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
     <PlantillaPsicologo
       titulo={TITULOS_PSICOLOGO.expediente}
       volver={
-        <Link to={RUTAS_PSICOLOGO.remisiones} className={estilos['volver']}>
+        <EnlaceVolver a={RUTAS_PSICOLOGO.remisiones}>
           {TITULOS_PSICOLOGO.remisiones}
-        </Link>
+        </EnlaceVolver>
       }
     >
       <MensajeError mensaje={error} />
