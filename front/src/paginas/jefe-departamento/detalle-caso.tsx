@@ -113,10 +113,15 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
     datos?.caso.ruta ?? null,
   );
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso} origen={origen}>
-      <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
-        {TEXTO_VOLVER[origen]}
-      </Link>
+    <PlantillaJefe
+      titulo={TITULOS_JEFE.detalleCaso}
+      origen={origen}
+      volver={
+        <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
+          {TEXTO_VOLVER[origen]}
+        </Link>
+      }
+    >
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && <ContenidoCaso detalle={datos} />}

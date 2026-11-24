@@ -4,6 +4,8 @@ import {
   formatearFecha,
   formatearFechaHora,
   formatearNota,
+  iniciales,
+  primerNombre,
 } from './formato';
 
 /* Formato es-CO aprobado en F1 (respuesta 8). */
@@ -41,5 +43,27 @@ describe('formato es-CO', () => {
     expect(formatearFecha('2026-11-19T15:00:00.000Z')).toBe('19/11/2026');
     expect(formatearFecha('2026-11-20T03:00:00.000Z')).toBe('19/11/2026');
     expect(formatearFecha('2026-11-20T05:00:00.000Z')).toBe('20/11/2026');
+  });
+});
+
+/* Nombre del usuario en la plantilla y en el inicio (F5b-diseño, §3.1 y 7.0). */
+describe('iniciales y primer nombre', () => {
+  it.each([
+    ['Ana Pérez', 'AP'],
+    ['  ana   pérez gómez ', 'AP'],
+    ['Usuario', 'U'],
+    ['Ángela Ñúñez', 'ÁÑ'],
+    ['', ''],
+  ])('iniciales de «%s» → «%s»', (nombre, texto) => {
+    expect(iniciales(nombre)).toBe(texto);
+  });
+
+  it.each([
+    ['Ana Pérez', 'Ana'],
+    ['  Marta   Ruiz ', 'Marta'],
+    ['Usuario', 'Usuario'],
+    ['', ''],
+  ])('primer nombre de «%s» → «%s»', (nombre, texto) => {
+    expect(primerNombre(nombre)).toBe(texto);
   });
 });

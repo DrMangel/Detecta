@@ -52,3 +52,21 @@ export function formatearFechaHora(iso: string): string {
   );
   return `${partes['day']}/${partes['month']}/${partes['year']} ${partes['hour']}:${partes['minute']}`;
 }
+
+/** Palabras del nombre, sin espacios sobrantes. */
+function palabras(nombre: string): string[] {
+  return nombre.trim().split(/\s+/).filter(Boolean);
+}
+
+/** «AP» para «Ana Pérez»: avatar de la plantilla (especificación, §3.1). */
+export function iniciales(nombre: string): string {
+  return palabras(nombre)
+    .slice(0, 2)
+    .map((palabra) => palabra.charAt(0).toLocaleUpperCase('es-CO'))
+    .join('');
+}
+
+/** «Ana» para «Ana Pérez»: saludo del inicio (especificación, §7.0). */
+export function primerNombre(nombre: string): string {
+  return palabras(nombre)[0] ?? '';
+}

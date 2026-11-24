@@ -14,12 +14,14 @@ const ENLACES = [
   {
     ruta: RUTAS_DOCENTE.consultaCurso,
     rotulo: TITULOS_DOCENTE.consultaCurso,
+    icono: 'book-open',
     // El listado de un curso es parte de la consulta de curso.
     tambienEn: ['/docente/cursos/'],
   },
   {
     ruta: RUTAS_DOCENTE.alertasEmitidas,
     rotulo: TITULOS_DOCENTE.alertasEmitidas,
+    icono: 'bell',
   },
 ] as const;
 

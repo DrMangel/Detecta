@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
-import { NavegacionRol } from '../../componentes/navegacion-rol';
+import {
+  NavegacionRol,
+  type EnlaceRol,
+} from '../../componentes/navegacion-rol';
 import { Plantilla } from '../../componentes/plantilla';
 import { TITULOS_JEFE } from './textos';
 
@@ -31,21 +34,27 @@ const PREFIJO_DETALLE = ['/jefe-departamento/casos/'] as const;
  * entrada del menú lleva el prefijo del detalle y queda resaltada (F5b;
  * Manual 3.1.2.2.6, Tabla 30, «Dar el control al usuario»).
  */
-function enlacesJefe(origen: TipoBandeja) {
+function enlacesJefe(origen: TipoBandeja): readonly EnlaceRol[] {
   const detalleEn = (bandeja: TipoBandeja) =>
     bandeja === origen ? PREFIJO_DETALLE : [];
   return [
     {
       ruta: RUTA_BANDEJA.pendientes,
       rotulo: TITULOS_JEFE.casosPendientes,
+      icono: 'file-text',
       tambienEn: detalleEn('pendientes'),
     },
     {
       ruta: RUTA_BANDEJA.rutaAcademica,
       rotulo: TITULOS_JEFE.rutaAcademica,
+      icono: 'graduation-cap',
       tambienEn: detalleEn('rutaAcademica'),
     },
-    { ruta: RUTAS_JEFE.informes, rotulo: TITULOS_JEFE.informes },
+    {
+      ruta: RUTAS_JEFE.informes,
+      rotulo: TITULOS_JEFE.informes,
+      icono: 'chart-line',
+    },
   ];
 }
 
@@ -53,16 +62,20 @@ function enlacesJefe(origen: TipoBandeja) {
 export function PlantillaJefe({
   titulo,
   origen = 'pendientes',
+  volver,
   children,
 }: {
   titulo: string;
   origen?: TipoBandeja;
+  /** Enlace de regreso, encima del título. */
+  volver?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <Plantilla
       titulo={titulo}
       navegacion={<NavegacionRol enlaces={enlacesJefe(origen)} />}
+      volver={volver}
     >
       {children}
     </Plantilla>

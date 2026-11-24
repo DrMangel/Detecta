@@ -11,14 +11,20 @@ export const RUTAS_ESTUDIANTE = {
 } as const;
 
 const ENLACES = [
-  { ruta: RUTAS_ESTUDIANTE.consulta, rotulo: TITULOS_ESTUDIANTE.consulta },
+  {
+    ruta: RUTAS_ESTUDIANTE.consulta,
+    rotulo: TITULOS_ESTUDIANTE.consulta,
+    icono: 'book-open',
+  },
   {
     ruta: RUTAS_ESTUDIANTE.solicitudes,
     rotulo: TITULOS_ESTUDIANTE.solicitudes,
+    icono: 'list',
   },
   {
     ruta: RUTAS_ESTUDIANTE.nuevaSolicitud,
     rotulo: TITULOS_ESTUDIANTE.nuevaSolicitud,
+    icono: 'target',
   },
 ] as const;
 

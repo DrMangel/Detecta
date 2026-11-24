@@ -27,3 +27,6 @@ export const TEXTO_CONTRASENA_FIJADA =
 
 /** Nombre del sistema (ER), en la pestaña y en el encabezado. */
 export const NOMBRE_SISTEMA = 'DETECTA';
+
+/** Texto alternativo del logo (especificación de diseño, §3.3). */
+export const TEXTO_LOGO = 'Logo de DETECTA';

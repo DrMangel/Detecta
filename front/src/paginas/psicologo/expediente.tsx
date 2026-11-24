@@ -88,10 +88,14 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
     idCaso,
   );
   return (
-    <PlantillaPsicologo titulo={TITULOS_PSICOLOGO.expediente}>
-      <Link to={RUTAS_PSICOLOGO.remisiones} className={estilos['volver']}>
-        {TITULOS_PSICOLOGO.remisiones}
-      </Link>
+    <PlantillaPsicologo
+      titulo={TITULOS_PSICOLOGO.expediente}
+      volver={
+        <Link to={RUTAS_PSICOLOGO.remisiones} className={estilos['volver']}>
+          {TITULOS_PSICOLOGO.remisiones}
+        </Link>
+      }
+    >
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && (
