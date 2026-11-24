@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IU_SolicitudAcompanamiento: Solicitar acompañamiento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5CAD}a:hover{color:#08457F}
+.nav{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;border-radius:10px;color:#27323F;font-weight:600;font-size:14px;text-decoration:none}
+.nav:hover{background:#E7F0FA;color:#0B5CAD}
+.nav.on{background:#0B5CAD;color:#fff}
+.card{background:#fff;border:1px solid #E3E8F0;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.lbl{font-size:14px;font-weight:600;color:#1B2430}
+.help{font-size:13px;color:#4A5565}
+.inp{box-sizing:border-box;width:100%;min-height:44px;padding:10px 14px;border:1px solid #8A94A3;border-radius:10px;font:inherit;font-size:15px;color:#1B2430;background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 22px;border:0;border-radius:10px;background:#0B5CAD;color:#fff;font:inherit;font-weight:700;font-size:15px}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 22px;border:1px solid #0B5CAD;border-radius:10px;background:#fff;color:#0B5CAD;font:inherit;font-weight:600;font-size:15px}
+.ex{font-size:12px;color:#5B6575}
+.bd{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700}
+</style>
+
+</head>
+<body>
+
+<div style="min-height:920px;background:#F4F6FA;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1B2430">
+<div style="display:flex;min-height:920px"><aside style="width:256px;flex:none;box-sizing:border-box;background:#fff;border-right:1px solid #E3E8F0;padding:24px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:32px">
+<div style="display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;align-items:center;gap:12px;padding:0 2px"><img src="logos/logo-icono.png" alt="Logo de DETECTA" style="height:40px;width:auto"><span style="font-weight:800;font-size:18px;letter-spacing:.08em;color:#14305C">DETECTA</span></div>
+<nav aria-label="Navegación de Estudiante" style="display:flex;flex-direction:column;gap:6px"><span style="padding:0 14px 6px;font-size:11px;font-weight:700;letter-spacing:.1em;color:#5B6575">ESTUDIANTE</span><a href="#" class="nav"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v12a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v12a3 3 0 0 1 3-3h7z"/></svg>Consulta académica</a><a href="#" class="nav"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Mis solicitudes</a><a href="#" class="nav on" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>Solicitar acompañamiento</a></nav></div>
+<div style="display:flex;flex-direction:column;gap:14px;padding-top:20px;border-top:1px solid #E3E8F0">
+<div style="display:flex;align-items:center;gap:12px;padding:0 6px"><div aria-hidden="true" style="width:40px;height:40px;border-radius:50%;background:#E3EEFA;color:#0B5CAD;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">AP</div><div style="display:flex;flex-direction:column;line-height:1.3"><span style="font-weight:700;font-size:14px">Ana Pérez</span><span style="font-size:12px;color:#4A5565">Estudiante</span></div></div>
+<button type="button" class="btn2" style="font-size:14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Cerrar sesión</button></div></aside>
+
+<main style="flex:1;min-width:0;box-sizing:border-box;padding:40px 48px;display:flex;flex-direction:column;gap:24px;max-width:860px">
+<div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800">Solicitar acompañamiento</h1><span class="help">Cuéntanos qué necesitas; te responderemos con respeto y confidencialidad.</span></div>
+<div class="card" style="padding:28px;display:flex;flex-direction:column;gap:22px">
+<fieldset style="border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px"><legend class="lbl" style="padding:0 0 8px">Tipo de apoyo</legend>
+<div style="display:flex;gap:12px"><label style="flex:1;display:flex;gap:12px;align-items:center;min-height:56px;padding:0 16px;border:2px solid #0B5CAD;background:#E7F0FA;border-radius:10px;font-weight:600"><span style="width:18px;height:18px;border-radius:50%;border:5px solid #0B5CAD;background:#fff;box-sizing:border-box"></span>Académico</label>
+<label style="flex:1;display:flex;gap:12px;align-items:center;min-height:56px;padding:0 16px;border:1px solid #8A94A3;border-radius:10px;font-weight:600"><span style="width:18px;height:18px;border-radius:50%;border:2px solid #8A94A3;box-sizing:border-box"></span>Psicosocial</label></div></fieldset>
+<div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:#E7F0FA;border-radius:10px;color:#08457F"><span style="margin-top:1px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><span style="font-size:14px">Las solicitudes académicas las atiende el Programa. Las psicosociales sólo las verá el área de Psicología; el Jefe de Departamento no tendrá acceso a ellas.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label class="lbl">Motivo</label><textarea class="inp" rows="4" readonly style="resize:none">Me cuesta seguir el ritmo de Física Mecánica y quisiera orientación.</textarea></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label class="lbl">Disponibilidad horaria <span style="font-weight:400;color:#4A5565">(opcional)</span></label><input class="inp" value="Martes y jueves por la tarde" readonly></div>
+<div style="display:flex;gap:12px;align-items:center"><button type="button" class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>Enviar solicitud</button><button type="button" class="btn2">Cancelar</button></div>
+</div>
+<div class="card" style="padding:16px 20px;display:flex;gap:12px;align-items:center;background:#E3F4EA;border-color:#BFE3CC;color:#14532D"><span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg></span><span style="font-size:14px;font-weight:600">Estado posterior al envío: tu solicitud fue recibida. Te avisaremos cuando sea atendida.</span></div>
+<span class="ex">Mockup · datos de ejemplo.</span>
+</main></div>
+</div>
+
+</body>
+</html>

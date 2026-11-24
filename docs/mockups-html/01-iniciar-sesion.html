@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IU: Iniciar sesión</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0B5CAD}a:hover{color:#08457F}
+.nav{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 14px;border-radius:10px;color:#27323F;font-weight:600;font-size:14px;text-decoration:none}
+.nav:hover{background:#E7F0FA;color:#0B5CAD}
+.nav.on{background:#0B5CAD;color:#fff}
+.card{background:#fff;border:1px solid #E3E8F0;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.lbl{font-size:14px;font-weight:600;color:#1B2430}
+.help{font-size:13px;color:#4A5565}
+.inp{box-sizing:border-box;width:100%;min-height:44px;padding:10px 14px;border:1px solid #8A94A3;border-radius:10px;font:inherit;font-size:15px;color:#1B2430;background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 22px;border:0;border-radius:10px;background:#0B5CAD;color:#fff;font:inherit;font-weight:700;font-size:15px}
+.btn2{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:0 22px;border:1px solid #0B5CAD;border-radius:10px;background:#fff;color:#0B5CAD;font:inherit;font-weight:600;font-size:15px}
+.ex{font-size:12px;color:#5B6575}
+.bd{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;font-size:12px;font-weight:700}
+</style>
+
+</head>
+<body>
+
+<div style="min-height:880px;background:#F4F6FA;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;color:#1B2430">
+<div style="min-height:880px;display:flex;align-items:center;justify-content:center;padding:40px">
+<div style="width:100%;max-width:416px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:center;justify-content:center;gap:12px"><img src="logos/logo-completo.png" alt="DETECTA · Sistema de alerta temprana" style="height:84px;width:auto"></div>
+<div class="card" style="padding:32px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:800">Iniciar sesión</h1><span class="help">Ingresa con tu correo institucional.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label class="lbl">Correo electrónico</label><input class="inp" value="ana.perez@unicartagena.edu.co" readonly></div>
+<div style="display:flex;flex-direction:column;gap:6px"><label class="lbl">Contraseña</label><input class="inp" type="password" value="••••••••••" readonly></div>
+<button type="button" class="btn" style="width:100%">Iniciar sesión</button>
+<div style="text-align:center"><a href="#" style="font-size:14px;font-weight:600">Solicitar enlace de acceso</a></div>
+</div>
+<div class="ex" style="text-align:center">Mockup · datos de ejemplo</div>
+</div></div>
+</div>
+
+</body>
+</html>
