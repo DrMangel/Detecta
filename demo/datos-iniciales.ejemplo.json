@@ -7,21 +7,21 @@
     {
       "rol": "JEFE_DEPARTAMENTO",
       "id": "JEFE-ENTREGA",
-      "nombre": "Jefe de Demostración",
-      "correo": "detectasoportetecnico+jefe@gmail.com",
+      "nombre": "Germán Andrés Pineda Castro",
+      "correo": "detectasoportetecnico+german.pineda@gmail.com",
       "idPrograma": "SIS"
     },
     {
       "rol": "PSICOLOGO",
       "id": "PSICO-ENTREGA",
-      "nombre": "Psicólogo de Demostración",
-      "correo": "detectasoportetecnico+psicologo@gmail.com"
+      "nombre": "Liliana Patricia Cárdenas Duque",
+      "correo": "detectasoportetecnico+liliana.cardenas@gmail.com"
     },
     {
       "rol": "DOCENTE",
       "id": "DOC-ENTREGA",
-      "nombre": "Docente de Demostración",
-      "correo": "detectasoportetecnico+docente@gmail.com"
+      "nombre": "Adriana Marcela Ortega Ruiz",
+      "correo": "detectasoportetecnico+adriana.ortega@gmail.com"
     }
   ],
   "cursos": [

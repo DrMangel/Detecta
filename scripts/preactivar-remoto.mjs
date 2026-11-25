@@ -9,6 +9,9 @@
 //      (decisión J7).
 // Las contraseñas se guardan solo en %USERPROFILE%\detecta-entrega\, nunca se
 // imprimen ni se versionan. Cada ejecución las renueva todas.
+// Las cuentas (rol, nombre y correo) se leen de los mismos datos que cargan
+// las bases (demo/datos-iniciales.ejemplo.json e institucional_entrega.csv):
+// el script no tiene correos escritos a mano (datos de la demostración).
 //
 // Uso (desde la raíz, con la sincronización ya hecha):
 //   node scripts/preactivar-remoto.mjs
@@ -20,19 +23,37 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
+import { leerCsv } from '../docker/postgres/datos-entrega.mjs';
 
 const BACK = fileURLToPath(new URL('../back/', import.meta.url));
 const CARPETA = join(homedir(), 'detecta-entrega');
 const ARCHIVO = join(CARPETA, 'cuentas-evaluador.txt');
-// Ficticias (demo/datos-iniciales.ejemplo.json e institucional_entrega.csv):
-// 2026001 nació en 2002 y 2026005 en 2012 (menor de edad).
-const CUENTAS = [
-  { rol: 'DOCENTE', correo: 'detectasoportetecnico+docente@gmail.com' },
-  { rol: 'JEFE_DEPARTAMENTO', correo: 'detectasoportetecnico+jefe@gmail.com' },
-  { rol: 'PSICOLOGO', correo: 'detectasoportetecnico+psicologo@gmail.com' },
-  { rol: 'ESTUDIANTE (adulto, 2026001)', correo: 'detectasoportetecnico+est01@gmail.com' },
-  { rol: 'ESTUDIANTE (menor, 2026005)', correo: 'detectasoportetecnico+est05@gmail.com' },
+const PERSONAL = ['DOCENTE', 'JEFE_DEPARTAMENTO', 'PSICOLOGO'];
+// Ficticios: 2026001 nació en 2002 y 2026005 en 2012 (menor de edad).
+const ESTUDIANTES = [
+  ['2026001', 'ESTUDIANTE (adulto, 2026001)'],
+  ['2026005', 'ESTUDIANTE (menor de edad, 2026005)'],
 ];
+
+/** Las cinco cuentas del evaluador, con rol, nombre y correo de los datos. */
+export function cuentasEvaluador() {
+  const datos = JSON.parse(readFileSync(new URL('../demo/datos-iniciales.ejemplo.json', import.meta.url), 'utf8'));
+  const filas = leerCsv(new URL('../docker/postgres/institucional_entrega.csv', import.meta.url));
+  const personal = PERSONAL.map((rol) => {
+    const { nombre, correo } = datos.usuarios.find((usuario) => usuario.rol === rol);
+    return { rol, nombre, correo };
+  });
+  const estudiantes = ESTUDIANTES.map(([id, rol]) => {
+    const fila = filas.find((f) => f.id_estudiante === id);
+    return { rol, nombre: fila.nombre_estudiante, correo: fila.correo_estudiante };
+  });
+  return [...personal, ...estudiantes];
+}
+
+/** Línea de cuentas-evaluador.txt: rol | nombre | correo | contraseña. */
+export function lineaCuenta(cuenta, contrasena) {
+  return `${cuenta.rol} | ${cuenta.nombre} | ${cuenta.correo} | ${contrasena}`;
+}
 
 /** Extrae el token del enlace `${URL_FRONTEND}/activar#token=...`. */
 export function tokenDeSalida(salida) {
@@ -74,14 +95,17 @@ async function preactivar(urlBase, cuenta) {
   const sesion = await enviar(urlBase, 'iniciar-sesion', { correo: cuenta.correo, contrasena });
   const rol = sesion.estado === 200 ? (await sesion.respuesta.json()).rol : '-';
   console.log(`${cuenta.rol}: activar ${activacion.estado}; iniciar sesión ${sesion.estado} (rol ${rol}) en ${sesion.ms} ms`);
-  return `${cuenta.rol} | ${cuenta.correo} | ${contrasena}`;
+  return lineaCuenta(cuenta, contrasena);
 }
 
 if (import.meta.main) {
   const entorno = parseEnv(readFileSync(new URL('../demo/.env.remoto', import.meta.url), 'utf8'));
-  const lineas = ['# Cuentas de demostración de DETECTA (datos ficticios). No versionar ni publicar.'];
+  const lineas = [
+    '# Cuentas de demostración de DETECTA (datos ficticios). No versionar ni publicar.',
+    '# rol | nombre | correo | contraseña',
+  ];
   try {
-    for (const cuenta of CUENTAS) {
+    for (const cuenta of cuentasEvaluador()) {
       lineas.push(await preactivar(entorno.URL_FRONTEND, cuenta));
     }
   } catch (error) {
