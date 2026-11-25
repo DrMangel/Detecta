@@ -47,6 +47,7 @@ Principio: **conservar los nombres de variables existentes** y añadir los nuevo
 | `--color-neutro-texto` (nuevo, D3) | `#27323f` | Texto de la insignia de estado neutra (§4) |
 | `--color-borde-azul` (nuevo, D3) | `#c5daf2` | Borde del aviso informativo y de la tarjeta destacada del inicio (§4, §7.0) |
 | `--color-borde-verde` (nuevo, D3) | `#bfe3cc` | Borde del mensaje de confirmación (§4) |
+| `--color-encabezado-tabla` (nuevo, D5) | `#f8fafd` | Fondo del encabezado de las tablas compacta y cómoda (mockups 04 a 07; respuesta 7 de D5) |
 
 **Riesgo** (nuevos; siempre con ícono + texto):
 
@@ -368,7 +369,7 @@ No son nuevos (ya están en el front): los rótulos de columnas, «Información 
    - **D2** Plantilla con barra lateral, logo, íconos y comportamiento móvil.
    - **D3** Componentes compartidos: insignias, línea de estado, cifra grande, tarjeta de función, enlace de regreso y mensajes.
    - **D3b** Controles compartidos: botón primario y secundario, campos (con el error en línea) y selección en caja.
-   - La tabla compacta y cómoda, la fila abrible y la tarjeta se implementan con su primera pantalla de uso (D4 a D7), no en D3 (decisión de Ivan en D3).
+   - La tabla compacta y cómoda, la fila abrible y la tarjeta se implementan con su primera pantalla de uso, no en D3 (decisión de Ivan en D3): la tarjeta en D4 (filtro y cifras del Estudiante), la tabla compacta en D5 (Docente), y la tabla cómoda y la fila abrible en D6 (Jefe).
    - **D4** Acceso, **inicio de los cuatro roles** y Estudiante.
    - **D5** Docente.
    - **D6** Jefe de Departamento.
