@@ -141,6 +141,34 @@ describe('Remisiones (D7a, §7.5; maqueta 09)', () => {
   });
 });
 
+/*
+ * Un solo par de consentimiento (R06: casilla «Sí/No», si aplica). El
+ * backend nunca envía las dos marcas en true (requiere = menor y no
+ * confirmado), pero el front no debe mostrar «Sí» y «No» a la vez.
+ */
+describe('Consentimiento en los datos del expediente (R05, R06)', () => {
+  it.each([
+    [true, true, ['Sí']],
+    [true, false, ['Sí']],
+    [false, true, ['No']],
+    [false, false, []],
+  ])(
+    'confirmado %s y requiere %s: %j',
+    async (consentimientoConfirmado, requiereConsentimiento, valores) => {
+      abrirExpediente({
+        ...CASO,
+        consentimientoConfirmado,
+        requiereConsentimiento,
+      });
+      await screen.findByText('Me cuesta concentrarme.');
+      const pares = screen
+        .queryAllByText('Consentimiento informado confirmado')
+        .map((rotulo) => rotulo.nextElementSibling?.textContent);
+      expect(pares).toEqual(valores);
+    },
+  );
+});
+
 describe('Expediente: datos, antecedentes y pertinencia (D7a; maqueta 10)', () => {
   it('datos en una tarjeta con pares; nivel en insignia; motivo y disponibilidad a ancho completo', async () => {
     abrirExpediente(CASO);

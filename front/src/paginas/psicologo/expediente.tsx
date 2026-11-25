@@ -194,13 +194,24 @@ function datosCaso(caso: CasoPsicologo): Dato[] {
       valor: caso.psicologo.nombre,
     });
   }
-  if (caso.consentimientoConfirmado) {
-    datos.push({ rotulo: ROTULOS_PSICOLOGO.consentimiento, valor: 'Sí' });
-  }
-  if (caso.requiereConsentimiento) {
-    datos.push({ rotulo: ROTULOS_PSICOLOGO.consentimiento, valor: 'No' });
+  const consentimiento = valorConsentimiento(caso);
+  if (consentimiento !== null) {
+    datos.push({
+      rotulo: ROTULOS_PSICOLOGO.consentimiento,
+      valor: consentimiento,
+    });
   }
   return datos;
+}
+
+/**
+ * Un solo valor de consentimiento (R06: casilla «Sí/No», si aplica): la
+ * confirmación gana a «requiere»; si no aplica (mayor de edad), ninguno.
+ */
+function valorConsentimiento(caso: CasoPsicologo): string | null {
+  if (caso.consentimientoConfirmado) return 'Sí';
+  if (caso.requiereConsentimiento) return 'No';
+  return null;
 }
 
 /** Datos propios del origen; los textos libres, a ancho completo. */
