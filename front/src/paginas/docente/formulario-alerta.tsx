@@ -79,31 +79,23 @@ function pasosAlerta(
   };
 }
 
-export function FormularioAlerta({
-  curso,
-  registro,
-  alCerrar,
-  alEmitir,
-}: {
+interface PropsAlerta {
   curso: ConsultaCurso['curso'];
   registro: RegistroCurso;
-  alCerrar: () => void;
   alEmitir: () => void;
-}) {
-  const idTitulo = useId();
-  const idErrorCampos = useId();
-  const seccion = useRef<HTMLElement>(null);
+}
+
+/**
+ * Estado y envío de la alerta (CUD03 pasos 6 a 8): la validación de 6.a, el
+ * envío con conciliación y el resultado incierto. La vista solo lo pinta.
+ */
+function useEmisionAlerta({ curso, registro, alEmitir }: PropsAlerta) {
   const [nivelRiesgo, setNivelRiesgo] = useState<NivelRiesgo | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [errorCampos, setErrorCampos] = useState<string | null>(null);
   // 401: ProveedorSesion ya llevó al inicio de sesión; el borrador no se
   // conserva.
   const { enviando, error, ponerError, ejecutar } = useEnvio();
-
-  // Ajuste B: al abrir (o al cambiar de estudiante) el foco pasa al formulario.
-  useEffect(() => {
-    seccion.current?.focus();
-  }, [registro.idRegistro]);
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -132,7 +124,35 @@ export function FormularioAlerta({
     alEmitir();
   };
 
-  const vacio = errorCampos !== null;
+  return {
+    nivelRiesgo,
+    setNivelRiesgo,
+    descripcion,
+    setDescripcion,
+    errorCampos,
+    enviando,
+    error,
+    enviar,
+  };
+}
+
+export function FormularioAlerta({
+  curso,
+  registro,
+  alCerrar,
+  alEmitir,
+}: PropsAlerta & { alCerrar: () => void }) {
+  const idTitulo = useId();
+  const idErrorCampos = useId();
+  const seccion = useRef<HTMLElement>(null);
+  const alerta = useEmisionAlerta({ curso, registro, alEmitir });
+
+  // Ajuste B: al abrir (o al cambiar de estudiante) el foco pasa al formulario.
+  useEffect(() => {
+    seccion.current?.focus();
+  }, [registro.idRegistro]);
+
+  const vacio = alerta.errorCampos !== null;
 
   return (
     <section
@@ -142,7 +162,11 @@ export function FormularioAlerta({
       className={controles['seccion']}
     >
       <h2 id={idTitulo}>{ROTULOS_DOCENTE.emitirAlerta}</h2>
-      <form className={estilos['panel']} onSubmit={enviar} noValidate>
+      <form
+        className={estilos['panel']}
+        onSubmit={(evento) => void alerta.enviar(evento)}
+        noValidate
+      >
         <dl className={estilos['registro']}>
           <dt>{ROTULOS_DOCENTE.estudiante}</dt>
           <dd>{registro.estudiante.nombre}</dd>
@@ -158,38 +182,38 @@ export function FormularioAlerta({
           leyenda={ROTULOS_DOCENTE.nivelRiesgo}
           opciones={NIVELES}
           etiquetas={NOMBRE_NIVEL_RIESGO}
-          valor={nivelRiesgo}
-          alCambiar={setNivelRiesgo}
-          invalido={vacio && nivelRiesgo === null}
+          valor={alerta.nivelRiesgo}
+          alCambiar={alerta.setNivelRiesgo}
+          invalido={vacio && alerta.nivelRiesgo === null}
         />
 
         <CampoTexto
           rotulo={ROTULOS_DOCENTE.justificacion}
-          valor={descripcion}
-          alCambiar={setDescripcion}
+          valor={alerta.descripcion}
+          alCambiar={alerta.setDescripcion}
           maximo={LIMITES.descripcion}
           multilinea
           requerido
           contador
-          invalido={vacio && descripcion.trim() === ''}
+          invalido={vacio && alerta.descripcion.trim() === ''}
           descritoPor={vacio ? idErrorCampos : undefined}
           clase={estilos['campo']}
         />
 
-        <MensajeError mensaje={errorCampos} id={idErrorCampos} enLinea />
-        <MensajeError mensaje={error} />
+        <MensajeError mensaje={alerta.errorCampos} id={idErrorCampos} enLinea />
+        <MensajeError mensaje={alerta.error} />
         <div className={estilos['acciones']}>
           <button
             type="submit"
             className={controles['boton']}
-            disabled={enviando}
+            disabled={alerta.enviando}
           >
             {ROTULOS_DOCENTE.emitirAlerta}
           </button>
           <button
             type="button"
             className={controles['boton-secundario']}
-            disabled={enviando}
+            disabled={alerta.enviando}
             onClick={alCerrar}
           >
             {ROTULOS_DOCENTE.cancelar}
