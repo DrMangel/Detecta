@@ -14,6 +14,8 @@ import { ROTULOS_DOCENTE, TITULOS_DOCENTE } from './textos';
  * se escribe el código del curso (respuesta 1 de F2; R01, entradas: «código
  * de asignatura»; D22: codigo_asignatura = idCurso). Decisión abierta D37.
  * Máximo 36 caracteres, como `LONGITUD_MAXIMA.identificador` del backend.
+ * Diseño de F5b (D5): el filtro en tarjeta, con el campo y el botón en una
+ * fila.
  */
 
 export function ConsultaCurso() {
@@ -30,24 +32,30 @@ export function ConsultaCurso() {
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.consultaCurso}>
-      <form className={controles['formulario']} onSubmit={consultar} noValidate>
-        <CampoTexto
-          rotulo={ROTULOS_DOCENTE.codigoCurso}
-          valor={codigo}
-          alCambiar={setCodigo}
-          maximo={LIMITES.identificador}
-          requerido
-          clase={estilos['campo']}
-        />
-        {/* Sin código no se consulta (no hay texto aprobado para el vacío). */}
-        <button
-          type="submit"
-          className={controles['boton']}
-          disabled={buscado === ''}
+      <div className={`${controles['tarjeta']} ${estilos['bloque-filtro']}`}>
+        <form
+          className={`${controles['formulario']} ${controles['filtro']}`}
+          onSubmit={consultar}
+          noValidate
         >
-          {ROTULOS_PERIODO.consultar}
-        </button>
-      </form>
+          <CampoTexto
+            rotulo={ROTULOS_DOCENTE.codigoCurso}
+            valor={codigo}
+            alCambiar={setCodigo}
+            maximo={LIMITES.identificador}
+            requerido
+            clase={estilos['campo']}
+          />
+          {/* Sin código no se consulta (no hay texto aprobado para el vacío). */}
+          <button
+            type="submit"
+            className={controles['boton']}
+            disabled={buscado === ''}
+          >
+            {ROTULOS_PERIODO.consultar}
+          </button>
+        </form>
+      </div>
     </PlantillaDocente>
   );
 }

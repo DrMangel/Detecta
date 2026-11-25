@@ -1,4 +1,4 @@
-import type { NivelRiesgo } from '../servicios-api/estudiante';
+import type { EstadoAtencion, NivelRiesgo } from '../servicios-api/estudiante';
 import { NOMBRE_NIVEL_RIESGO } from './etiquetas';
 import { Icono, type NombreIcono } from './icono';
 import estilos from './insignias.module.css';
@@ -34,6 +34,17 @@ export function InsigniaRiesgo({ nivel }: { nivel: NivelRiesgo }) {
 
 /** Tonos de estado (§4): neutro, azul (en curso) y verde (atendido). */
 export type TonoEstado = 'neutro' | 'azul' | 'verde';
+
+/**
+ * Tono del estado de atención (D27; §4): pendiente neutro, atendida verde.
+ * Lo comparten las solicitudes del Estudiante y las alertas del Docente.
+ */
+export const TONO_ESTADO_ATENCION: Readonly<
+  Record<EstadoAtencion, TonoEstado>
+> = {
+  PENDIENTE: 'neutro',
+  ATENDIDA: 'verde',
+};
 
 export function InsigniaEstado({
   texto,

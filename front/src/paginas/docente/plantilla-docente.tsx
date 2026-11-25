@@ -46,14 +46,18 @@ export const TARJETAS_INICIO_DOCENTE: Readonly<Record<string, TarjetaInicio>> =
 /* Plantilla de F0 con la navegación del Docente («Inicio» y dos funciones). */
 export function PlantillaDocente({
   titulo,
+  ayuda,
   children,
 }: {
   titulo: string;
+  /** Ayuda bajo el título (§3.1; el listado del curso, §7.3). */
+  ayuda?: string;
   children: ReactNode;
 }) {
   return (
     <Plantilla
       titulo={titulo}
+      ayuda={ayuda}
       navegacion={<NavegacionRol enlaces={ENLACES_DOCENTE} />}
     >
       {children}

@@ -87,7 +87,10 @@ export function CampoTexto(props: PropsCampoTexto) {
         </p>
       )}
       {props.contador === true && (
-        <p id={idContador} className={controles['ayuda']}>
+        <p
+          id={idContador}
+          className={`${controles['ayuda']} ${controles['contador']}`}
+        >
           {`${valor.length} / ${maximo}`}
         </p>
       )}

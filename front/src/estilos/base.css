@@ -33,6 +33,8 @@
   --color-neutro-texto: #27323f;
   --color-borde-azul: #c5daf2;
   --color-borde-verde: #bfe3cc;
+  /* Fondo del encabezado de la tabla compacta (mockups 04 y 05; D5). */
+  --color-encabezado-tabla: #f8fafd;
 
   /* Riesgo (§2.1): siempre con ícono y texto, nunca solo color. */
   --color-riesgo-bajo-fondo: #e3f4ea;

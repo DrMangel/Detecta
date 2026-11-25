@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { FormularioPeriodo } from '../../componentes/formulario-periodo';
 import { formatearFecha } from '../../componentes/formato';
+import {
+  InsigniaEstado,
+  InsigniaRiesgo,
+  TONO_ESTADO_ATENCION,
+} from '../../componentes/insignias';
 import { MensajeError } from '../../componentes/mensaje-error';
+import controles from '../../componentes/controles.module.css';
 import {
   consultarAlertasEmitidas,
   type AlertaEmitida,
@@ -15,10 +21,7 @@ import {
   TEXTO_SIN_ALERTAS_EMITIDAS,
   TITULOS_DOCENTE,
 } from './textos';
-import {
-  NOMBRE_ESTADO,
-  NOMBRE_NIVEL_RIESGO,
-} from '../../componentes/etiquetas';
+import { NOMBRE_ESTADO } from '../../componentes/etiquetas';
 
 /*
  * Alertas emitidas por el Docente (CUD01 2.c; sd_CUD01 `verAlertasEmitidas`
@@ -27,6 +30,9 @@ import {
  * «Pendiente» o «Atendida», derivado del caso (D27): sin ruta, avance ni
  * resultado. Solo se pintan los campos conocidos de AlertaEmitida; nunca
  * motivos ni contenido de solicitudes (D18, D19).
+ *
+ * Diseño de F5b (D5): filtro en tarjeta y en una fila; tabla compacta con el
+ * nivel en InsigniaRiesgo y el estado en InsigniaEstado (§4).
  */
 
 export function AlertasEmitidas() {
@@ -40,11 +46,14 @@ export function AlertasEmitidas() {
 
   return (
     <PlantillaDocente titulo={TITULOS_DOCENTE.alertasEmitidas}>
-      <FormularioPeriodo
-        alConsultar={(periodo) => void consultar(periodo)}
-        ocupado={enviando || enEspera}
-        claseCampo={estilos['campo']}
-      />
+      <div className={`${controles['tarjeta']} ${estilos['bloque-filtro']}`}>
+        <FormularioPeriodo
+          alConsultar={(periodo) => void consultar(periodo)}
+          ocupado={enviando || enEspera}
+          claseCampo={estilos['campo']}
+          enLinea
+        />
+      </div>
 
       <MensajeError mensaje={error} />
       <div aria-busy={enviando}>
@@ -61,42 +70,50 @@ export function AlertasEmitidas() {
 
 function TablaAlertas({ alertas }: { alertas: readonly AlertaEmitida[] }) {
   return (
-    <table className={tabla['tabla']}>
-      <thead>
-        <tr>
-          <th scope="col">{ROTULOS_DOCENTE.fecha}</th>
-          <th scope="col">{ROTULOS_DOCENTE.estudiante}</th>
-          <th scope="col">{ROTULOS_DOCENTE.curso}</th>
-          <th scope="col">{ROTULOS_DOCENTE.nivelRiesgo}</th>
-          <th scope="col">{ROTULOS_DOCENTE.justificacion}</th>
-          <th scope="col">{ROTULOS_DOCENTE.estadoAtencion}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {alertas.map((alerta) => (
-          <tr key={alerta.idAlerta}>
-            <td className={tabla['numero']} data-rotulo={ROTULOS_DOCENTE.fecha}>
-              {formatearFecha(alerta.fecha)}
-            </td>
-            <th scope="row" data-rotulo={ROTULOS_DOCENTE.estudiante}>
-              {alerta.estudiante.nombre}
-            </th>
-            <td data-rotulo={ROTULOS_DOCENTE.curso}>{alerta.curso.nombre}</td>
-            <td data-rotulo={ROTULOS_DOCENTE.nivelRiesgo}>
-              {NOMBRE_NIVEL_RIESGO[alerta.nivelRiesgo]}
-            </td>
-            <td
-              className={tabla['texto']}
-              data-rotulo={ROTULOS_DOCENTE.justificacion}
-            >
-              {alerta.descripcion}
-            </td>
-            <td data-rotulo={ROTULOS_DOCENTE.estadoAtencion}>
-              {NOMBRE_ESTADO[alerta.estadoAtencion]}
-            </td>
+    <div className={tabla['contenedor']}>
+      <table className={`${tabla['tabla']} ${tabla['compacta']}`}>
+        <thead>
+          <tr>
+            <th scope="col">{ROTULOS_DOCENTE.fecha}</th>
+            <th scope="col">{ROTULOS_DOCENTE.estudiante}</th>
+            <th scope="col">{ROTULOS_DOCENTE.curso}</th>
+            <th scope="col">{ROTULOS_DOCENTE.nivelRiesgo}</th>
+            <th scope="col">{ROTULOS_DOCENTE.justificacion}</th>
+            <th scope="col">{ROTULOS_DOCENTE.estadoAtencion}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {alertas.map((alerta) => (
+            <tr key={alerta.idAlerta}>
+              <td
+                className={tabla['numero']}
+                data-rotulo={ROTULOS_DOCENTE.fecha}
+              >
+                {formatearFecha(alerta.fecha)}
+              </td>
+              <th scope="row" data-rotulo={ROTULOS_DOCENTE.estudiante}>
+                {alerta.estudiante.nombre}
+              </th>
+              <td data-rotulo={ROTULOS_DOCENTE.curso}>{alerta.curso.nombre}</td>
+              <td data-rotulo={ROTULOS_DOCENTE.nivelRiesgo}>
+                <InsigniaRiesgo nivel={alerta.nivelRiesgo} />
+              </td>
+              <td
+                className={tabla['texto']}
+                data-rotulo={ROTULOS_DOCENTE.justificacion}
+              >
+                {alerta.descripcion}
+              </td>
+              <td data-rotulo={ROTULOS_DOCENTE.estadoAtencion}>
+                <InsigniaEstado
+                  texto={NOMBRE_ESTADO[alerta.estadoAtencion]}
+                  tono={TONO_ESTADO_ATENCION[alerta.estadoAtencion]}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

@@ -1,11 +1,13 @@
 import controles from '../../componentes/controles.module.css';
 import { formatearFecha } from '../../componentes/formato';
-import { InsigniaEstado, type TonoEstado } from '../../componentes/insignias';
+import {
+  InsigniaEstado,
+  TONO_ESTADO_ATENCION,
+} from '../../componentes/insignias';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useConsulta } from '../../componentes/use-consulta';
 import {
   consultarSolicitudes,
-  type EstadoAtencion,
   type Solicitud,
 } from '../../servicios-api/estudiante';
 import estilos from './estudiante.module.css';
@@ -26,12 +28,6 @@ import { NOMBRE_ESTADO, NOMBRE_TIPO_APOYO } from '../../componentes/etiquetas';
  * La consulta al montar (y el doble GET de StrictMode en desarrollo) la
  * resuelve useConsulta.
  */
-/** Tono de la insignia de estado (§4): pendiente neutro, atendida verde. */
-const TONO_ESTADO: Readonly<Record<EstadoAtencion, TonoEstado>> = {
-  PENDIENTE: 'neutro',
-  ATENDIDA: 'verde',
-};
-
 export function MisSolicitudes() {
   const { datos: solicitudes, error } = useConsulta(
     consultarSolicitudes,
@@ -82,7 +78,7 @@ function DatosDeSolicitud({ solicitud }: { solicitud: Solicitud }) {
       <dd>
         <InsigniaEstado
           texto={NOMBRE_ESTADO[solicitud.estado]}
-          tono={TONO_ESTADO[solicitud.estado]}
+          tono={TONO_ESTADO_ATENCION[solicitud.estado]}
         />
       </dd>
       <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>

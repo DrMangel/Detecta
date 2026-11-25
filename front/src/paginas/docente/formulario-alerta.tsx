@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { formatearAsistencia, formatearNota } from '../../componentes/formato';
 import { CampoTexto } from '../../componentes/campo-texto';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
+import { Icono } from '../../componentes/icono';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useEnvio } from '../../componentes/use-envio';
 import {
@@ -159,7 +160,7 @@ export function FormularioAlerta({
       ref={seccion}
       tabIndex={-1}
       aria-labelledby={idTitulo}
-      className={controles['seccion']}
+      className={`${controles['seccion']} ${controles['tarjeta']} ${estilos['destacada']}`}
     >
       <h2 id={idTitulo}>{ROTULOS_DOCENTE.emitirAlerta}</h2>
       <form
@@ -167,16 +168,7 @@ export function FormularioAlerta({
         onSubmit={(evento) => void alerta.enviar(evento)}
         noValidate
       >
-        <dl className={estilos['registro']}>
-          <dt>{ROTULOS_DOCENTE.estudiante}</dt>
-          <dd>{registro.estudiante.nombre}</dd>
-          <dt>{ROTULOS_DOCENTE.curso}</dt>
-          <dd>{curso.nombre}</dd>
-          <dt>{ROTULOS_DOCENTE.nota}</dt>
-          <dd>{formatearNota(registro.nota)}</dd>
-          <dt>{ROTULOS_DOCENTE.asistencia}</dt>
-          <dd>{formatearAsistencia(registro.porcentajeAsistencia)}</dd>
-        </dl>
+        <DatosRegistro curso={curso} registro={registro} />
 
         <GrupoOpciones
           leyenda={ROTULOS_DOCENTE.nivelRiesgo}
@@ -208,6 +200,7 @@ export function FormularioAlerta({
             className={controles['boton']}
             disabled={alerta.enviando}
           >
+            <Icono nombre="send" tamano={18} />
             {ROTULOS_DOCENTE.emitirAlerta}
           </button>
           <button
@@ -221,5 +214,24 @@ export function FormularioAlerta({
         </div>
       </form>
     </section>
+  );
+}
+
+/** Bloque de solo lectura con el registro que sustenta la alerta (§7.3). */
+function DatosRegistro({
+  curso,
+  registro,
+}: Pick<PropsAlerta, 'curso' | 'registro'>) {
+  return (
+    <dl className={estilos['registro']}>
+      <dt>{ROTULOS_DOCENTE.estudiante}</dt>
+      <dd>{registro.estudiante.nombre}</dd>
+      <dt>{ROTULOS_DOCENTE.curso}</dt>
+      <dd>{curso.nombre}</dd>
+      <dt>{ROTULOS_DOCENTE.nota}</dt>
+      <dd>{formatearNota(registro.nota)}</dd>
+      <dt>{ROTULOS_DOCENTE.asistencia}</dt>
+      <dd>{formatearAsistencia(registro.porcentajeAsistencia)}</dd>
+    </dl>
   );
 }

@@ -45,6 +45,11 @@
   font-size: 0.8125rem;
 }
 
+/* Contador «n / máximo» alineado a la derecha, bajo el campo (§7.3). */
+.contador {
+  text-align: right;
+}
+
 /* ---------- Casilla o radio suelto (cursos del plan, seguimiento) ---------- */
 
 .opcion {
@@ -228,6 +233,19 @@
   background: var(--color-neutro-fondo);
   color: var(--color-texto-rotulo);
   cursor: not-allowed;
+}
+
+/*
+ * Botón de fila de una tabla compacta (§7.3): 36 px y 13 px solo con ancho de
+ * escritorio y puntero fino (respuesta 5 de D5); en táctil y en pantallas
+ * pequeñas conserva los 44 px de la regla 1.6.
+ */
+@media (min-width: 64rem) and (pointer: fine) {
+  .boton-compacto {
+    min-height: 2.25rem;
+    padding: 0 0.875rem;
+    font-size: 0.8125rem;
+  }
 }
 
 .seccion {

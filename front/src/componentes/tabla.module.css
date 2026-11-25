@@ -40,6 +40,70 @@
   white-space: pre-line;
 }
 
+/*
+ * Tabla en tarjeta (mockups 04 y 05; §6): densidad compacta (10 px) para los
+ * listados largos. Solo las tablas con la variante toman este aspecto; las
+ * demás conservan el de F2 hasta su fase de diseño (la cómoda llega con su
+ * primer uso). El contenedor recorta las esquinas del encabezado y, si una
+ * fila no cabe, se desplaza en horizontal en lugar de cortar el contenido.
+ * El anillo de foco de los botones (3 px y 2 px de desfase) cabe en el
+ * relleno de la celda (12 px a los lados y 6 px arriba y abajo), así que no
+ * se recorta.
+ */
+.contenedor {
+  /* Contiene al texto oculto (position: absolute) del encabezado: sin esto
+     queda fuera del desplazamiento y ensancha la página. */
+  position: relative;
+  overflow-x: auto;
+  margin-bottom: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-1);
+}
+
+.compacta {
+  font-size: 0.875rem;
+}
+
+/*
+ * break-word y no anywhere: con anywhere el ancho mínimo de cada columna baja
+ * a una letra y la tabla automática partía fechas y rótulos («19/11/2 026»).
+ * La excepción es el texto libre (.texto), más abajo.
+ */
+.compacta th,
+.compacta td {
+  /* 12 px a los lados y no 16 (mockup 04): con datos corrientes, las seis
+     columnas de «Alertas emitidas» caben a 1024 px (decisión B de D5). */
+  padding: 0.625rem var(--espacio-1-5);
+  border-bottom-color: var(--color-borde-suave);
+  overflow-wrap: break-word;
+}
+
+.compacta thead th {
+  border-bottom-width: 1px;
+  background: var(--color-encabezado-tabla);
+  color: var(--color-texto-rotulo);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compacta tbody tr:last-child > * {
+  border-bottom: none;
+}
+
+/* El texto libre sí puede partirse donde sea: una palabra larga no ensancha la tabla. */
+.compacta td.texto {
+  overflow-wrap: anywhere;
+}
+
+.compacta td.accion {
+  padding-block: 0.375rem;
+  vertical-align: middle;
+}
+
 @media (max-width: 47.99rem) {
   .tabla thead {
     position: absolute;
@@ -59,6 +123,15 @@
 
   .tabla {
     background: transparent;
+  }
+
+  /* Apiladas, cada fila es su propia tarjeta: el contenedor no se pinta. */
+  .contenedor {
+    overflow: visible;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .tabla tr {
@@ -82,5 +155,12 @@
 
   .tabla td.accion {
     text-align: left;
+  }
+
+  /* Variante de §6 (D5): borde decorativo suave, no el de los controles. */
+  .compacta tr {
+    border-color: var(--color-borde-suave);
+    border-radius: var(--radio-tarjeta);
+    box-shadow: var(--sombra-1);
   }
 }

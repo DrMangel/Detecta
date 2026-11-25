@@ -56,7 +56,12 @@ describe('Consulta de curso (CUD01, Docente)', () => {
     // 08:00 UTC = 03:00 en Bogotá. Sin texto que afirme o niegue que está
     // actualizada (respuesta 3).
     expect(screen.getByText('19/11/2026 03:00')).toBeInTheDocument();
-    expect(screen.getByText('2026-2')).toBeInTheDocument();
+    // D5: curso, código y periodo pasan a la ayuda bajo el título.
+    expect(
+      screen.getByText(
+        'Ingeniería de Software I · Código IS-101 · Periodo 2026-2',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/actualizad/i)).toBeNull();
 
     const columnas = within(tabla).getAllByRole('columnheader');
