@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router';
 import * as acceso from '../servicios-api/acceso';
 import { registrarSesionInvalida } from '../servicios-api/cliente';
 import type { DatosSesion } from '../servicios-api/tipos';
+import { SESION_CADUCADA } from './textos';
 
 /*
  * Sesión del usuario en el front (F0). Los datos de la sesión viven solo en
@@ -19,9 +20,15 @@ import type { DatosSesion } from '../servicios-api/tipos';
  * (g)), nunca el token ni datos del usuario.
  *
  * - Pestaña sin marca (pestaña nueva, enlace principal o dirección interna):
- *   se muestra el inicio de sesión de inmediato y la sesión de la cookie se
- *   cierra en segundo plano, aunque siga vigente (decisión (g)). El envío del
- *   acceso espera a ese cierre para que no borre la sesión nueva (ajuste A).
+ *   se muestra el inicio de sesión sin consultar ni cerrar la sesión de la
+ *   cookie, para no afectar a las demás pestañas (decisión (g), revisada).
+ * - Al iniciar sesión, la pestaña lo avisa a las demás por BroadcastChannel,
+ *   sin datos. Una pestaña con sesión que recibe el aviso consulta la sesión:
+ *   si la cookie ya es de otro usuario o no hay sesión (401), vuelve al inicio
+ *   de sesión con el aviso de sesión caducada; si es el mismo usuario, o la
+ *   consulta falla por la red o con 5xx, no hace nada. Recibir el aviso nunca
+ *   lo reenvía. Sin BroadcastChannel, la pestaña vieja se corrige con el 401
+ *   de su siguiente petición.
  * - Pestaña con marca (recarga): se consulta GET /acceso/sesion una sola
  *   vez; un 401 ahí significa «sin sesión»: no muestra mensaje ni redirige
  *   por sí mismo (ajuste A de F0) y borra la marca.
@@ -38,13 +45,8 @@ import type { DatosSesion } from '../servicios-api/tipos';
  */
 export const MARCA_PESTANA = 'detecta.pestana';
 
-/**
- * Lo que el envío del acceso espera, como máximo, al cierre inicial (ajuste A
- * de (g)). 60 s: con la API de Render dormida (cerca de un minuto), el acceso
- * tampoco responde antes, y un límite menor dejaría que un cierre tardío
- * borrara la cookie recién creada (decisión (g), ajuste 1).
- */
-export const LIMITE_CIERRE_MS = 60_000;
+const CANAL_SESION = 'detecta.sesion';
+const SESION_INICIADA = 'sesion-iniciada';
 
 /** sessionStorage bloqueado por el navegador: se trata como pestaña sin marca. */
 function tieneMarca(): boolean {
@@ -68,16 +70,23 @@ function escribirMarca(accion: keyof typeof ESCRIBIR_MARCA): void {
   }
 }
 
-/** Cierre de la sesión de la cookie que no tarda más de LIMITE_CIERRE_MS ni falla. */
-function cerrarConLimite(): Promise<void> {
-  let temporizador: ReturnType<typeof setTimeout> | undefined;
-  const limite = new Promise<void>((resolver) => {
-    temporizador = setTimeout(resolver, LIMITE_CIERRE_MS);
-  });
-  const cierre = acceso.cerrarSesion().catch(() => undefined);
-  return Promise.race([cierre, limite]).finally(() =>
-    clearTimeout(temporizador),
-  );
+/** null si el navegador no tiene BroadcastChannel. */
+function abrirCanal(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === 'undefined') return null;
+  return new BroadcastChannel(CANAL_SESION);
+}
+
+/**
+ * Tras el aviso de otra pestaña: true si la cookie ya es de otro usuario o
+ * no hay sesión (401). Con la red caída o un 5xx no se puede saber: false.
+ */
+async function cookieDeOtroUsuario(id: string): Promise<boolean> {
+  try {
+    const datos = await acceso.consultarSesion();
+    return datos === null || datos.id !== id;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -106,11 +115,49 @@ interface ValorSesion {
   anunciar: (aviso: Aviso) => void;
   establecer: (usuario: DatosSesion) => void;
   cerrar: () => Promise<void>;
-  /** Resuelve cuando termina (o vence) el cierre de una pestaña sin marca. */
-  esperarCierre: () => Promise<void>;
 }
 
 const ContextoSesion = createContext<ValorSesion | null>(null);
+
+/**
+ * Aviso entre pestañas (decisión (g), revisada): un solo canal por
+ * proveedor, cerrado al desmontar; el que publica no recibe su propio aviso.
+ * Solo escucha mientras la pestaña tiene usuario y nunca reenvía el aviso.
+ * Devuelve la función que avisa a las demás pestañas de un inicio de sesión.
+ */
+function useAvisoEntrePestanas(
+  usuario: DatosSesion | null | undefined,
+  invalidar: (mensaje: string) => void,
+): () => void {
+  const canal = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    const abierto = abrirCanal();
+    canal.current = abierto;
+    return () => {
+      abierto?.close();
+      canal.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const abierto = canal.current;
+    if (abierto === null || !usuario) return undefined;
+    let vigente = true;
+    abierto.onmessage = (evento: MessageEvent) => {
+      if (evento.data !== SESION_INICIADA) return;
+      void cookieDeOtroUsuario(usuario.id).then((otro) => {
+        if (vigente && otro) invalidar(SESION_CADUCADA);
+      });
+    };
+    return () => {
+      vigente = false;
+      abierto.onmessage = null;
+    };
+  }, [usuario, invalidar]);
+
+  return useCallback(() => canal.current?.postMessage(SESION_INICIADA), []);
+}
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const navegar = useNavigate();
@@ -118,11 +165,9 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     undefined,
   );
   const [aviso, setAviso] = useState<Aviso | null>(null);
-  const cierreInicial = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     if (!tieneMarca()) {
-      cierreInicial.current = cerrarConLimite();
       setUsuario(null);
       return undefined;
     }
@@ -135,15 +180,22 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    registrarSesionInvalida((mensaje) => {
+  const invalidar = useCallback(
+    (mensaje: string) => {
       escribirMarca('quitar');
       setUsuario(null);
       setAviso({ texto: mensaje, tipo: 'error' });
       void navegar('/iniciar-sesion', { replace: true });
-    });
+    },
+    [navegar],
+  );
+
+  useEffect(() => {
+    registrarSesionInvalida(invalidar);
     return () => registrarSesionInvalida(null);
-  }, [navegar]);
+  }, [invalidar]);
+
+  const avisarInicio = useAvisoEntrePestanas(usuario, invalidar);
 
   const consumirAviso = useCallback(() => {
     const pendiente = aviso;
@@ -153,11 +205,15 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
 
   const anunciar = useCallback((nuevo: Aviso) => setAviso(nuevo), []);
 
-  const establecer = useCallback((datos: DatosSesion) => {
-    escribirMarca('poner');
-    setAviso(null);
-    setUsuario(datos);
-  }, []);
+  const establecer = useCallback(
+    (datos: DatosSesion) => {
+      escribirMarca('poner');
+      setAviso(null);
+      setUsuario(datos);
+      avisarInicio();
+    },
+    [avisarInicio],
+  );
 
   const cerrar = useCallback(async () => {
     try {
@@ -169,27 +225,9 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     }
   }, [navegar]);
 
-  const esperarCierre = useCallback(() => cierreInicial.current, []);
-
   const valor = useMemo(
-    () => ({
-      usuario,
-      aviso,
-      consumirAviso,
-      anunciar,
-      establecer,
-      cerrar,
-      esperarCierre,
-    }),
-    [
-      usuario,
-      aviso,
-      consumirAviso,
-      anunciar,
-      establecer,
-      cerrar,
-      esperarCierre,
-    ],
+    () => ({ usuario, aviso, consumirAviso, anunciar, establecer, cerrar }),
+    [usuario, aviso, consumirAviso, anunciar, establecer, cerrar],
   );
   return (
     <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>
