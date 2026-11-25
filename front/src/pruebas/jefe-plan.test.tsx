@@ -16,6 +16,7 @@ import {
   simularApi,
   type LlamadaRegistrada,
   type RespuestaSimulada,
+  comprobarSoloMarca,
 } from './utilidades';
 
 /*
@@ -180,8 +181,7 @@ describe('Plan de nivelación: fallos ciertos (CUD05)', () => {
     await llenar(usuario);
     await usuario.click(screen.getByRole('button', { name: 'Registrar plan' }));
     await screen.findByText(/No se pudo confirmar si el plan fue registrado/);
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    comprobarSoloMarca();
   });
 });
 

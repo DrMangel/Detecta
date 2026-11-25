@@ -7,6 +7,7 @@ import {
   sesionDe,
   simularApi,
   type RespuestaSimulada,
+  comprobarSoloMarca,
 } from './utilidades';
 
 const ID_PROGRAMA_A = 'ID-PROGRAMA-SECRETO-A';
@@ -63,8 +64,7 @@ describe('Informes de riesgo (CUD10, Psicólogo)', () => {
         expect(atributo.value).not.toContain(ID_PROGRAMA_B);
       }
     }
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    comprobarSoloMarca();
   });
 
   it('sin programa seleccionado no envía el informe', async () => {

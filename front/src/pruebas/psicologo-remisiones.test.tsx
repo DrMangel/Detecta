@@ -4,13 +4,20 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { Aplicacion } from '../aplicacion';
-import { renderizar, simularApi, sesionDe } from './utilidades';
+import {
+  renderizar,
+  simularApi,
+  sesionDe,
+  comprobarSoloMarca,
+  marcarPestana,
+} from './utilidades';
 
 const ID_CASO = 'caso-psicologico-secreto';
 const RUTA = `/psicologo/casos/${ID_CASO}`;
 const SESION = { estado: 200, cuerpo: sesionDe('PSICOLOGO') };
 
 function renderizarAplicacion(ruta: string) {
+  marcarPestana();
   return render(
     <MemoryRouter initialEntries={[ruta]}>
       <Aplicacion />
@@ -165,8 +172,7 @@ describe('Consentimiento de menores (CUD09)', () => {
           identificadores.some((id) => atributo.value.includes(id)),
       ),
     ).toBe(false);
-    expect(Object.keys(localStorage)).toHaveLength(0);
-    expect(Object.keys(sessionStorage)).toHaveLength(0);
+    comprobarSoloMarca();
   });
 
   it('R06: no ofrece registrar el resultado de atención en F4a mientras el DTO exige consentimiento', async () => {
@@ -383,9 +389,7 @@ describe('Expediente del Psicólogo (CUD06)', () => {
       'asesoria-secreta',
     ];
     comprobarIdsOcultos(idsSecretos);
-    expect(escribir).not.toHaveBeenCalled();
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    comprobarSoloMarca(escribir);
   });
 
   it('401 en el expediente: regresa al inicio de sesión con el aviso', async () => {

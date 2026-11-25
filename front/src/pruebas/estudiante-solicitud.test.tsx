@@ -13,6 +13,7 @@ import {
   simularApi,
   type LlamadaRegistrada,
   type RespuestaSimulada,
+  comprobarSoloMarca,
 } from './utilidades';
 
 /*
@@ -535,8 +536,6 @@ describe('Datos confidenciales en el navegador', () => {
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
     await screen.findByText('Tu solicitud fue recibida.');
-    expect(escribir).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-    expect(sessionStorage).toHaveLength(0);
+    comprobarSoloMarca(escribir);
   });
 });
