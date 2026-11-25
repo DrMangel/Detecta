@@ -45,7 +45,7 @@ El script hace lo siguiente:
 2. Crea las dos bases y les asigna permisos.
 3. Compila el backend y aplica las migraciones a `detecta_entrega`.
 4. Carga [`institucional_entrega.csv`](../docker/postgres/institucional_entrega.csv) en `institucional_entrega`.
-5. Crea los datos iniciales de [`datos-iniciales.ejemplo.json`](datos-iniciales.ejemplo.json): programas, cursos con su docente, y las cuentas de docente, jefe y psicólogo con alias `+<rol>`.
+5. Crea los datos iniciales de [`datos-iniciales.ejemplo.json`](datos-iniciales.ejemplo.json): programas, cursos con su docente, y las cuentas de docente, jefe y psicólogo, con nombres ficticios y alias derivados del nombre (ver «Datos de origen»).
 
 **Enlaces de activación.** Las cuentas nuevas quedan sin activar (D6). Sus enlaces se guardan en `%USERPROFILE%\detecta-entrega\enlaces-activacion.txt`, fuera del repositorio, como respaldo; nunca se muestran en la consola. Las reglas de ese archivo son:
 
@@ -81,7 +81,7 @@ Los comandos se ejecutan desde `back/`, con la demo preparada. Se invocan con `n
 - casos de riesgo por nota (inferior a 3,0) y por asistencia (inferior al 80 %);
 - valores fuera de rango, una matrícula inactiva, un programa inexistente, un nombre de programa sin tilde y un curso no configurado (QUIM-999), para mostrar las omisiones con los mensajes de la Tabla 2 del ER.
 
-Cada estudiante tiene un único alias `detectasoportetecnico+estNN@gmail.com`.
+Los nombres son ficticios, de apariencia real. Cada persona, estudiante o cuenta de `datos-iniciales.ejemplo.json`, tiene un único alias de la cuenta de soporte derivado de su nombre: `detectasoportetecnico+<nombre>.<apellido1>@gmail.com`, en minúsculas, sin tildes ni dígitos. Todos cumplen `CORREO_DESTINO_PERMITIDO`, y las filas de un mismo estudiante en dos cursos llevan el mismo correo. El inicio de sesión distingue mayúsculas en el correo. [`datos-entrega.spec.mjs`](../docker/postgres/datos-entrega.spec.mjs) comprueba la regla, los conteos y el desglose de omisiones.
 
 ### 2. Carga en la base institucional
 
@@ -103,9 +103,9 @@ La salida muestra los mensajes de la sincronización y el desglose de omisiones.
 
 Abra la aplicación en el navegador y siga estos pasos:
 
-1. **Activar la cuenta del docente.** Abra **Solicitar activación** (`/solicitar-activacion`) con `detectasoportetecnico+docente@gmail.com`. El correo llega por Brevo a la bandeja de `detectasoportetecnico@gmail.com`. Si el correo no llega, use como respaldo el enlace guardado en `enlaces-activacion.txt`.
+1. **Activar la cuenta del docente.** Abra **Solicitar activación** (`/solicitar-activacion`) con el correo de la cuenta `DOCENTE` de [`datos-iniciales.ejemplo.json`](datos-iniciales.ejemplo.json). El correo llega por Brevo a la bandeja de `detectasoportetecnico@gmail.com`. Si el correo no llega, use como respaldo el enlace guardado en `enlaces-activacion.txt`.
 2. **Revisar los cursos.** El docente ve ISOF-101 con los estudiantes sincronizados y sus indicadores de riesgo.
-3. **Activar una cuenta de estudiante.** Repita la solicitud de activación con un alias `+estNN`.
+3. **Activar una cuenta de estudiante.** Repita la solicitud de activación con el correo de un estudiante del CSV, por ejemplo el de 2026001.
 
 ### 5. Variante con columnas ficticias (ER 3.7 e; paso aparte)
 
@@ -180,8 +180,8 @@ node scripts/preactivar-remoto.mjs    # activa 5 cuentas por el flujo real (J8)
 
 - emite un enlace de un solo uso (`datos-iniciales --enlace`) y activa la cuenta con una contraseña aleatoria mediante `POST /api/acceso/activar`;
 - comprueba el inicio de sesión;
-- lo hace con el docente, el jefe, el psicólogo, el estudiante adulto 2026001 y el estudiante menor 2026005;
-- guarda las credenciales solo en `%USERPROFILE%\detecta-entrega\cuentas-evaluador.txt`. Ivan decide por qué canal se entregan.
+- lo hace con el docente, el jefe, el psicólogo, el estudiante adulto 2026001 y el estudiante menor de edad 2026005, con el nombre y el correo que leen de `datos-iniciales.ejemplo.json` y de `institucional_entrega.csv`;
+- guarda las credenciales solo en `%USERPROFILE%\detecta-entrega\cuentas-evaluador.txt`, una línea por cuenta con `rol | nombre | correo | contraseña`. Ivan decide por qué canal se entregan.
 
 Cada ejecución renueva todas las contraseñas.
 
@@ -197,7 +197,7 @@ Cada ejecución renueva todas las contraseñas.
 ## Pruebas de los scripts
 
 ```powershell
-node --test scripts/*.spec.mjs docker/postgres/cargar-institucional.spec.mjs
+node --test scripts/*.spec.mjs docker/postgres/cargar-institucional.spec.mjs docker/postgres/datos-entrega.spec.mjs
 ```
 
 Ejecute este comando desde la raíz del repositorio.
