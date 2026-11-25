@@ -1,0 +1,89 @@
+/*
+ * Informes de riesgo del Jefe y del Psicólogo (F5b-diseño, D7b; §7.7,
+ * maquetas 12 y 13). Antes tomaba .datos y .texto del módulo del Jefe.
+ */
+
+/* ---------- Filtros en tarjeta ---------- */
+
+.tarjeta-filtros {
+  margin-bottom: var(--espacio-4);
+  padding: 1.25rem var(--espacio-4);
+}
+
+/*
+ * Campos en fila, alineados por arriba; el botón baja el alto de la
+ * etiqueta y su separación para quedar a la altura de los controles (como
+ * el filtro del Estudiante, D4b). Dos clases: gana a .formulario.
+ */
+.filtros.filtros {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+  max-width: none;
+  margin-bottom: 0;
+}
+
+/*
+ * Misma estructura en todos los campos (§7.7): etiqueta, control y una
+ * línea de ayuda de altura fija aunque el campo no tenga ayuda, para que
+ * los tres midan lo mismo; un error en línea la amplía.
+ */
+.campo-filtro {
+  display: grid;
+  grid-template-rows: auto auto minmax(1.125rem, auto);
+  flex: 0 1 13.75rem;
+  min-width: min(100%, 12.5rem);
+}
+
+.programa {
+  flex: 1 1 15rem;
+}
+
+@media (min-width: 30rem) {
+  .filtros > button {
+    margin-top: calc(
+      var(--campo-etiqueta-tamano) * var(--campo-etiqueta-interlineado) +
+        var(--campo-separacion)
+    );
+  }
+}
+
+/* ---------- Informe generado ---------- */
+
+.informe {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.75rem;
+}
+
+.informe > button {
+  align-self: flex-start;
+}
+
+/* Tres cifras grandes en fila desde 48 rem, cada una en su recuadro. */
+.cifras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-3);
+}
+
+.cifras > * {
+  padding: 1.125rem 1.25rem;
+  border-radius: var(--radio-control);
+  background: var(--color-fondo);
+}
+
+@media (min-width: 48rem) {
+  .cifras {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Resumen del backend con sus saltos de línea. */
+.resumen {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

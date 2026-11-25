@@ -61,3 +61,15 @@ export function saludo(primerNombre: string): string {
 /** Tarjeta «Informes de riesgo» del inicio del Jefe y del Psicólogo (§8). */
 export const TEXTO_INICIO_INFORMES =
   'Genera informes con totales por asignatura y periodo, sin datos personales.';
+
+/** Informes de riesgo, ayuda bajo el título (§8; F5b-diseño, D7b). */
+export const AYUDA_INFORMES =
+  'Totales por asignatura y periodo, sin datos personales.';
+
+/**
+ * Aviso con lock del informe generado (§7.7; provisional, respuesta 7 del
+ * plan de F5b-diseño): Informe solo trae ids, curso, totales, definiciones
+ * y el resumen de consolidar() (generador-informe-riesgo.ts; ER 3.5.3, D18).
+ */
+export const AVISO_INFORME_AGREGADO =
+  'Este informe solo contiene datos agregados: no incluye nombres, motivos ni contenido de los expedientes.';
