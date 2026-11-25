@@ -286,7 +286,8 @@ describe('Planes del caso (D6, maqueta 08)', () => {
     expect(within(plan1).getByText('Tutor')).toBeInTheDocument();
     expect(within(plan1).getByText('Carlos Mendoza')).toBeInTheDocument();
     const cronograma = within(plan1).getByText(/Lunes 2:00/);
-    expect(cronograma).toHaveClass('cronograma');
+    // Texto libre: a lo ancho y con sus saltos de línea (pre-wrap).
+    expect(cronograma.parentElement).toHaveClass('ancho-completo');
     expect(cronograma.textContent).toBe('Lunes 2:00 p. m.\nJueves 4:00 p. m.');
     expect(within(plan1).queryByRole('button')).toBeNull();
 

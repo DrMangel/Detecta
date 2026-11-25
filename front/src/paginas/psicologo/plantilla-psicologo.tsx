@@ -43,16 +43,20 @@ export const TARJETAS_INICIO_PSICOLOGO: Readonly<
 export function PlantillaPsicologo({
   titulo,
   volver,
+  ayuda,
   children,
 }: {
   titulo: string;
   /** Enlace de regreso, encima del título. */
   volver?: ReactNode;
+  /** Ayuda bajo el título (§3.1; remisiones, §7.5). */
+  ayuda?: string;
   children: ReactNode;
 }) {
   return (
     <Plantilla
       titulo={titulo}
+      ayuda={ayuda}
       navegacion={<NavegacionRol enlaces={ENLACES_PSICOLOGO} />}
       volver={volver}
     >

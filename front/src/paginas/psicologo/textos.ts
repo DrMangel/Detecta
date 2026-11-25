@@ -104,6 +104,14 @@ export const TEXTO_RESULTADO_INCIERTO =
   'No se pudo confirmar el resultado. Para evitar repetir el dictamen, no puede enviarse de nuevo desde esta pantalla.';
 export const TEXTO_CONSENTIMIENTO_CONFIRMADO =
   'El consentimiento informado está confirmado.';
+/** Casilla de la confirmación (F4b; ahora dentro del diálogo de §7.6). */
+export const TEXTO_PREGUNTA_CONSENTIMIENTO =
+  '¿El acudiente otorgó el consentimiento informado?';
+
+/** Remisiones, ayuda bajo el título (§8; F5b-diseño, D7a). */
+export const AYUDA_REMISIONES = 'Casos remitidos a psicología.';
+/** Enlace de regreso del expediente (§7.5 y §8; F5b-diseño, D7a). */
+export const TEXTO_VOLVER_REMISIONES = 'Volver a remisiones';
 
 /** El backend da un único mensaje con barra para los dos estados terminales. */
 export const MENSAJE_DICTAMEN_POR_ESTADO = {

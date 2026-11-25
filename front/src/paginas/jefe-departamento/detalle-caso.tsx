@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useLocation, useParams } from 'react-router';
+import { ParesDatos, type Dato } from '../../componentes/pares-datos';
 import controles from '../../componentes/controles.module.css';
 import { EnlaceVolver } from '../../componentes/enlace-volver';
 import {
@@ -37,7 +38,6 @@ import {
   type RutaAtencion,
 } from '../../servicios-api/jefe-departamento';
 import { NivelCaso } from './bandeja-casos';
-import { ParesDatos, type Dato } from './pares-datos';
 import estilos from './jefe-departamento.module.css';
 import { PlanNivelacion } from './plan-nivelacion';
 import {

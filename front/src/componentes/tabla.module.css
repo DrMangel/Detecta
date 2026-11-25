@@ -152,6 +152,16 @@
   inset: 0;
 }
 
+/* Con su texto a la vista («Ver expediente», maqueta 09; D7a). */
+.abrir-fila-texto {
+  gap: 0.375rem;
+  padding: 0 var(--espacio-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 @media (max-width: 47.99rem) {
   .tabla thead {
     position: absolute;

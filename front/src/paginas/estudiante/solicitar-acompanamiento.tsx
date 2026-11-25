@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Aviso } from '../../componentes/aviso';
 import { CampoTexto } from '../../componentes/campo-texto';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
 import { Icono } from '../../componentes/icono';
@@ -217,9 +218,8 @@ const COMPLEMENTO_AVISO: Readonly<Record<TipoApoyo, string>> = {
 function AvisoQuienVe({ tipoApoyo }: { tipoApoyo: TipoApoyo | null }) {
   // Región viva siempre montada: el cambio de aviso se anuncia.
   return (
-    <div aria-live="polite" className={estilos['aviso']}>
-      <Icono nombre="lock" />
-      <div className={estilos['aviso-texto']}>
+    <div aria-live="polite">
+      <Aviso icono="lock">
         {tipoApoyo === null ? (
           <p>{AVISO_GENERAL_SOLICITUD}</p>
         ) : (
@@ -228,7 +228,7 @@ function AvisoQuienVe({ tipoApoyo }: { tipoApoyo: TipoApoyo | null }) {
             <p>{COMPLEMENTO_AVISO[tipoApoyo]}</p>
           </>
         )}
-      </div>
+      </Aviso>
     </div>
   );
 }

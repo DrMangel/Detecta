@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
@@ -15,6 +15,22 @@ function renderizarAplicacion(ruta: string) {
     <MemoryRouter initialEntries={[ruta]}>
       <Aplicacion />
     </MemoryRouter>,
+  );
+}
+
+/*
+ * D7a (§7.6): la confirmación del consentimiento pasó a un <dialog> que se
+ * abre con el botón junto al aviso. Las pruebas lo abren primero y buscan
+ * dentro de él la casilla y el botón de confirmar.
+ */
+async function abrirDialogoConsentimiento(
+  usuario: ReturnType<typeof userEvent.setup>,
+) {
+  await usuario.click(
+    await screen.findByRole('button', { name: 'Confirmar consentimiento' }),
+  );
+  return within(
+    screen.getByRole('dialog', { name: 'Confirmar consentimiento' }),
   );
 }
 
@@ -160,8 +176,9 @@ describe('Consentimiento de menores (CUD09)', () => {
     });
     renderizarAplicacion(RUTA);
 
+    const dialogo = await abrirDialogoConsentimiento(userEvent.setup());
     expect(
-      await screen.findByRole('checkbox', {
+      dialogo.getByRole('checkbox', {
         name: '¿El acudiente otorgó el consentimiento informado?',
       }),
     ).toBeInTheDocument();
@@ -199,10 +216,11 @@ describe('Consentimiento de menores (CUD09)', () => {
     const usuario = userEvent.setup();
     renderizarAplicacion(RUTA);
 
-    const pregunta = await screen.findByRole('checkbox', {
+    const dialogo = await abrirDialogoConsentimiento(usuario);
+    const pregunta = dialogo.getByRole('checkbox', {
       name: '¿El acudiente otorgó el consentimiento informado?',
     });
-    const boton = screen.getByRole('button', {
+    const boton = dialogo.getByRole('button', {
       name: 'Confirmar consentimiento',
     });
     expect(pregunta).not.toBeChecked();
@@ -263,16 +281,18 @@ describe('Reintento de confirmación del consentimiento (CUD09)', () => {
     });
     const usuario = userEvent.setup();
     renderizarAplicacion(RUTA);
+    const dialogo = await abrirDialogoConsentimiento(usuario);
     await usuario.click(
-      await screen.findByRole('checkbox', {
+      dialogo.getByRole('checkbox', {
         name: '¿El acudiente otorgó el consentimiento informado?',
       }),
     );
-    const boton = screen.getByRole('button', {
+    const boton = dialogo.getByRole('button', {
       name: 'Confirmar consentimiento',
     });
     await usuario.click(boton);
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    // El error se muestra dentro del diálogo, que sigue abierto (D7a).
+    expect(await dialogo.findByRole('alert')).toBeInTheDocument();
     expect(boton).toBeEnabled();
     await usuario.click(boton);
     expect(

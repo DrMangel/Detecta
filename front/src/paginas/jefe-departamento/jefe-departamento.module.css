@@ -69,52 +69,6 @@
   margin-bottom: 0;
 }
 
-/* Pares rótulo-valor: el rótulo encima, de 13 px y en color de apoyo. */
-.pares {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--espacio-3) 2.5rem;
-  margin: 0;
-}
-
-.pares dt {
-  color: var(--color-texto-suave);
-  font-size: 0.8125rem;
-}
-
-.pares dd {
-  margin: 0.125rem 0 0;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-/* Textos libres: a lo ancho, sin negrita y con sus saltos de línea. */
-.ancho-completo {
-  grid-column: 1 / -1;
-}
-
-.ancho-completo dd {
-  font-weight: 400;
-  white-space: pre-line;
-}
-
-/* Cronograma del plan: conserva espacios y saltos de línea (D6). */
-.ancho-completo dd.cronograma {
-  white-space: pre-wrap;
-}
-
-@media (min-width: 48rem) {
-  .columnas-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .columnas-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: var(--espacio-4);
-  }
-}
-
 /* Canalización: el grupo de rutas y, debajo, el botón con su ayuda. */
 .formulario {
   display: flex;

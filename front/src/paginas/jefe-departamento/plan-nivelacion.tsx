@@ -6,6 +6,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { CampoTexto } from '../../componentes/campo-texto';
+import { ParesDatos, type Dato } from '../../componentes/pares-datos';
 import controles from '../../componentes/controles.module.css';
 import { TEXTO_INFORMACION_NO_DISPONIBLE } from '../../componentes/etiquetas';
 import { InsigniaEstado, type TonoEstado } from '../../componentes/insignias';
@@ -27,7 +28,6 @@ import {
 } from '../../servicios-api/jefe-departamento';
 import { LIMITES } from '../../servicios-api/limites';
 import estilos from './jefe-departamento.module.css';
-import { ParesDatos, type Dato } from './pares-datos';
 import {
   NOMBRE_ESTADO_PLAN,
   ROTULOS_DISENO_JEFE,
@@ -308,7 +308,6 @@ function datosDelPlan(plan: PlanCaso): Dato[] {
       rotulo: ROTULOS_DISENO_JEFE.cronograma,
       valor: plan.cronograma,
       ancho: true,
-      claseValor: estilos['cronograma'],
     });
   }
   return datos;

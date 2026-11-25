@@ -17,6 +17,8 @@ import {
   type Modalidad,
   type TipoAsesoria,
 } from '../../servicios-api/psicologo';
+import estilos from './psicologo.module.css';
+import { ROTULOS_PSICOLOGO } from './textos';
 
 const TZ = 'America/Bogota';
 const modalidades: readonly Modalidad[] = ['PRESENCIAL', 'VIRTUAL'];
@@ -47,6 +49,16 @@ const RESULTADO_POR_DEFECTO = {
   requiereSeguimiento: false,
   riesgo: false,
 } as const;
+
+/*
+ * Diseño de F5b (D7a; §7.5, maqueta 11; las operaciones de citas no están en
+ * la maqueta y se estilan por analogía): cada formulario y cada cita en su
+ * tarjeta, las etiquetas con el estilo de campo y el resultado con «Tipo» y
+ * «Asistencia» en dos columnas. Textos, orden de las operaciones y lógica,
+ * sin cambios.
+ */
+const TARJETA = `${controles['tarjeta']} ${estilos['operacion']}`;
+const CAMPO = `${controles['campo']} ${estilos['campo-envuelto']}`;
 
 function isoBogota(valor: string): string {
   return `${valor}:00-05:00`;
@@ -158,7 +170,7 @@ export function OperacionesExpediente({
       )}
       {caso.estado === 'EN_EVALUACION' && caso.citas.length === 0 && (
         <form
-          className={controles['formulario']}
+          className={TARJETA}
           onSubmit={(e) =>
             registrar(
               e,
@@ -172,7 +184,7 @@ export function OperacionesExpediente({
           }
         >
           <h3>Programar primera cita</h3>
-          <label>
+          <label className={CAMPO}>
             Fecha y hora (Bogotá)
             <input
               type="datetime-local"
@@ -181,7 +193,7 @@ export function OperacionesExpediente({
               onChange={(e) => setFecha(e.target.value)}
             />
           </label>
-          <label>
+          <label className={CAMPO}>
             Modalidad
             <select
               value={modalidad}
@@ -203,7 +215,7 @@ export function OperacionesExpediente({
         </form>
       )}
       {caso.citas.map((c: Cita) => (
-        <article key={c.idCita} className={controles['seccion']}>
+        <article key={c.idCita} className={TARJETA}>
           <h3>
             Cita: {formato(c.fechaHora)} · {nombresModalidad[c.modalidad]}
           </h3>
@@ -222,7 +234,7 @@ export function OperacionesExpediente({
                 )
               }
             >
-              <label>
+              <label className={CAMPO}>
                 Nueva fecha y hora (Bogotá)
                 <input
                   type="datetime-local"
@@ -231,7 +243,7 @@ export function OperacionesExpediente({
                   onChange={(e) => setFecha(e.target.value)}
                 />
               </label>
-              <label>
+              <label className={CAMPO}>
                 Modalidad
                 <select
                   value={modalidad}
@@ -273,26 +285,38 @@ export function OperacionesExpediente({
                 )
               }
             >
-              <h3>Registrar resultado</h3>
+              <h3>{ROTULOS_PSICOLOGO.asesoria}</h3>
               {requiereConsentimiento && (
                 <p>
                   Confirme el consentimiento informado antes de registrar
                   asesoría o resultado.
                 </p>
               )}
-              <label>
-                Tipo
-                <select
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value as TipoAsesoria)}
-                >
-                  {tipos.map((v) => (
-                    <option key={v} value={v}>
-                      {nombresTipo[v]}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className={estilos['dos-columnas']}>
+                <label className={CAMPO}>
+                  {ROTULOS_PSICOLOGO.tipoAsesoria}
+                  <select
+                    value={tipo}
+                    onChange={(e) => setTipo(e.target.value as TipoAsesoria)}
+                  >
+                    {tipos.map((v) => (
+                      <option key={v} value={v}>
+                        {nombresTipo[v]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={CAMPO}>
+                  Asistencia
+                  <select
+                    value={asistencia}
+                    onChange={(e) => setAsistencia(e.target.value)}
+                  >
+                    <option value="true">Asistió</option>
+                    <option value="false">No asistió</option>
+                  </select>
+                </label>
+              </div>
               <CampoTexto
                 rotulo="Observaciones"
                 valor={observaciones}
@@ -308,17 +332,7 @@ export function OperacionesExpediente({
                 maximo={LIMITES.descripcion}
                 multilinea
               />
-              <label>
-                Asistencia
-                <select
-                  value={asistencia}
-                  onChange={(e) => setAsistencia(e.target.value)}
-                >
-                  <option value="true">Asistió</option>
-                  <option value="false">No asistió</option>
-                </select>
-              </label>
-              <label>
+              <label className={controles['opcion']}>
                 <input
                   type="checkbox"
                   checked={requiereSeguimiento}
@@ -326,7 +340,7 @@ export function OperacionesExpediente({
                 />
                 Requiere seguimiento
               </label>
-              <label>
+              <label className={controles['opcion']}>
                 <input
                   type="checkbox"
                   checked={riesgo}
@@ -351,7 +365,7 @@ export function OperacionesExpediente({
       ))}
       {!esFinal && ultima?.asesoria?.requiereSeguimiento && (
         <form
-          className={controles['formulario']}
+          className={TARJETA}
           onSubmit={(e) =>
             registrar(
               e,
@@ -365,7 +379,7 @@ export function OperacionesExpediente({
           }
         >
           <h3>Programar seguimiento</h3>
-          <label>
+          <label className={CAMPO}>
             Fecha y hora (Bogotá)
             <input
               type="datetime-local"
@@ -374,7 +388,7 @@ export function OperacionesExpediente({
               onChange={(e) => setFecha(e.target.value)}
             />
           </label>
-          <label>
+          <label className={CAMPO}>
             Modalidad
             <select
               value={modalidad}

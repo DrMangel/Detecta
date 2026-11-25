@@ -29,11 +29,6 @@ export const ROTULOS_DOCENTE = {
   ...ROTULOS_COMUNES,
   emitirAlerta: 'Emitir alerta',
   estadoAtencion: 'Estado de atención',
-  /**
-   * Cierra el formulario sin emitir (ajuste B: «al cerrarlo»). No estaba en
-   * la lista de §4: pendiente de confirmación en el informe de cierre.
-   */
-  cancelar: 'Cancelar',
 } as const;
 
 export const TEXTO_SIN_ALERTAS_EMITIDAS =

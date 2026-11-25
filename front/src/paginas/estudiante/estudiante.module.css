@@ -185,23 +185,6 @@
   max-width: 53.75rem;
 }
 
-/* Aviso de quién verá la solicitud, con lock y el tono informativo (§4). */
-.aviso {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--espacio-1-5);
-  padding: 0.875rem var(--espacio-3);
-  border-radius: var(--radio-control);
-  background: var(--color-primario-tinte);
-  color: var(--color-primario-hover);
-  font-size: 0.875rem;
-}
-
-.aviso svg {
-  flex: none;
-  margin-top: 0.0625rem;
-}
-
 .datos {
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);
