@@ -78,10 +78,13 @@ export function PlantillaJefe({
   titulo,
   origen = 'pendientes',
   volver,
+  ayuda,
   children,
 }: {
   titulo: string;
   origen?: TipoBandeja;
+  /** Ayuda bajo el título (§3.1; las bandejas, §7.4). */
+  ayuda?: string;
   /** Enlace de regreso, encima del título. */
   volver?: ReactNode;
   children: ReactNode;
@@ -89,6 +92,7 @@ export function PlantillaJefe({
   return (
     <Plantilla
       titulo={titulo}
+      ayuda={ayuda}
       navegacion={<NavegacionRol enlaces={enlacesJefe(origen)} />}
       volver={volver}
     >

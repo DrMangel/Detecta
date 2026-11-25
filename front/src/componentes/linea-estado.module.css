@@ -1,7 +1,9 @@
 /*
  * Línea de estado (especificación de diseño, §4): círculo de 28 px por paso
  * (hecho: verde con check; actual: primario con punto; pendiente: gris),
- * unidos por un trazo de 2 px. En celular los pasos pasan a otra línea.
+ * unidos por un trazo de 2 px. Por debajo de 48 rem los pasos se apilan en
+ * columna y sin trazo: al partirse la fila, el trazo quedaba suelto al
+ * inicio de la línea nueva (visto en el detalle del Jefe, D6).
  */
 
 .linea {
@@ -73,4 +75,15 @@
 
 .pendiente .marca {
   background: var(--color-neutro-fondo);
+}
+
+@media (max-width: 47.99rem) {
+  .linea {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .paso + .paso::before {
+    display: none;
+  }
 }

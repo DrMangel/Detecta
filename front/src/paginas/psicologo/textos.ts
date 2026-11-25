@@ -5,6 +5,7 @@ import type {
   RutaAtencion,
   TipoAsesoria,
 } from '../../servicios-api/psicologo';
+import { ROTULOS_COMUNES } from '../../componentes/etiquetas';
 
 /* Textos de F4a: transcritos, reutilizados del backend o provisionales. */
 
@@ -30,7 +31,7 @@ export const ROTULOS_PSICOLOGO = {
   casosAsignados: 'Asignadas a mí',
   verExpediente: 'Ver expediente',
   origen: 'Origen',
-  ruta: 'Ruta de atención',
+  ruta: ROTULOS_COMUNES.rutaAtencion,
   antecedentes: 'Antecedentes académicos',
   citas: 'Citas',
   asesoria: 'Resultado de asesoría',

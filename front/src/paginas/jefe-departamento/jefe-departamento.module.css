@@ -1,10 +1,11 @@
 /*
- * Pantallas del Jefe de Departamento de Programa (F3). La tabla está en
+ * Pantallas del Jefe de Departamento de Programa (F3; diseño de F5b, D6,
+ * §7.4 y maquetas 06, 07, 08 y 18). La tabla está en
  * componentes/tabla.module.css y los controles en controles.module.css; aquí
  * solo lo propio del rol. Tokens de estilos/base.css.
  */
 
-/* Datos del caso, del plan y del informe: rótulo y valor en dos columnas. */
+/* Datos del informe (Informes, D7): rótulo y valor en dos columnas. */
 .datos {
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);
@@ -48,5 +49,138 @@
 
   .datos dd {
     margin-bottom: var(--espacio-2);
+  }
+}
+
+/* ---------- Detalle del caso (D6) ---------- */
+
+/* Tarjetas del detalle: relleno de 24 px y título de 18 px (maqueta 07). */
+.bloque {
+  padding: var(--espacio-4);
+}
+
+/* Dos selectores: gana al margen de .seccion h2 sin depender del orden. */
+.bloque > h2:first-child {
+  margin-bottom: var(--espacio-3);
+}
+
+/* Sin margen al pie: la tabla de antecedentes no deja hueco en la tarjeta. */
+.bloque > :last-child {
+  margin-bottom: 0;
+}
+
+/* Pares rótulo-valor: el rótulo encima, de 13 px y en color de apoyo. */
+.pares {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-3) 2.5rem;
+  margin: 0;
+}
+
+.pares dt {
+  color: var(--color-texto-suave);
+  font-size: 0.8125rem;
+}
+
+.pares dd {
+  margin: 0.125rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Textos libres: a lo ancho, sin negrita y con sus saltos de línea. */
+.ancho-completo {
+  grid-column: 1 / -1;
+}
+
+.ancho-completo dd {
+  font-weight: 400;
+  white-space: pre-line;
+}
+
+/* Cronograma del plan: conserva espacios y saltos de línea (D6). */
+.ancho-completo dd.cronograma {
+  white-space: pre-wrap;
+}
+
+@media (min-width: 48rem) {
+  .columnas-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .columnas-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--espacio-4);
+  }
+}
+
+/* Canalización: el grupo de rutas y, debajo, el botón con su ayuda. */
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-1-5);
+}
+
+/* «Ruta de atención: {ruta}» en una línea (§7.4; maqueta 08). */
+.ruta {
+  margin: var(--espacio-4) 0 0;
+  padding: 0.875rem var(--espacio-4);
+  font-size: 0.875rem;
+}
+
+.ruta span {
+  color: var(--color-texto-suave);
+}
+
+/* ---------- Planes del caso (D6; maqueta 08) ---------- */
+
+.planes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: 1.25rem var(--espacio-4);
+}
+
+.plan h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.plan > button {
+  align-self: flex-start;
+}
+
+.cabecera-plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-1-5);
+}
+
+/* Nombre y código del tutor en dos columnas desde 48 rem (maqueta 08). */
+.tutor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-3);
+}
+
+@media (min-width: 48rem) {
+  .tutor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

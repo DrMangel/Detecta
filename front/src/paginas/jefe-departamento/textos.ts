@@ -53,7 +53,6 @@ export const TITULOS_JEFE = {
 
 export const ROTULOS_JEFE = {
   canalizarCaso: 'Canalizar caso',
-  planNivelacion: 'Plan de nivelación',
   tutorNombre: 'Nombre del tutor',
   tutorCodigo: 'Código del tutor',
   cronograma: 'Cronograma (opcional)',
@@ -100,6 +99,39 @@ export const TEXTO_PLAN_INCIERTO =
 
 /** Estado de carga del informe (ajuste E de F3). Fuera de la lista de §4. */
 export const TEXTO_GENERANDO_INFORME = 'Generando el informe…';
+
+/* ---------- Nuevos de F5b-diseño (D6; provisionales, revisión en F5c) ---------- */
+
+/** Ayuda bajo el título de cada bandeja (§8; maqueta 18; en tú, como §8). */
+export const AYUDA_BANDEJA: Readonly<Record<TipoBandeja, string>> = {
+  pendientes: 'Selecciona un caso para ver su detalle y canalizarlo.',
+  rutaAcademica:
+    'Selecciona un caso para ver su detalle y gestionar sus planes de nivelación.',
+};
+
+/** Línea de estado del detalle (§7.4 y §8). */
+export const PASOS_CASO = {
+  recibido: 'Caso recibido',
+  canalizacion: 'Canalización',
+  plan: 'Plan de nivelación',
+} as const;
+
+/** Ayuda del botón «Canalizar caso» deshabilitado (§7.4 y §8). */
+export const TEXTO_ELIGE_RUTA = 'Selecciona una ruta para continuar.';
+
+/** Maquetas 06, 07, 08 y 18 (aprobados por Ivan en el plan de D6). */
+export const ROTULOS_DISENO_JEFE = {
+  /** Encabezado oculto de la columna del botón de cada fila. */
+  abrir: 'Abrir',
+  datosCaso: 'Datos del caso',
+  planesCaso: 'Planes del caso',
+  registrarPlan: 'Registrar plan de nivelación',
+  tutor: 'Tutor',
+  cronograma: 'Cronograma',
+} as const;
+
+/** «Plan {n}», en el orden en que el backend envía los planes (D6). */
+export const tituloPlan = (numero: number) => `Plan ${numero}`;
 
 /**
  * Tarjetas del inicio (especificación de diseño §7.0 y §8; provisionales).

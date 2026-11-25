@@ -41,11 +41,12 @@
 }
 
 /*
- * Tabla en tarjeta (mockups 04 y 05; §6): densidad compacta (10 px) para los
- * listados largos. Solo las tablas con la variante toman este aspecto; las
- * demás conservan el de F2 hasta su fase de diseño (la cómoda llega con su
- * primer uso). El contenedor recorta las esquinas del encabezado y, si una
- * fila no cabe, se desplaza en horizontal en lugar de cortar el contenido.
+ * Tabla en tarjeta (mockups 04 a 07; §6): densidad compacta (10 px) para los
+ * listados largos y cómoda (12 px; antecedentes del Jefe, D6) para los
+ * demás. Solo las tablas con una variante toman este aspecto; las demás
+ * conservan el de F2 hasta su fase de diseño. El contenedor recorta las
+ * esquinas del encabezado y, si una fila no cabe, se desplaza en horizontal
+ * en lugar de cortar el contenido.
  * El anillo de foco de los botones (3 px y 2 px de desfase) cabe en el
  * relleno de la celda (12 px a los lados y 6 px arriba y abajo), así que no
  * se recorta.
@@ -62,7 +63,8 @@
   box-shadow: var(--sombra-1);
 }
 
-.compacta {
+.compacta,
+.comoda {
   font-size: 0.875rem;
 }
 
@@ -80,7 +82,15 @@
   overflow-wrap: break-word;
 }
 
-.compacta thead th {
+.comoda th,
+.comoda td {
+  padding: var(--espacio-1-5) var(--espacio-3);
+  border-bottom-color: var(--color-borde-suave);
+  overflow-wrap: break-word;
+}
+
+.compacta thead th,
+.comoda thead th {
   border-bottom-width: 1px;
   background: var(--color-encabezado-tabla);
   color: var(--color-texto-rotulo);
@@ -90,18 +100,56 @@
   text-transform: uppercase;
 }
 
-.compacta tbody tr:last-child > * {
+.compacta tbody tr:last-child > *,
+.comoda tbody tr:last-child > * {
   border-bottom: none;
 }
 
 /* El texto libre sí puede partirse donde sea: una palabra larga no ensancha la tabla. */
-.compacta td.texto {
+.compacta td.texto,
+.comoda td.texto {
   overflow-wrap: anywhere;
 }
 
 .compacta td.accion {
   padding-block: 0.375rem;
   vertical-align: middle;
+}
+
+/*
+ * Fila que se abre entera (§7.4; maquetas 06 y 18). El botón de la última
+ * celda es el único control: su ::after cubre la fila (posicionada), así
+ * que un clic en cualquier celda es un clic en el botón, con su estado de
+ * navegación. Teclado y lector de pantalla siguen usando el botón.
+ */
+.fila-abrible {
+  position: relative;
+  cursor: pointer;
+}
+
+.fila-abrible:hover > *,
+.fila-abrible:focus-within > * {
+  background: var(--color-primario-tinte);
+}
+
+.abrir-fila {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--color-primario);
+  cursor: pointer;
+}
+
+.abrir-fila::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 
 @media (max-width: 47.99rem) {
@@ -157,8 +205,38 @@
     text-align: left;
   }
 
-  /* Variante de §6 (D5): borde decorativo suave, no el de los controles. */
-  .compacta tr {
+  /*
+   * Fila que se abre, apilada: el chevron a la derecha y centrado. Con una
+   * cuadrícula, y no con position, para que el ::after del botón siga
+   * cubriendo toda la tarjeta (su bloque contenedor es la fila). Clase,
+   * elemento y clase: gana a «.tabla tr { display: block }».
+   */
+  .tabla tr.fila-abrible {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .tabla .fila-abrible > * {
+    grid-column: 1;
+  }
+
+  /* Apilada, el tinte va en la tarjeta entera y no solo en sus celdas. */
+  .tabla tr.fila-abrible:hover,
+  .tabla tr.fila-abrible:focus-within {
+    background: var(--color-primario-tinte);
+  }
+
+  .tabla .fila-abrible > td.accion {
+    grid-column: 2;
+    grid-row: 1 / span 8;
+    align-self: center;
+    padding-left: 0;
+  }
+
+  /* Variantes de §6 (D5, D6): borde decorativo suave, no el de los controles. */
+  .compacta tr,
+  .comoda tr {
     border-color: var(--color-borde-suave);
     border-radius: var(--radio-tarjeta);
     box-shadow: var(--sombra-1);
