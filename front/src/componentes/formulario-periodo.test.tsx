@@ -53,4 +53,35 @@ describe('FormularioPeriodo', () => {
     render(<FormularioPeriodo alConsultar={() => undefined} ocupado />);
     expect(screen.getByRole('button', { name: 'Consultar' })).toBeDisabled();
   });
+
+  it('textoVacio: el rol puede dar su propio texto de periodo vacío (D4b)', async () => {
+    render(
+      <FormularioPeriodo
+        alConsultar={() => undefined}
+        ocupado={false}
+        textoVacio="Indica el periodo académico."
+      />,
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Consultar' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Indica el periodo académico.',
+    );
+  });
+
+  it('enLinea: el formulario lleva la clase del filtro horizontal (D4b)', () => {
+    const { container, rerender } = render(
+      <FormularioPeriodo alConsultar={() => undefined} ocupado={false} />,
+    );
+    expect(container.querySelector('form')).not.toHaveClass('filtro');
+    rerender(
+      <FormularioPeriodo
+        alConsultar={() => undefined}
+        ocupado={false}
+        enLinea
+      />,
+    );
+    expect(container.querySelector('form')).toHaveClass('filtro');
+  });
 });

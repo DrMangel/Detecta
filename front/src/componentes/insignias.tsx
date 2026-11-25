@@ -9,7 +9,8 @@ import estilos from './insignias.module.css';
  * estado, siempre su texto.
  */
 
-const ICONO_RIESGO: Readonly<Record<NivelRiesgo, NombreIcono>> = {
+/** Ícono de cada nivel (§2.1); también lo usa el aviso del Estudiante. */
+export const ICONO_RIESGO: Readonly<Record<NivelRiesgo, NombreIcono>> = {
   BAJO: 'check',
   MEDIO: 'triangle-alert',
   ALTO: 'octagon-alert',

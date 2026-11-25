@@ -11,6 +11,8 @@
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+  /* «88,00 %» no se parte entre el número y el símbolo. */
+  white-space: nowrap;
 }
 
 .rotulo {

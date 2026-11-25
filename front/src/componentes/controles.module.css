@@ -11,11 +11,12 @@
 .campo {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: var(--campo-separacion);
 }
 
 .campo label {
-  font-size: 0.875rem;
+  font-size: var(--campo-etiqueta-tamano);
+  line-height: var(--campo-etiqueta-interlineado);
   font-weight: 600;
 }
 
@@ -123,6 +124,51 @@
 
 .grupo[aria-invalid='true'] .opcion-caja {
   border-color: var(--color-error);
+}
+
+/* ---------- Tarjeta (§4): una sola definición para todas las pantallas ---------- */
+
+.tarjeta {
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-tarjeta);
+  box-shadow: var(--sombra-1);
+}
+
+/* Radio propio del Estudiante y del acceso (§2.2; mockups 01 a 03). */
+.tarjeta-estudiante {
+  border-radius: var(--radio-tarjeta-estudiante);
+}
+
+/* ---------- Filtro en una fila (§7.2): campo de 200 a 260 px y botón ---------- */
+
+/* Dos clases: gana a .formulario (columna) sin depender del orden del CSS. */
+.formulario.filtro {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  max-width: none;
+  margin-bottom: 0;
+}
+
+.formulario.filtro > :first-child {
+  flex: 0 1 16.25rem;
+  min-width: min(100%, 12.5rem);
+}
+
+/*
+ * Desde 30 rem el campo y el botón caben en una fila: el botón baja el alto de
+ * la etiqueta y su separación para quedar a la altura del control. En
+ * celular el botón pasa a la línea siguiente y no necesita ese margen.
+ */
+@media (min-width: 30rem) {
+  .formulario.filtro > button {
+    margin-top: calc(
+      var(--campo-etiqueta-tamano) * var(--campo-etiqueta-interlineado) +
+        var(--campo-separacion)
+    );
+  }
 }
 
 /* ---------- Formulario y botones (§4) ---------- */

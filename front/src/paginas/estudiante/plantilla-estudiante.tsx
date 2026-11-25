@@ -54,14 +54,18 @@ export const TARJETAS_INICIO_ESTUDIANTE: Readonly<
 /* Plantilla de F0 con la navegación del Estudiante («Inicio» y tres funciones). */
 export function PlantillaEstudiante({
   titulo,
+  ayuda,
   children,
 }: {
   titulo: string;
+  /** Ayuda bajo el título (§7.2, D4b). */
+  ayuda?: string;
   children: ReactNode;
 }) {
   return (
     <Plantilla
       titulo={titulo}
+      ayuda={ayuda}
       navegacion={<NavegacionRol enlaces={ENLACES_ESTUDIANTE} />}
     >
       {children}

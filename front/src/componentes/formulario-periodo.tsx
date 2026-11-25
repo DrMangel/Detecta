@@ -16,12 +16,18 @@ export interface PropsFormularioPeriodo {
   ocupado: boolean;
   /** Clase del campo en el rol (por ejemplo, el borde de error). */
   claseCampo?: string;
+  /** Texto propio del periodo vacío (el Estudiante tutea, D4b). */
+  textoVacio?: string;
+  /** Filtro horizontal: campo y botón en una fila (§7.2, D4b). */
+  enLinea?: boolean;
 }
 
 export function FormularioPeriodo({
   alConsultar,
   ocupado,
   claseCampo,
+  textoVacio = TEXTO_INDIQUE_PERIODO,
+  enLinea = false,
 }: PropsFormularioPeriodo) {
   const [periodo, setPeriodo] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +36,7 @@ export function FormularioPeriodo({
     evento.preventDefault();
     const buscado = periodo.trim();
     if (buscado === '') {
-      setError(TEXTO_INDIQUE_PERIODO);
+      setError(textoVacio);
       return;
     }
     setError(null);
@@ -38,7 +44,15 @@ export function FormularioPeriodo({
   };
 
   return (
-    <form className={controles['formulario']} onSubmit={consultar} noValidate>
+    <form
+      className={
+        enLinea
+          ? `${controles['formulario']} ${controles['filtro']}`
+          : controles['formulario']
+      }
+      onSubmit={consultar}
+      noValidate
+    >
       <CampoTexto
         rotulo={ROTULOS_PERIODO.periodo}
         valor={periodo}

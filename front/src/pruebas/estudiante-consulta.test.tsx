@@ -85,7 +85,8 @@ describe('Consulta académica (CUD01)', () => {
     );
     // 03:00 UTC del 20 es el 19 en hora de Bogotá.
     expect(alertas.getByText('19/11/2026')).toBeInTheDocument();
-    expect(alertas.getByText('Medio')).toBeInTheDocument();
+    // Aviso con el título «Riesgo {nivel} · {asignatura}» (§7.2, D4b).
+    expect(alertas.getByText('Riesgo medio · Cálculo I')).toBeInTheDocument();
     expect(
       alertas.getByText('Bajo rendimiento en los parciales.'),
     ).toBeInTheDocument();
@@ -133,12 +134,12 @@ describe('Consulta académica (CUD01)', () => {
     ).toBeInTheDocument();
   });
 
-  it('periodo vacío: «Indique el periodo académico.» junto al campo y sin consultar', async () => {
+  it('periodo vacío: «Indica el periodo académico.» (copia tuteada del Estudiante, D4b) junto al campo y sin consultar', async () => {
     const { llamadas } = simularApi({ 'GET /acceso/sesion': SESION });
     renderizar('/estudiante');
     await consultar('');
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Indique el periodo académico.',
+      'Indica el periodo académico.',
     );
     expect(screen.getByLabelText('Periodo académico')).toHaveAttribute(
       'aria-invalid',
@@ -248,14 +249,14 @@ describe('Mis solicitudes (CUD01 2.b, D27)', () => {
     expect(b.queryByText('Disponibilidad horaria')).toBeNull();
   });
 
-  it('sin solicitudes: «Aún no ha registrado solicitudes.»', async () => {
+  it('sin solicitudes: «Aún no has registrado solicitudes.»', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
       'GET /consulta/solicitudes': { estado: 200, cuerpo: [] },
     });
     renderizar('/estudiante/solicitudes');
     expect(
-      await screen.findByText('Aún no ha registrado solicitudes.'),
+      await screen.findByText('Aún no has registrado solicitudes.'),
     ).toBeInTheDocument();
   });
 

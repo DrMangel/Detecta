@@ -32,7 +32,9 @@ export function FormularioAcceso({
   return (
     <main className={estilos['marco']}>
       <img src={logoCompleto} alt={TEXTO_LOGO} className={estilos['logo']} />
-      <div className={estilos['tarjeta']}>
+      <div
+        className={`${controles['tarjeta']} ${controles['tarjeta-estudiante']} ${estilos['contenido-tarjeta']}`}
+      >
         <div className={estilos['encabezado']}>
           <h1>{titulo}</h1>
           {ayuda !== undefined && <p className={estilos['ayuda']}>{ayuda}</p>}
