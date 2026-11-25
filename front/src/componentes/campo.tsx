@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import estilos from './formulario.module.css';
+import controles from './controles.module.css';
 
 /* Campo de formulario con su etiqueta asociada (accesibilidad base, F0). */
 export function Campo({
@@ -17,7 +17,7 @@ export function Campo({
 }) {
   const id = useId();
   return (
-    <div className={estilos['campo']}>
+    <div className={controles['campo']}>
       <label htmlFor={id}>{rotulo}</label>
       <input
         id={id}

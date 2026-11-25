@@ -1,4 +1,9 @@
+import controles from '../../componentes/controles.module.css';
 import { formatearFecha } from '../../componentes/formato';
+import {
+  InsigniaEstado,
+  TONO_ESTADO_ATENCION,
+} from '../../componentes/insignias';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useConsulta } from '../../componentes/use-consulta';
 import {
@@ -39,7 +44,10 @@ export function MisSolicitudes() {
           ) : (
             <ul className={estilos['lista']}>
               {solicitudes.map((solicitud) => (
-                <li key={solicitud.codigo} className={estilos['tarjeta']}>
+                <li
+                  key={solicitud.codigo}
+                  className={`${controles['tarjeta']} ${controles['tarjeta-estudiante']}`}
+                >
                   <DatosDeSolicitud solicitud={solicitud} />
                 </li>
               ))}
@@ -67,7 +75,12 @@ function DatosDeSolicitud({ solicitud }: { solicitud: Solicitud }) {
         </>
       )}
       <dt>{ROTULOS_ESTUDIANTE.estado}</dt>
-      <dd>{NOMBRE_ESTADO[solicitud.estado]}</dd>
+      <dd>
+        <InsigniaEstado
+          texto={NOMBRE_ESTADO[solicitud.estado]}
+          tono={TONO_ESTADO_ATENCION[solicitud.estado]}
+        />
+      </dd>
       <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
       <dd>{solicitud.codigo}</dd>
     </dl>

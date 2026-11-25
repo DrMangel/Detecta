@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router';
+import { Icono, type NombreIcono } from './icono';
 import estilos from './plantilla.module.css';
 
 /*
@@ -12,6 +13,8 @@ import estilos from './plantilla.module.css';
 export interface EnlaceRol {
   ruta: string;
   rotulo: string;
+  /** Ícono decorativo junto al rótulo (especificación de diseño, §3.4). */
+  icono: NombreIcono;
   tambienEn?: readonly string[];
 }
 
@@ -33,6 +36,7 @@ export function NavegacionRol({ enlaces }: { enlaces: readonly EnlaceRol[] }) {
               to={enlace.ruta}
               aria-current={estaActivo(enlace, pathname) ? 'page' : undefined}
             >
+              <Icono nombre={enlace.icono} />
               {enlace.rotulo}
             </Link>
           </li>

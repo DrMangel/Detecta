@@ -5,6 +5,7 @@ import {
   formatearFechaHora,
   formatearNota,
 } from '../../componentes/formato';
+import { Icono } from '../../componentes/icono';
 import {
   MensajeError,
   MensajeInformativo,
@@ -15,29 +16,33 @@ import {
   type RegistroCurso,
 } from '../../servicios-api/docente';
 import { useConsulta } from '../../componentes/use-consulta';
+import oculto from '../../componentes/oculto.module.css';
 import tabla from '../../componentes/tabla.module.css';
+import controles from '../../componentes/controles.module.css';
 import estilos from './docente.module.css';
 import { FormularioAlerta } from './formulario-alerta';
 import { PlantillaDocente } from './plantilla-docente';
 import {
+  ayudaCurso,
+  cantidadEstudiantes,
   ROTULOS_DOCENTE,
   TEXTO_ALERTA_EMITIDA,
   TITULOS_DOCENTE,
 } from './textos';
-import {
-  ROTULOS_PERIODO,
-  TEXTO_INFORMACION_NO_DISPONIBLE,
-} from '../../componentes/etiquetas';
+import { TEXTO_INFORMACION_NO_DISPONIBLE } from '../../componentes/etiquetas';
 
 /*
  * Listado del curso del Docente (CUD01 pasos 3 y 4, rama Docente; sd_CUD01
  * `consultarCurso`) y emisión de alertas sobre él (CUD03; sd_CUD03
  * `seleccionarEstudiante(idRegistro)`).
  *
- * - Estado de la sincronización (ER 3.3.5): fecha y hora reales de la
- *   última sincronización del curso, sin afirmar ni negar que esté
+ * - Curso, código y periodo en la ayuda bajo el título (§7.3; D5).
+ * - Estado de la sincronización (ER 3.3.5), en su tarjeta: fecha y hora reales
+ *   de la última sincronización del curso, sin afirmar ni negar que esté
  *   actualizada (respuesta 3 de F2); si nunca se sincronizó, «Información no
- *   disponible» (ER 3.3.1).
+ *   disponible» (ER 3.3.1). Al lado, la cantidad de estudiantes del listado.
+ * - Con el formulario abierto, la fila elegida se resalta y las demás se
+ *   atenúan (§7.3), sin bajar su texto de 4,5:1.
  * - Tabla con encabezados semánticos (th con scope, ajuste B). El id del
  *   estudiante no se muestra ni queda en el DOM (ajuste C): las claves de
  *   React usan idRegistro (no llegan al DOM) y los ids del DOM, la posición.
@@ -88,19 +93,34 @@ function ListadoCurso({ idCurso }: { idCurso: string }) {
   };
 
   return (
-    <PlantillaDocente titulo={TITULOS_DOCENTE.consultaCurso}>
+    <PlantillaDocente
+      titulo={TITULOS_DOCENTE.consultaCurso}
+      ayuda={
+        consulta === null
+          ? undefined
+          : ayudaCurso(
+              consulta.curso.nombre,
+              consulta.curso.idCurso,
+              consulta.curso.periodo,
+            )
+      }
+    >
       <MensajeError mensaje={error} />
       <div aria-busy={consulta === null && error === null}>
         {consulta !== null && (
           <>
-            <DatosCurso curso={consulta.curso} />
+            <ResumenCurso consulta={consulta} />
             <MensajeInformativo mensaje={confirmacion} />
             {consulta.registros.length === 0 ? (
               <MensajeInformativo
                 mensaje={consulta.mensaje ?? TEXTO_INFORMACION_NO_DISPONIBLE}
               />
             ) : (
-              <TablaCurso registros={consulta.registros} alAbrir={abrir} />
+              <TablaCurso
+                registros={consulta.registros}
+                seleccionado={seleccionado}
+                alAbrir={abrir}
+              />
             )}
             {seleccionado !== null && (
               <FormularioAlerta
@@ -118,29 +138,49 @@ function ListadoCurso({ idCurso }: { idCurso: string }) {
   );
 }
 
-/** Curso, periodo y estado de la sincronización (ER 3.3.5). */
-function DatosCurso({ curso }: { curso: ConsultaCurso['curso'] }) {
+/** Estado de la sincronización (ER 3.3.5) y cantidad de estudiantes (§7.3). */
+function ResumenCurso({ consulta }: { consulta: ConsultaCurso }) {
+  const { ultimaSincronizacion } = consulta.curso;
   return (
-    <dl className={estilos['curso']}>
-      <dt>{ROTULOS_DOCENTE.curso}</dt>
-      <dd>{curso.nombre}</dd>
-      <dt>{ROTULOS_PERIODO.periodo}</dt>
-      <dd>{curso.periodo}</dd>
-      <dt>{ROTULOS_DOCENTE.ultimaSincronizacion}</dt>
-      <dd>
-        {curso.ultimaSincronizacion === null
-          ? TEXTO_INFORMACION_NO_DISPONIBLE
-          : formatearFechaHora(curso.ultimaSincronizacion)}
-      </dd>
-    </dl>
+    <div className={estilos['resumen']}>
+      <div className={`${controles['tarjeta']} ${estilos['dato']}`}>
+        <Icono nombre="clock" />
+        <span>
+          <strong>{ROTULOS_DOCENTE.ultimaSincronizacion}</strong>:{' '}
+          <span>
+            {ultimaSincronizacion === null
+              ? TEXTO_INFORMACION_NO_DISPONIBLE
+              : formatearFechaHora(ultimaSincronizacion)}
+          </span>
+        </span>
+      </div>
+      <div className={`${controles['tarjeta']} ${estilos['dato']}`}>
+        <span>{cantidadEstudiantes(consulta.registros.length)}</span>
+      </div>
+    </div>
   );
+}
+
+/** Sin formulario abierto, ninguna fila cambia; con él, resaltada o atenuada. */
+function claseFila(
+  registro: RegistroCurso,
+  seleccionado: RegistroCurso | null,
+) {
+  if (seleccionado === null) {
+    return undefined;
+  }
+  return registro.idRegistro === seleccionado.idRegistro
+    ? estilos['seleccionada']
+    : estilos['atenuada'];
 }
 
 function TablaCurso({
   registros,
+  seleccionado,
   alAbrir,
 }: {
   registros: readonly RegistroCurso[];
+  seleccionado: RegistroCurso | null;
   alAbrir: (
     registro: RegistroCurso,
     evento: MouseEvent<HTMLButtonElement>,
@@ -148,55 +188,61 @@ function TablaCurso({
 }) {
   const prefijo = useId();
   return (
-    <table className={tabla['tabla']}>
-      <thead>
-        <tr>
-          <th scope="col">{ROTULOS_DOCENTE.estudiante}</th>
-          <th scope="col">{ROTULOS_DOCENTE.nota}</th>
-          <th scope="col">{ROTULOS_DOCENTE.asistencia}</th>
-          <th scope="col">
-            <span className={tabla['oculto']}>
-              {ROTULOS_DOCENTE.emitirAlerta}
-            </span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {registros.map((registro, indice) => {
-          // Ids del DOM por posición: ningún identificador de la base queda
-          // en el DOM (ajuste C; el id del estudiante nunca se usa aquí).
-          const idNombre = `${prefijo}-${indice}`;
-          return (
-            <tr key={registro.idRegistro}>
-              <th scope="row" id={idNombre}>
-                {registro.estudiante.nombre}
-              </th>
-              <td
-                className={tabla['numero']}
-                data-rotulo={ROTULOS_DOCENTE.nota}
+    <div className={tabla['contenedor']}>
+      <table className={`${tabla['tabla']} ${tabla['compacta']}`}>
+        <thead>
+          <tr>
+            <th scope="col">{ROTULOS_DOCENTE.estudiante}</th>
+            <th scope="col">{ROTULOS_DOCENTE.nota}</th>
+            <th scope="col">{ROTULOS_DOCENTE.asistencia}</th>
+            <th scope="col">
+              <span className={oculto['oculto']}>
+                {ROTULOS_DOCENTE.emitirAlerta}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {registros.map((registro, indice) => {
+            // Ids del DOM por posición: ningún identificador de la base queda
+            // en el DOM (ajuste C; el id del estudiante nunca se usa aquí).
+            const idNombre = `${prefijo}-${indice}`;
+            return (
+              <tr
+                key={registro.idRegistro}
+                className={claseFila(registro, seleccionado)}
               >
-                {formatearNota(registro.nota)}
-              </td>
-              <td
-                className={tabla['numero']}
-                data-rotulo={ROTULOS_DOCENTE.asistencia}
-              >
-                {formatearAsistencia(registro.porcentajeAsistencia)}
-              </td>
-              <td className={tabla['accion']}>
-                <button
-                  type="button"
-                  className={estilos['botonSecundario']}
-                  aria-describedby={idNombre}
-                  onClick={(evento) => alAbrir(registro, evento)}
+                <th scope="row" id={idNombre}>
+                  {registro.estudiante.nombre}
+                </th>
+                <td
+                  className={tabla['numero']}
+                  data-rotulo={ROTULOS_DOCENTE.nota}
                 >
-                  {ROTULOS_DOCENTE.emitirAlerta}
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                  {formatearNota(registro.nota)}
+                </td>
+                <td
+                  className={tabla['numero']}
+                  data-rotulo={ROTULOS_DOCENTE.asistencia}
+                >
+                  {formatearAsistencia(registro.porcentajeAsistencia)}
+                </td>
+                <td className={tabla['accion']}>
+                  <button
+                    type="button"
+                    className={`${controles['boton-secundario']} ${controles['boton-compacto']}`}
+                    aria-describedby={idNombre}
+                    onClick={(evento) => alAbrir(registro, evento)}
+                  >
+                    <Icono nombre="bell" tamano={16} />
+                    {ROTULOS_DOCENTE.emitirAlerta}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

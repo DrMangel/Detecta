@@ -1,0 +1,18 @@
+/*
+ * Cuadrícula de tarjetas del inicio (especificación de diseño, §7.0):
+ * repeat(auto-fit, minmax(380px, 1fr)), una columna en celular, 16 px.
+ */
+
+.cuadricula {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 23.75rem), 1fr));
+  gap: var(--espacio-3);
+}
+
+/*
+ * Las tarjetas del Estudiante llevan su radio propio (§2.2). Dos clases y el
+ * elemento: más específico que .tarjeta, sin depender del orden del CSS.
+ */
+.cuadricula.estudiante > a {
+  border-radius: var(--radio-tarjeta-estudiante);
+}

@@ -434,6 +434,72 @@ No hay diagrama de despliegue en `docs/diagramas/`. Estos son los nodos reales d
 - **Correo:** el puerto pasa de 587 a 2525 solo por configuración (`CORREO_SMTP_PUERTO`). El código no cambia.
 - **Cambio operativo en `back/`:** `GET /salud` (`ControladorSalud`, registrado en `AppModule`) es la única ruta nueva. No está en los diagramas porque no es funcional: la necesita el monitor externo, que exige una respuesta 2xx (cron-job.org desactiva el trabajo tras unos 25 fallos seguidos) y no debe despertar Neon. No hay otros cambios de comportamiento en `back/` ni en `front/`. F6 agrega además configuración (`render.yaml`, `demo/.env.remoto.example`) y scripts.
 
+### Decisiones y textos del frontend (F5b-diseño)
+
+Rediseño visual según `docs/especificacion-diseno-ui.md` y los mockups de `docs/mockups-html/` (fases D1 a D7; resumen y commits en §16). Sin cambios de rutas (salvo el inicio por rol de §7.0 de la especificación), contratos de API ni lógica de negocio; el único cambio de comportamiento es el diálogo de consentimiento (§7.6 de la especificación).
+
+| Tipo | Elemento |
+|---|---|
+| Tokens y tipografía (D1) | Tokens de §2.1 a §2.4 en `estilos/base.css` y Plus Jakarta Sans autoalojada (`@fontsource-variable/plus-jakarta-sans`, versión fijada). Token nuevo `--color-encabezado-tabla: #f8fafd` (D5), registrado en la §2.1 |
+| Plantilla e íconos (D2) | Barra lateral en escritorio y barra superior en celular, en el mismo orden del DOM; íconos de trazo copiados sin cambios de `lucide-static` 1.79.0 (licencia ISC citada en `componentes/icono.tsx`) |
+| Componentes compartidos | D3: insignias, línea de estado, cifra grande, tarjeta de función, enlace de regreso y mensajes. D3b: botón primario y secundario, campo con error en línea y selección en caja. D5: tabla compacta en contenedor y botón compacto de fila. D6: tabla cómoda y fila que se abre entera. D7a: `Aviso` (aviso estático con ícono) y `ParesDatos` (rótulo encima del valor), movido desde el Jefe. D7b: estilos propios de Informes (`iu-informes.module.css`) |
+| Inicio por rol (§7.0 de la especificación; D4a) | Ruta nueva `…/inicio` por rol, primera opción del menú y destino tras iniciar sesión; tarjetas derivadas de los enlaces de cada rol, sin datos ni cifras |
+| Estudiante (D4b) | Tuteo en todo el rol (respuesta 3 del plan); asignaturas en tarjetas con cifras grandes; avisos de alerta por nivel; aviso de quién verá la solicitud según el tipo (R02), con su región viva |
+| Docente (D5) | Ayuda con curso, código y periodo; tarjetas de sincronización y de cantidad; tabla compacta; fila elegida en tinte y las demás atenuadas por color de texto; formulario de alerta en tarjeta destacada, debajo de la tabla |
+| Jefe (D6) | Bandejas con tabla compacta, insignia de nivel y la fila entera que se abre; detalle con línea de estado, datos y antecedentes en tarjetas, «Ruta de atención» y tarjeta de la ruta; planes en tarjetas con «Plan {n}» e insignia de estado |
+| Psicólogo (D7a) | Remisiones con insignia de estado por `EstadoCaso` y fila que se abre; expediente en tarjetas; «Resultado de asesoría» con tipo y asistencia en dos columnas; confirmación del consentimiento en un `<dialog>` modal (§7.6 de la especificación) |
+| Informes (D7b) | Filtros en tarjeta con la misma estructura por campo; tres cifras grandes con su definición; aviso con lock de datos agregados; «Exportar PDF» secundario con el ícono download |
+| Corrección (commit `e7ab58f`) | El expediente mostraba «Consentimiento informado confirmado» dos veces («Sí» y «No») si llegaban las dos marcas en true; ahora un solo valor (ER R06: casilla «Sí/No», si aplica). El backend no envía esa combinación |
+
+**Desviaciones respecto a la especificación y los mockups**
+
+1. Radio de la tarjeta de acceso: `--radio-tarjeta-estudiante` (16 px), como el mockup 01; la §7.1 no lo fija y la §4 no menciona el acceso. (D4a)
+2. Mezcla de tuteo y usted en el personal: los textos del inicio del Docente, el Jefe y el Psicólogo y la ayuda compartida del inicio están en tú porque así los fija la §8; el resto de sus pantallas sigue en usted. **Pendiente de decisión de Ivan**, para la revisión de usabilidad de F5c (ver también 16). (D4a)
+3. «Indique el periodo académico.» queda en usted en el texto compartido (`etiquetas.ts`) y en los mensajes del backend; solo el Estudiante tiene su copia tuteada («Indica el periodo académico.») para la validación del front. Limitación aceptada (decisión 1 de D4). (D4b)
+4. Casillas y radios sueltos nativos con `accent-color`, sin el dibujo propio de 20 px y radio de 6 px de la §4 (desviación aceptada). (D3b)
+5. `--color-foco` `#b87d00` en lugar de `#f2a900`: 3,52:1 sobre blanco (WCAG 1.4.11). (D1)
+6. Logo icono editado por Ivan para quitar el fragmento de letras. (D2)
+7. Mensajes del backend en usted: el front muestra tal cual los textos de error y de confirmación del backend, así que en las pantallas del Estudiante conviven con los textos tuteados del front. Limitación aceptada. (D4b)
+8. Aviso psicosocial «El Jefe de Departamento no tendrá acceso a ella.»: lo garantiza el backend (D18; `repositorios-persistentes.ts` y `puedeVerContenidoConfidencial` en `control-acceso.ts`). (D4b)
+9. Token nuevo `--color-encabezado-tabla: #f8fafd` (mockups 04 y 05), registrado en la §2.1 (respuesta 7 de D5). (D5)
+10. Filas atenuadas del Docente: la opacidad de .55 de la §7.3 daba 3,62:1 en el texto y 2,58:1 en el botón; no se usa `opacity`: se atenúa solo el color del texto, a `--color-texto-rotulo` (5,89:1), y el botón conserva su color. Aprobado por Ivan. (D5)
+11. Formulario de alerta debajo de la tabla, como en F2 (respuesta 1 de D5); el mockup 05 lo pone encima. Sin la «x» de cierre: ya está «Cancelar». (D5)
+12. Hora de la sincronización en 24 h, como en F2, no la del mockup («10:30 a. m.»). (D5)
+13. Botón compacto de fila: 36 px solo con `min-width: 64rem` y `pointer: fine`; 44 px en el resto (regla 1.6). (D5)
+14. Relleno lateral de la celda compacta de 12 px y no 16 px: a 1024 px, con datos corrientes, las seis columnas de «Alertas emitidas» no cabían (698 px en 686). Si una fila no cabe, el contenedor se desplaza en horizontal sin recortar contenido ni el anillo de foco (decisión B de Ivan). (D5)
+15. Orden de los planes del caso: el del backend (el más antiguo primero), numerados «Plan 1», «Plan 2»…, con el formulario al final; el mockup 08 pone el más reciente arriba. Del mockup 08 solo se toma el aspecto: el formulario sigue apareciendo solo sin plan activo (D29). (D6)
+16. Textos en tú en las pantallas del Jefe (ayudas de §8 y del mockup 18), mientras el resto del rol sigue en usted. Se suma a la 2; revisión en F5c. (D6)
+17. Línea de estado: por debajo de 48 rem los pasos se apilan en columna y sin trazo (el trazo quedaba suelto al partirse la fila). Cambio en el componente de D3, visto en su primer uso. (D6)
+18. Línea de estado «con plan registrado»: cualquier plan, activo o finalizado, deja los tres pasos hechos; la §7.4 no distingue el estado del plan. (D6)
+19. «Registrar plan de nivelación» y «Plan {n}» son h3 dentro de «Planes del caso» (h2), para conservar la jerarquía de encabezados; en el mockup 08 «Registrar plan de nivelación» es un h2 en una tarjeta aparte. (D6)
+20. La fila que se abre (el `::after` del botón o del enlace sobre la fila posicionada) solo se probó en Chromium (clic en una celda y conservación del estado de origen); jsdom no recibe clics en pseudoelementos. **Falta comprobarla en Firefox y Safari.** (D6)
+21. Consentimiento como diálogo modal (§7.6 de la especificación): `<dialog>` nativo con `showModal()`, que abre el botón secundario «Confirmar consentimiento» junto al aviso con lock, nunca solo. Tras confirmar, el foco pasa al mensaje de confirmación; con «Cancelar» o Esc vuelve al botón y la casilla se reinicia. En jsdom, sustituto mínimo de `showModal()` y `close()` en `pruebas/preparacion.ts`. El foco atrapado solo se comprobó en Chromium. (D7a)
+22. El aviso de consentimiento va antes de «Citas», como en el mockup 11 (datos → aviso → citas); antes iba después de «Atención y seguimiento». (D7a)
+23. Componentes compartidos movidos o nuevos en D7a: `ParesDatos` pasa de `paginas/jefe-departamento/` a `componentes/` (lo usan el Jefe, el Psicólogo e Informes) y `Aviso` es nuevo en `componentes/` (lo usan el Estudiante, el Psicólogo e Informes; el aviso del Estudiante conserva su región `aria-live` en su pantalla). Los textos libres de los pares (justificación, motivo, disponibilidad, cronograma, observaciones y acuerdos) quedan con `white-space: pre-wrap`; en el detalle del Jefe pasan de `pre-line` a `pre-wrap`. (D7a)
+24. El rótulo «Tipo» del resultado pasa a «Tipo de asesoría» (§7.5; rótulo existente). Los textos escritos en `operaciones.tsx` («Atención y seguimiento», «Programar cita», etc.) siguen en el componente y no en `textos.ts`: para F5c. (D7a)
+25. Consentimiento mostrado dos veces en el expediente: defecto previo, **corregido** en el commit `e7ab58f` (ver la tabla). (D7a)
+26. Las operaciones de citas (programar, reprogramar, seguimiento, cerrar) no están en los mockups 10 y 11: estilo por analogía, en tarjetas, sin cambiar estructura, textos ni orden. (D7a)
+27. Informes: el resumen se muestra sin el rótulo «Resumen» de los mockups 12 y 13 (no estaba en el front ni en la §8); la fecha conserva el formato de 24 h de F3. (D7b)
+28. Informes: la línea de ayuda de altura fija es una tercera fila de cuadrícula de 1,125 rem en cada campo; un error en línea la amplía solo en su campo. En el Psicólogo, a 1024 y 768 px el código del curso y el botón pasan a la fila siguiente, alineados por arriba. (D7b)
+29. Informes deja de importar el módulo del Jefe (`.datos` y `.texto` salen de `jefe-departamento.module.css`); el selector «Programa» pasa a su componente. (D7b)
+
+**Textos nuevos o cambiados (provisionales, para la revisión de usabilidad de F5c)**
+
+| Fase y archivo | Texto | Motivo |
+|---|---|---|
+| D2 · `componentes/textos.ts` | «Logo de DETECTA» | Texto alternativo del logo (§3.3) |
+| D3 · `componentes/textos.ts` | «completado» y «pendiente» (texto oculto de la línea de estado) | Que el estado del paso no dependa solo del color (regla 8) |
+| D4a · `componentes/textos.ts` | «Ingresa con tu correo institucional.»; «Inicio»; «Hola, {primer nombre}» («Hola» sin nombre); «Estas son las funciones disponibles para tu rol y para qué sirve cada una.»; «Confidencial»; «Genera informes con totales por asignatura y periodo, sin datos personales.» | §7.0 de la especificación, §7.1 y §8 |
+| D4a · textos de cada rol | Estudiante: «Revisa tus notas, tu asistencia y tus alertas por periodo.», «Consulta el estado de las solicitudes de acompañamiento que has enviado.», «Pide apoyo académico o psicosocial. Tu solicitud solo la ve el personal que la atiende.» (decisión 3 de D4, para no prometer más que el ER 3.5.3). Docente: «Revisa las notas y la asistencia de tu curso y emite alertas tempranas.», «Consulta las alertas que has emitido en el periodo.». Jefe: «Revisa los casos recibidos y canalízalos a la ruta académica o psicológica.», «Consulta los casos canalizados a la ruta académica y gestiona sus planes de nivelación.» (respuesta 5). Psicólogo: «Atiende los casos remitidos a psicología y consulta sus expedientes.» | Tarjetas del inicio (§8) |
+| D4b · `paginas/estudiante/textos.ts` | «Aquí puedes ver cómo vas en tus asignaturas.»; «Nota acumulada»; «Mis asignaturas · {periodo}»; «Riesgo {nivel} · {asignatura}»; «Indica el periodo académico.»; «Cuéntanos qué necesitas; tu solicitud se trata con respeto y confidencialidad.»; aviso general «Las solicitudes académicas las atiende el Programa. Las psicosociales solo las verá el área de Psicología; el Jefe de Departamento no tendrá acceso a ellas.»; «El Jefe de Departamento no tendrá acceso a ella.» | §8 y aviso de R02 integrado (4b del plan) |
+| D4b · `paginas/estudiante/textos.ts` (tuteo) | «Describe el motivo de tu solicitud»; «Podrá ver tu solicitud el Jefe de Departamento de Programa.»; «Podrá ver tu solicitud el Psicólogo.»; «Tu solicitud fue recibida.»; «No se pudo confirmar si tu solicitud fue registrada. Revisa «Mis solicitudes» antes de enviarla de nuevo.»; «Aún no has registrado solicitudes.» | Tuteo del rol Estudiante (respuesta 3 del plan) |
+| D5 · `paginas/docente/textos.ts` | «{curso} · Código {código} · Periodo {periodo}»; «{n} estudiantes»; «1 estudiante» | §7.3 y §8; formato del mockup 04 y singular (respuestas 2 y 4 de D5) |
+| D6 · `paginas/jefe-departamento/textos.ts` | «Selecciona un caso para ver su detalle y canalizarlo.»; «Selecciona un caso para ver su detalle y gestionar sus planes de nivelación.»; «Caso recibido», «Canalización», «Plan de nivelación» (pasos); «Selecciona una ruta para continuar.»; «Datos del caso», «Planes del caso», «Registrar plan de nivelación», «Plan {n}», «Tutor», «Cronograma» y «Abrir» (encabezado oculto). Sale «Plan de nivelación» como título de sección (pasa a «Planes del caso») | §8 y mockups 06, 07, 08 y 18 (aprobados en el plan de D6) |
+| D6 · `componentes/etiquetas.ts` | «Ruta de atención» como leyenda de la canalización del Jefe (rótulo común con el Psicólogo) | Respuesta 9 del plan |
+| D7a · `paginas/psicologo/textos.ts` | «Casos remitidos a psicología.»; «Volver a remisiones» (antes «Remisiones»); «Tipo» pasa a «Tipo de asesoría»; el título de la tarjeta pasa a «Resultado de asesoría» (el botón sigue «Registrar resultado»); «¿El acudiente otorgó el consentimiento informado?» pasa a `textos.ts` sin cambio | §7.5 y §8; respuesta 2 de D7 y condición 1 de su aprobación |
+| D7a · `componentes/etiquetas.ts` | «Cancelar» pasa a `ROTULOS_COMUNES` (sale de `ROTULOS_DOCENTE`, que lo hereda) | Lo comparten el formulario de alerta del Docente y el diálogo de consentimiento del Psicólogo (§7.6 de la especificación); el texto no cambia |
+| D7b · `componentes/textos.ts` | «Totales por asignatura y periodo, sin datos personales.»; aviso «Este informe solo contiene datos agregados: no incluye nombres, motivos ni contenido de los expedientes.» | §7.7 y §8; aviso provisional (respuesta 7 del plan), comprobado en `generador-informe-riesgo.ts` |
+
 ## 8. Decisiones (ante una decisión abierta, el agente debe detenerse y preguntar)
 
 | # | Tema | Fase límite | Estado |
@@ -664,3 +730,17 @@ Diagrama de componentes vigente, descripciones de los casos de uso de diseño (t
   - Psicólogo: aprobar la pertinencia sin recargar, citas (programar y reprogramar), resultado, seguimiento y cierre del caso.
   - En esta prueba apareció el defecto del Commit `2936eef`; su corrección está cubierta por pruebas automáticas (`front/src/pruebas/psicologo-atencion.test.tsx`, «Formularios tras cada operación (F5b, Commit 3)», y el segundo resultado de la prueba de punta a punta).
 - **Pendientes para el rediseño (no se tocaron):** (1) los formularios «Reprogramar» de varias citas comparten fecha y modalidad; (2) `OperacionesExpediente` mide 369 líneas con complejidad 24 (reglas: 80 y 8); (3) «Reprogramar» arranca en Presencial aunque la cita sea Virtual: debería iniciar con la modalidad actual de la cita.
+
+## 16. F5b-diseño: rediseño visual de la interfaz
+
+- Rama `fase/f5b-diseno`, creada desde `main` (`069a8d5`). Plan aprobado por Ivan (respuestas 1 a 13) y una fase a la vez, cada una con su plan, TDD con la salida en rojo guardada, mutaciones, revisión en Chromium (1280, 1024, 768 y 360 px; contraste, teclado y foco) y commit tras su aprobación. Decisiones, desviaciones (1 a 29) y textos: §7, «Decisiones y textos del frontend (F5b-diseño)».
+- **Commits:** entradas del diseño `f4fe227`, `20fa813`, `f427782` y `0079ecc`; D1 `9fb673f`; D2 `0e45acb`; pruebas de título `350cedf` y `6cc4d76`; D3 `7a78278`; D3b `563aeca`; D4a `c0a5a89`; D4b `c2bf45c`; D5 `cfb3174` (refactor del formulario de alerta) y `9333b89`; D6 `38d7c03`; D7a `f44287c`; corrección del consentimiento `e7ab58f`; D7b `9a0fa8d`.
+- **Atribución:** solo `9fb673f` (D1) lleva la línea `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Es anterior a la regla de Ivan de no incluir atribución y, por decisión suya, no se reescribió; ningún otro commit de la rama lleva atribución.
+- **Verificación final de la rama (25/11/2026):** `front/` con 422 pruebas (47 archivos); lint, tipos, formato y `npm run build` limpios. `oxlint` con la configuración temporal de las reglas del front sobre los 79 archivos de la fase: 18 excesos, todos ya presentes en `main` (en esos archivos `main` tenía 20; salen `FormularioAlerta` y `FiltrosInformePsicologo`). Sin clases huérfanas. Ningún commit incluye `.claude/skills/*`, `.agents/`, `.claude/agents/`, `.codex/` ni la modificación local de `docs/mockups-html/logos/logo-icono.png`.
+- **Pendientes:**
+  - decisión sobre tú y usted en el personal (desviaciones 2 y 16);
+  - comprobar la fila que se abre en Firefox y Safari (desviación 20);
+  - los de §15 para el rediseño: los formularios «Reprogramar» de varias citas comparten fecha y modalidad; `OperacionesExpediente` mide 371 líneas con complejidad 24; «Reprogramar» arranca en Presencial aunque la cita sea Virtual. D7a no cambió la lógica de «Reprogramar» ni de `OperacionesExpediente`: solo su estilo (tarjetas, estilo de campo, «Tipo de asesoría» y el orden de «Tipo» y «Asistencia» en dos columnas), así que los tres siguen pendientes;
+  - textos escritos en `operaciones.tsx`, para F5c (desviación 24);
+  - menor: `EstadoPaso` (`componentes/linea-estado.tsx`) y `TipoMensaje` (`componentes/mensaje-error.tsx`), de D3, se exportan pero solo se usan dentro de su archivo; se dejan como están por decisión de Ivan;
+  - capturas finales contra la demo local y prueba de humo del sitio público tras el despliegue.

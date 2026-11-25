@@ -1,0 +1,59 @@
+/*
+ * Mensajes en tarjeta con ícono (especificación de diseño, §4): error,
+ * confirmación e informativo. Pares de color con contraste AA (§2.1).
+ */
+
+.error,
+.confirmacion,
+.informativo {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-1-5);
+  margin: 0;
+  padding: 0.875rem var(--espacio-3);
+  border: 1px solid;
+  border-radius: var(--radio-tarjeta);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.error svg,
+.confirmacion svg,
+.informativo svg {
+  flex: none;
+  margin-top: 0.0625rem;
+}
+
+.error {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error);
+}
+
+.confirmacion {
+  color: var(--color-info);
+  background: var(--color-info-fondo);
+  border-color: var(--color-borde-verde);
+}
+
+/* Error de un campo (§4, Campo): ícono y texto, sin tarjeta. */
+.en-linea {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.en-linea svg {
+  flex: none;
+  margin-top: 0.0625rem;
+}
+
+.informativo {
+  color: var(--color-primario-hover);
+  background: var(--color-primario-tinte);
+  border-color: var(--color-borde-azul);
+}

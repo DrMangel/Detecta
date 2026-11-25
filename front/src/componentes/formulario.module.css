@@ -1,81 +1,72 @@
+/*
+ * Pantallas de acceso (F0; especificación de diseño §7.1 en D4a): sin barra
+ * lateral, centradas en ancho y alto, con un ancho máximo de
+ * --ancho-formulario. Logo completo de unos 84 px y el formulario en una
+ * tarjeta de 32 px de relleno (24 px en celular).
+ */
+
 .marco {
+  min-height: 100vh;
   width: 100%;
   max-width: var(--ancho-formulario);
   margin: 0 auto;
   padding: var(--espacio-5) var(--espacio-3);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--espacio-4);
 }
 
-.sistema {
-  margin: 0 0 var(--espacio-2);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--color-primario);
+.logo {
+  align-self: center;
+  height: 5.25rem;
+  width: auto;
+  max-width: 100%;
+}
+
+/* Disposición de la tarjeta; su aspecto es la .tarjeta de controles (§4). */
+.marco .contenido-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.encabezado h1 {
+  margin: 0;
+}
+
+.ayuda {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-texto-suave);
 }
 
 .formulario {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-3);
-  padding: var(--espacio-4);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
+  gap: 1.25rem;
 }
 
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-}
-
-.campo label {
-  font-weight: 600;
-}
-
-.campo input {
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-3);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto);
-}
-
-.boton {
-  min-height: 2.75rem;
-  padding: var(--espacio-2) var(--espacio-3);
-  border: none;
-  border-radius: var(--radio);
-  background: var(--color-primario);
-  color: var(--color-primario-texto);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.boton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error,
-.informativo {
-  margin: 0;
-  padding: var(--espacio-2) var(--espacio-3);
-  border-radius: var(--radio);
-}
-
-.error {
-  color: var(--color-error);
-  background: var(--color-error-fondo);
-  border: 1px solid var(--color-error);
-}
-
-.informativo {
-  color: var(--color-info);
-  background: var(--color-info-fondo);
-  border: 1px solid var(--color-info);
+/* El botón principal del acceso ocupa todo el ancho (§7.1). */
+.formulario button[type='submit'] {
+  align-self: stretch;
 }
 
 .enlaces {
-  margin-top: var(--espacio-3);
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (min-width: 30rem) {
+  .marco .contenido-tarjeta {
+    padding: var(--espacio-5);
+  }
 }

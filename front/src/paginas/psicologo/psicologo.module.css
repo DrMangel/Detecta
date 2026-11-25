@@ -1,54 +1,124 @@
-/* Pantallas del Psicólogo (F4a); tokens de estilos/base.css. */
+/*
+ * Pantallas del Psicólogo (F4a; diseño de F5b, D7a, §7.5 y §7.6, maquetas
+ * 09 a 11). La tabla está en componentes/tabla.module.css, los pares en
+ * pares-datos.module.css y los controles en controles.module.css; aquí solo
+ * lo propio del rol. Tokens de estilos/base.css.
+ */
 
-.datos {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  gap: var(--espacio-1) var(--espacio-3);
-  max-width: 48rem;
-  margin: 0 0 var(--espacio-4);
-  padding: var(--espacio-3);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
+/* Tarjetas del expediente: relleno de 24 px (maquetas 10 y 11). */
+.bloque {
+  padding: var(--espacio-4);
 }
 
-.datos > div {
-  display: contents;
-}
-
-.datos dt {
-  font-weight: 600;
-}
-
-.datos dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  white-space: pre-line;
-}
-
-.cita {
-  margin-top: var(--espacio-3);
-  padding: var(--espacio-3);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio);
-}
-
-.cita h3 {
-  margin-top: 0;
-  font-size: 1rem;
-}
-
-.volver {
-  display: inline-block;
+/* Dos selectores: gana al margen de .seccion h2 sin depender del orden. */
+.bloque > h2:first-child {
   margin-bottom: var(--espacio-3);
 }
 
-@media (max-width: 47.99rem) {
-  .datos {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.bloque > :last-child {
+  margin-bottom: 0;
+}
 
-  .datos dd {
-    margin-bottom: var(--espacio-2);
+/* ---------- Citas: una tarjeta por cita (§7.5) ---------- */
+
+.citas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1-5);
+}
+
+.cita {
+  padding: 1.25rem var(--espacio-4);
+}
+
+.cita h3 {
+  margin: 0 0 var(--espacio-1-5);
+  font-size: 0.9375rem;
+}
+
+/* ---------- Atención y seguimiento: cada operación en su tarjeta ---------- */
+
+.operacion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin-top: var(--espacio-3);
+  padding: var(--espacio-4);
+}
+
+.operacion h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+
+/*
+ * La etiqueta envuelve al control (F4b): el texto toma el estilo de la
+ * etiqueta del campo (§4) y el control, el de :where(.campo).
+ */
+.campo-envuelto {
+  font-size: var(--campo-etiqueta-tamano);
+  line-height: var(--campo-etiqueta-interlineado);
+  font-weight: 600;
+}
+
+/* «Tipo» y «Asistencia» en dos columnas desde 48 rem (maqueta 11). */
+.dos-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-3);
+}
+
+@media (min-width: 48rem) {
+  .dos-columnas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ---------- Consentimiento: aviso, botón y diálogo (§7.5 y §7.6) ---------- */
+
+.consentimiento {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1-5);
+  margin-top: var(--espacio-4);
+}
+
+.consentimiento > :first-child {
+  flex: 1 1 20rem;
+}
+
+/* Diálogo de 480 px, relleno de 28 px, radio de tarjeta y su sombra (§7.6). */
+.dialogo {
+  width: min(30rem, calc(100% - 2 * var(--espacio-3)));
+  max-width: none;
+  padding: 1.75rem;
+  border: none;
+  box-shadow: var(--sombra-dialogo);
+  color: var(--color-texto);
+}
+
+.dialogo::backdrop {
+  background: rgba(27, 36, 48, 0.45);
+}
+
+.formulario-dialogo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.formulario-dialogo h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.formulario-dialogo p {
+  margin: 0;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1-5);
 }

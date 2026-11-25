@@ -12,7 +12,11 @@ import {
 } from '../../componentes/mensaje-error';
 import { ESPACIO_POR_ROL } from '../../componentes/roles';
 import { useSesion } from '../../componentes/sesion';
-import { ROTULOS, TITULOS } from '../../componentes/textos';
+import {
+  ROTULOS,
+  TEXTO_AYUDA_INICIAR_SESION,
+  TITULOS,
+} from '../../componentes/textos';
 import { useEnvio } from '../../componentes/use-envio';
 import { iniciarSesion } from '../../servicios-api/acceso';
 
@@ -54,6 +58,7 @@ export function PaginaIniciarSesion() {
   return (
     <FormularioAcceso
       titulo={TITULOS.iniciarSesion}
+      ayuda={TEXTO_AYUDA_INICIAR_SESION}
       alEnviar={() => void enviar()}
       pie={
         <p className={estilos['enlaces']}>

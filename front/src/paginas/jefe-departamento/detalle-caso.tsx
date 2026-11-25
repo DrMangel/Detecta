@@ -1,6 +1,8 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
+import { ParesDatos, type Dato } from '../../componentes/pares-datos';
 import controles from '../../componentes/controles.module.css';
+import { EnlaceVolver } from '../../componentes/enlace-volver';
 import {
   NOMBRE_TIPO_APOYO,
   ROTULOS_COMUNES,
@@ -13,6 +15,7 @@ import {
   formatearNota,
 } from '../../componentes/formato';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
+import { LineaEstado, type Paso } from '../../componentes/linea-estado';
 import {
   MensajeError,
   MensajeInformativo,
@@ -34,7 +37,7 @@ import {
   type PlanCaso,
   type RutaAtencion,
 } from '../../servicios-api/jefe-departamento';
-import { textoNivel } from './bandeja-casos';
+import { NivelCaso } from './bandeja-casos';
 import estilos from './jefe-departamento.module.css';
 import { PlanNivelacion } from './plan-nivelacion';
 import {
@@ -46,9 +49,12 @@ import {
 import {
   NOMBRE_ORIGEN,
   NOMBRE_RUTA,
+  PASOS_CASO,
   ROTULOS_CASO,
+  ROTULOS_DISENO_JEFE,
   ROTULOS_JEFE,
   TEXTO_CANALIZADO,
+  TEXTO_ELIGE_RUTA,
   TEXTO_VOLVER,
   TITULOS_JEFE,
 } from './textos';
@@ -66,6 +72,12 @@ import {
  * - Ruta académica: el plan de nivelación aparece en la misma vista
  *   (sd_CUD04, «extend» CUD05; respuesta 1 de F3), también al volver al caso
  *   desde «En ruta académica», con los planes que trae el detalle (F5b, D38).
+ *
+ * Diseño de F5b (D6; §7.4, maquetas 07 y 08): línea de estado, datos,
+ * antecedentes y canalización en tarjetas. Ya canalizado, la tarjeta
+ * «Ruta de atención: {ruta}»; la confirmación solo justo después de
+ * canalizar. Los planes viven aquí para que la línea de estado cambie al
+ * registrar uno.
  */
 
 /** Caso canalizado con los planes que se conocen de él. */
@@ -113,10 +125,15 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
     datos?.caso.ruta ?? null,
   );
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.detalleCaso} origen={origen}>
-      <Link to={RUTA_BANDEJA[origen]} className={estilos['volver']}>
-        {TEXTO_VOLVER[origen]}
-      </Link>
+    <PlantillaJefe
+      titulo={TITULOS_JEFE.detalleCaso}
+      origen={origen}
+      volver={
+        <EnlaceVolver a={RUTA_BANDEJA[origen]}>
+          {TEXTO_VOLVER[origen]}
+        </EnlaceVolver>
+      }
+    >
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && <ContenidoCaso detalle={datos} />}
@@ -138,74 +155,141 @@ function ContenidoCaso({ detalle }: { detalle: DetalleCaso }) {
 
   return (
     <>
+      <LineaEstado
+        pasos={pasosDelCaso(
+          caso.ruta,
+          caso.ruta === 'ACADEMICA' && planes.length > 0,
+        )}
+      />
       <DatosCaso caso={caso} />
       <Antecedentes antecedentes={detalle.antecedentes} />
       {caso.ruta === null ? (
         <Canalizacion idCaso={caso.idCaso} alCanalizar={alCanalizar} />
       ) : (
-        <MensajeInformativo
-          mensaje={
-            canalizado ? TEXTO_CANALIZADO[caso.ruta] : NOMBRE_RUTA[caso.ruta]
-          }
-        />
+        <>
+          <MensajeInformativo
+            mensaje={canalizado ? TEXTO_CANALIZADO[caso.ruta] : null}
+          />
+          <TarjetaRuta ruta={caso.ruta} />
+        </>
       )}
       {caso.ruta === 'ACADEMICA' && (
         <PlanNivelacion
-          idCaso={caso.idCaso}
-          antecedentes={detalle.antecedentes}
+          caso={{ idCaso: caso.idCaso, antecedentes: detalle.antecedentes }}
           planes={planes}
+          alCambiarPlanes={setPlanes}
         />
       )}
     </>
   );
 }
 
-type Fila = readonly [rotulo: string, valor: string];
+/** Tarjeta de sección del detalle (§7.4; maqueta 07). */
+const TARJETA_SECCION = `${controles['seccion']} ${controles['tarjeta']} ${estilos['bloque']}`;
 
-/** Datos propios del origen: la alerta del docente o la solicitud. */
-function filasOrigen(origen: Caso['origen']): Fila[] {
-  if (origen.tipo === 'ALERTA') {
+/*
+ * Línea de estado (§7.4, respuesta 8): sin ruta, «Canalización» es el paso
+ * actual; en la ruta psicológica no hay tercer paso; en la académica,
+ * «Plan de nivelación» es el actual hasta que haya un plan registrado
+ * (activo o finalizado: «Con plan registrado → los tres hechos»).
+ */
+function pasosDelCaso(ruta: RutaAtencion | null, conPlan: boolean): Paso[] {
+  const recibido: Paso = { rotulo: PASOS_CASO.recibido, estado: 'hecho' };
+  if (ruta === null) {
     return [
-      [ROTULOS_COMUNES.curso, origen.curso.nombre],
-      [ROTULOS_PERIODO.periodo, origen.curso.periodo],
-      [ROTULOS_COMUNES.justificacion, origen.descripcion],
-      [ROTULOS_COMUNES.nota, formatearNota(origen.registro.nota)],
-      [
-        ROTULOS_COMUNES.asistencia,
-        formatearAsistencia(origen.registro.porcentajeAsistencia),
-      ],
+      recibido,
+      { rotulo: PASOS_CASO.canalizacion, estado: 'actual' },
+      { rotulo: PASOS_CASO.plan, estado: 'pendiente' },
     ];
   }
-  const filas: Fila[] = [
-    [ROTULOS_COMUNES.tipoApoyo, NOMBRE_TIPO_APOYO[origen.tipoApoyo]],
+  const canalizacion: Paso = {
+    rotulo: PASOS_CASO.canalizacion,
+    estado: 'hecho',
+  };
+  if (ruta === 'PSICOLOGICA') {
+    return [recibido, canalizacion];
+  }
+  return [
+    recibido,
+    canalizacion,
+    { rotulo: PASOS_CASO.plan, estado: conPlan ? 'hecho' : 'actual' },
+  ];
+}
+
+/** «Ruta de atención: {ruta}» en una tarjeta de una línea (§7.4). */
+function TarjetaRuta({ ruta }: { ruta: RutaAtencion }) {
+  return (
+    <p className={`${controles['tarjeta']} ${estilos['ruta']}`}>
+      <span>{ROTULOS_COMUNES.rutaAtencion}</span>:{' '}
+      <strong>{NOMBRE_RUTA[ruta]}</strong>
+    </p>
+  );
+}
+
+/** Datos propios del origen: la alerta del docente o la solicitud. */
+function datosOrigen(origen: Caso['origen']): Dato[] {
+  if (origen.tipo === 'ALERTA') {
+    return [
+      { rotulo: ROTULOS_COMUNES.curso, valor: origen.curso.nombre },
+      { rotulo: ROTULOS_PERIODO.periodo, valor: origen.curso.periodo },
+      {
+        rotulo: ROTULOS_COMUNES.nota,
+        valor: formatearNota(origen.registro.nota),
+      },
+      {
+        rotulo: ROTULOS_COMUNES.asistencia,
+        valor: formatearAsistencia(origen.registro.porcentajeAsistencia),
+      },
+      {
+        rotulo: ROTULOS_COMUNES.justificacion,
+        valor: origen.descripcion,
+        ancho: true,
+      },
+    ];
+  }
+  const datos: Dato[] = [
+    {
+      rotulo: ROTULOS_COMUNES.tipoApoyo,
+      valor: NOMBRE_TIPO_APOYO[origen.tipoApoyo],
+    },
   ];
   // D18: solo lo que el backend permite ver.
-  if (origen.motivo !== undefined) {
-    filas.push([ROTULOS_COMUNES.motivo, origen.motivo]);
-  }
   if (origen.disponibilidad !== undefined && origen.disponibilidad !== '') {
-    filas.push([ROTULOS_COMUNES.disponibilidad, origen.disponibilidad]);
+    datos.push({
+      rotulo: ROTULOS_COMUNES.disponibilidad,
+      valor: origen.disponibilidad,
+    });
   }
-  return filas;
+  if (origen.motivo !== undefined) {
+    datos.push({
+      rotulo: ROTULOS_COMUNES.motivo,
+      valor: origen.motivo,
+      ancho: true,
+    });
+  }
+  return datos;
 }
 
 function DatosCaso({ caso }: { caso: Caso }) {
-  const filas: Fila[] = [
-    [ROTULOS_COMUNES.estudiante, caso.estudiante.nombre],
-    [ROTULOS_COMUNES.fecha, formatearFecha(caso.fechaCreacion)],
-    [ROTULOS_CASO.origen, NOMBRE_ORIGEN[caso.origen.tipo]],
-    [ROTULOS_COMUNES.nivelRiesgo, textoNivel(caso.nivelRiesgo)],
-    ...filasOrigen(caso.origen),
+  const idTitulo = useId();
+  const datos: Dato[] = [
+    { rotulo: ROTULOS_COMUNES.estudiante, valor: caso.estudiante.nombre },
+    {
+      rotulo: ROTULOS_COMUNES.fecha,
+      valor: formatearFecha(caso.fechaCreacion),
+    },
+    { rotulo: ROTULOS_CASO.origen, valor: NOMBRE_ORIGEN[caso.origen.tipo] },
+    {
+      rotulo: ROTULOS_COMUNES.nivelRiesgo,
+      valor: <NivelCaso nivel={caso.nivelRiesgo} />,
+    },
+    ...datosOrigen(caso.origen),
   ];
   return (
-    <dl className={estilos['datos']}>
-      {filas.map(([rotulo, valor]) => (
-        <div key={rotulo}>
-          <dt>{rotulo}</dt>
-          <dd>{valor}</dd>
-        </div>
-      ))}
-    </dl>
+    <section aria-labelledby={idTitulo} className={TARJETA_SECCION}>
+      <h2 id={idTitulo}>{ROTULOS_DISENO_JEFE.datosCaso}</h2>
+      <ParesDatos datos={datos} />
+    </section>
   );
 }
 
@@ -216,43 +300,45 @@ function Antecedentes({
 }) {
   const idTitulo = useId();
   return (
-    <section aria-labelledby={idTitulo} className={controles['seccion']}>
+    <section aria-labelledby={idTitulo} className={TARJETA_SECCION}>
       <h2 id={idTitulo}>{ROTULOS_CASO.antecedentes}</h2>
       {antecedentes.length === 0 ? (
         <p>{TEXTO_INFORMACION_NO_DISPONIBLE}</p>
       ) : (
-        <table className={tabla['tabla']}>
-          <thead>
-            <tr>
-              <th scope="col">{ROTULOS_COMUNES.curso}</th>
-              <th scope="col">{ROTULOS_PERIODO.periodo}</th>
-              <th scope="col">{ROTULOS_COMUNES.nota}</th>
-              <th scope="col">{ROTULOS_COMUNES.asistencia}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {antecedentes.map((registro) => (
-              <tr key={registro.idRegistro}>
-                <th scope="row">{registro.curso.nombre}</th>
-                <td data-rotulo={ROTULOS_PERIODO.periodo}>
-                  {registro.curso.periodo}
-                </td>
-                <td
-                  className={tabla['numero']}
-                  data-rotulo={ROTULOS_COMUNES.nota}
-                >
-                  {formatearNota(registro.nota)}
-                </td>
-                <td
-                  className={tabla['numero']}
-                  data-rotulo={ROTULOS_COMUNES.asistencia}
-                >
-                  {formatearAsistencia(registro.porcentajeAsistencia)}
-                </td>
+        <div className={tabla['contenedor']}>
+          <table className={`${tabla['tabla']} ${tabla['comoda']}`}>
+            <thead>
+              <tr>
+                <th scope="col">{ROTULOS_COMUNES.curso}</th>
+                <th scope="col">{ROTULOS_PERIODO.periodo}</th>
+                <th scope="col">{ROTULOS_COMUNES.nota}</th>
+                <th scope="col">{ROTULOS_COMUNES.asistencia}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {antecedentes.map((registro) => (
+                <tr key={registro.idRegistro}>
+                  <th scope="row">{registro.curso.nombre}</th>
+                  <td data-rotulo={ROTULOS_PERIODO.periodo}>
+                    {registro.curso.periodo}
+                  </td>
+                  <td
+                    className={tabla['numero']}
+                    data-rotulo={ROTULOS_COMUNES.nota}
+                  >
+                    {formatearNota(registro.nota)}
+                  </td>
+                  <td
+                    className={tabla['numero']}
+                    data-rotulo={ROTULOS_COMUNES.asistencia}
+                  >
+                    {formatearAsistencia(registro.porcentajeAsistencia)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -292,6 +378,8 @@ function Canalizacion({
 }) {
   const [ruta, setRuta] = useState<RutaAtencion | null>(null);
   const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();
+  const idTitulo = useId();
+  const idAyuda = useId();
 
   const canalizar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -312,27 +400,33 @@ function Canalizacion({
   };
 
   return (
-    <form
-      className={`${controles['formulario']} ${controles['seccion']}`}
-      onSubmit={canalizar}
-      noValidate
-    >
-      <GrupoOpciones
-        leyenda={ROTULOS_JEFE.canalizarCaso}
-        opciones={RUTAS}
-        etiquetas={NOMBRE_RUTA}
-        valor={ruta}
-        alCambiar={setRuta}
-        clase={estilos['grupo']}
-      />
-      <MensajeError mensaje={error} />
-      <button
-        type="submit"
-        className={controles['boton']}
-        disabled={ruta === null || enviando || enEspera}
-      >
-        {ROTULOS_JEFE.canalizarCaso}
-      </button>
-    </form>
+    <section aria-labelledby={idTitulo} className={TARJETA_SECCION}>
+      <h2 id={idTitulo}>{ROTULOS_JEFE.canalizarCaso}</h2>
+      <form className={estilos['formulario']} onSubmit={canalizar} noValidate>
+        <GrupoOpciones
+          leyenda={ROTULOS_COMUNES.rutaAtencion}
+          opciones={RUTAS}
+          etiquetas={NOMBRE_RUTA}
+          valor={ruta}
+          alCambiar={setRuta}
+        />
+        <MensajeError mensaje={error} />
+        <div className={estilos['acciones']}>
+          <button
+            type="submit"
+            className={controles['boton']}
+            disabled={ruta === null || enviando || enEspera}
+            aria-describedby={ruta === null ? idAyuda : undefined}
+          >
+            {ROTULOS_JEFE.canalizarCaso}
+          </button>
+          {ruta === null && (
+            <p id={idAyuda} className={controles['ayuda']}>
+              {TEXTO_ELIGE_RUTA}
+            </p>
+          )}
+        </div>
+      </form>
+    </section>
   );
 }

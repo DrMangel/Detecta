@@ -231,6 +231,10 @@ describe('Canalización del caso (CUD04)', () => {
     expect(llamadas.at(-1)?.cuerpo).toEqual({ ruta: 'PSICOLOGICA' });
     expect(screen.queryByText('Necesito apoyo en Cálculo.')).toBeNull();
     expect(screen.queryByText('Plan de nivelación')).toBeNull();
+    // D6: la sección de planes se llama «Planes del caso»; tampoco aparece.
+    expect(
+      screen.queryByRole('heading', { name: 'Planes del caso' }),
+    ).toBeNull();
   });
 
   it('académica: confirma y abre el plan de nivelación en la misma vista', async () => {
@@ -253,7 +257,7 @@ describe('Canalización del caso (CUD04)', () => {
       'Caso canalizado a la ruta académica',
     );
     expect(
-      screen.getByRole('heading', { name: 'Plan de nivelación' }),
+      screen.getByRole('heading', { name: 'Planes del caso' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Canalizar caso' })).toBeNull();
   });
@@ -394,7 +398,7 @@ describe('Enlace de regreso del detalle (F5b, Manual 3.1.2.2.6, Tabla 30)', () =
       .setup()
       .click(await screen.findByRole('button', { name: 'Detalle del caso' }));
     // Primero el caso cargado: mientras carga, el respaldo ya es «pendientes».
-    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    await screen.findByRole('heading', { name: 'Planes del caso' });
     expect(
       screen.getByRole('link', { name: 'Volver a casos pendientes' }),
     ).toBeInTheDocument();

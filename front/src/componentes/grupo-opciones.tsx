@@ -4,8 +4,9 @@ import controles from './controles.module.css';
 /*
  * Grupo de opciones excluyentes (F1b; tipo de apoyo en F1, nivel de riesgo
  * en F2). Sin valor por defecto: hay que elegir. aria-invalid solo aparece si
- * el grupo lo declara. La disposición del grupo (columna o fila) es de cada
- * rol y llega en `clase`.
+ * el grupo lo declara. Cada opción es una caja (especificación §4, D3b): en
+ * celular, una por fila; desde 48 rem se reparten el ancho. `clase` añade lo
+ * que sea propio de un rol.
  */
 
 export interface PropsGrupoOpciones<T extends string> {
@@ -29,10 +30,15 @@ export function GrupoOpciones<T extends string>({
 }: PropsGrupoOpciones<T>) {
   const nombre = useId();
   return (
-    <fieldset className={clase} aria-invalid={invalido}>
+    <fieldset
+      className={[controles['grupo'], controles['grupo-cajas'], clase]
+        .filter(Boolean)
+        .join(' ')}
+      aria-invalid={invalido}
+    >
       <legend>{leyenda}</legend>
       {opciones.map((opcion) => (
-        <label key={opcion} className={controles['opcion']}>
+        <label key={opcion} className={controles['opcion-caja']}>
           <input
             type="radio"
             name={nombre}

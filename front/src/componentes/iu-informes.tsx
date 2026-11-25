@@ -1,5 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
+import { Aviso } from './aviso';
 import { CampoTexto } from './campo-texto';
+import { CifraGrande } from './cifra-grande';
 import controles from './controles.module.css';
 import {
   ROTULOS_COMUNES,
@@ -8,7 +10,10 @@ import {
 } from './etiquetas';
 import { formatearFechaHora } from './formato';
 import { guardarArchivo } from './guardar-archivo';
+import { Icono } from './icono';
 import { MensajeError, MensajeInformativo } from './mensaje-error';
+import { ParesDatos } from './pares-datos';
+import { AVISO_INFORME_AGREGADO, AYUDA_INFORMES } from './textos';
 import { useEnvio } from './use-envio';
 import { useConsulta } from './use-consulta';
 import {
@@ -20,7 +25,7 @@ import {
 } from '../servicios-api/informes';
 import { consultarProgramas } from '../servicios-api/programas';
 import { LIMITES } from '../servicios-api/limites';
-import estilos from '../paginas/jefe-departamento/jefe-departamento.module.css';
+import estilos from './iu-informes.module.css';
 import { PlantillaJefe } from '../paginas/jefe-departamento/plantilla-jefe-departamento';
 import { PlantillaPsicologo } from '../paginas/psicologo/plantilla-psicologo';
 import {
@@ -46,7 +51,16 @@ import {
  *   ER: menos de 5 s).
  * - Exportar (paso 6): el PDF se descarga con un nombre derivado del periodo
  *   y el curso (ajuste C) y no se guarda en el navegador.
+ *
+ * Diseño de F5b (D7b; §7.7, maquetas 12 y 13): ayuda, filtros en tarjeta
+ * con la misma estructura por campo (etiqueta, control y línea de ayuda de
+ * altura fija), informe en tarjeta con tres cifras grandes y su definición,
+ * aviso con lock y «Exportar PDF» secundario. Estilos propios en
+ * iu-informes.module.css (ya no los del módulo del Jefe).
  */
+
+/** Tarjeta de los filtros y formulario con los campos en fila. */
+const CLASE_FILTROS = `${controles['formulario']} ${estilos['filtros']}`;
 
 const TOTALES = ['totalAlertas', 'totalCasos', 'totalPlanes'] as const;
 
@@ -65,7 +79,7 @@ export function InformesRiesgo() {
   };
 
   return (
-    <PlantillaJefe titulo={TITULOS_JEFE.informes}>
+    <PlantillaJefe titulo={TITULOS_JEFE.informes} ayuda={AYUDA_INFORMES}>
       <FiltrosDelInforme
         alGenerar={(filtros) => void generar(filtros)}
         ocupado={enviando || enEspera}
@@ -99,7 +113,10 @@ export function InformesRiesgoPsicologo() {
   };
 
   return (
-    <PlantillaPsicologo titulo={TITULOS_PSICOLOGO.informes}>
+    <PlantillaPsicologo
+      titulo={TITULOS_PSICOLOGO.informes}
+      ayuda={AYUDA_INFORMES}
+    >
       <FiltrosInformePsicologo
         programas={programas}
         ocupado={enviando || enEspera}
@@ -128,7 +145,6 @@ function FiltrosInformePsicologo({
   ocupado: boolean;
   alGenerar: (filtros: FiltrosInforme) => void;
 }) {
-  const idProgramaDom = useId();
   const [periodo, setPeriodo] = useState('');
   const [idCurso, setIdCurso] = useState('');
   const [indicePrograma, setIndicePrograma] = useState('');
@@ -154,8 +170,8 @@ function FiltrosInformePsicologo({
   };
 
   return (
-    <>
-      <form className={controles['formulario']} onSubmit={enviar} noValidate>
+    <div className={`${controles['tarjeta']} ${estilos['tarjeta-filtros']}`}>
+      <form className={CLASE_FILTROS} onSubmit={enviar} noValidate>
         <CampoTexto
           rotulo={ROTULOS_PERIODO.periodo}
           valor={periodo}
@@ -164,37 +180,21 @@ function FiltrosInformePsicologo({
           ayuda={ROTULOS_PERIODO.ayuda}
           requerido
           error={errorPeriodo}
+          clase={estilos['campo-filtro']}
         />
-        <div className={controles['campo']}>
-          <label htmlFor={idProgramaDom}>
-            {ROTULOS_INFORMES_PSICOLOGO.programa}
-          </label>
-          <select
-            id={idProgramaDom}
-            value={indicePrograma}
-            onChange={(evento) => setIndicePrograma(evento.target.value)}
-            disabled={programas === null || programas.length === 0 || ocupado}
-            required
-          >
-            <option value="">
-              {ROTULOS_INFORMES_PSICOLOGO.seleccionarPrograma}
-            </option>
-            {(programas ?? []).map((programa, indice) => (
-              <option key={indice} value={String(indice)}>
-                {programa.nombre}
-              </option>
-            ))}
-          </select>
-          {programas?.length === 0 && (
-            <MensajeInformativo mensaje={TEXTO_SIN_PROGRAMAS} />
-          )}
-        </div>
+        <SelectorPrograma
+          programas={programas}
+          valor={indicePrograma}
+          alCambiar={setIndicePrograma}
+          ocupado={ocupado}
+        />
         <CampoTexto
           rotulo={ROTULOS_COMUNES.codigoCurso}
           valor={idCurso}
           alCambiar={setIdCurso}
           maximo={LIMITES.identificador}
           requerido
+          clase={estilos['campo-filtro']}
         />
         <button
           type="submit"
@@ -204,7 +204,50 @@ function FiltrosInformePsicologo({
           {ROTULOS_JEFE.generarInforme}
         </button>
       </form>
-    </>
+    </div>
+  );
+}
+
+/** «Programa» del Psicólogo (F4c), con la misma estructura de campo. */
+function SelectorPrograma({
+  programas,
+  valor,
+  alCambiar,
+  ocupado,
+}: {
+  programas: Awaited<ReturnType<typeof consultarProgramas>> | null;
+  valor: string;
+  alCambiar: (valor: string) => void;
+  ocupado: boolean;
+}) {
+  const idProgramaDom = useId();
+  return (
+    <div
+      className={`${controles['campo']} ${estilos['campo-filtro']} ${estilos['programa']}`}
+    >
+      <label htmlFor={idProgramaDom}>
+        {ROTULOS_INFORMES_PSICOLOGO.programa}
+      </label>
+      <select
+        id={idProgramaDom}
+        value={valor}
+        onChange={(evento) => alCambiar(evento.target.value)}
+        disabled={programas === null || programas.length === 0 || ocupado}
+        required
+      >
+        <option value="">
+          {ROTULOS_INFORMES_PSICOLOGO.seleccionarPrograma}
+        </option>
+        {(programas ?? []).map((programa, indice) => (
+          <option key={indice} value={String(indice)}>
+            {programa.nombre}
+          </option>
+        ))}
+      </select>
+      {programas?.length === 0 && (
+        <MensajeInformativo mensaje={TEXTO_SIN_PROGRAMAS} />
+      )}
+    </div>
   );
 }
 
@@ -230,31 +273,35 @@ function FiltrosDelInforme({
   };
 
   return (
-    <form className={controles['formulario']} onSubmit={enviar} noValidate>
-      <CampoTexto
-        rotulo={ROTULOS_PERIODO.periodo}
-        valor={periodo}
-        alCambiar={setPeriodo}
-        maximo={LIMITES.periodo}
-        ayuda={ROTULOS_PERIODO.ayuda}
-        requerido
-        error={errorPeriodo}
-      />
-      <CampoTexto
-        rotulo={ROTULOS_COMUNES.codigoCurso}
-        valor={idCurso}
-        alCambiar={setIdCurso}
-        maximo={LIMITES.identificador}
-        requerido
-      />
-      <button
-        type="submit"
-        className={controles['boton']}
-        disabled={ocupado || idCurso.trim() === ''}
-      >
-        {ROTULOS_JEFE.generarInforme}
-      </button>
-    </form>
+    <div className={`${controles['tarjeta']} ${estilos['tarjeta-filtros']}`}>
+      <form className={CLASE_FILTROS} onSubmit={enviar} noValidate>
+        <CampoTexto
+          rotulo={ROTULOS_PERIODO.periodo}
+          valor={periodo}
+          alCambiar={setPeriodo}
+          maximo={LIMITES.periodo}
+          ayuda={ROTULOS_PERIODO.ayuda}
+          requerido
+          error={errorPeriodo}
+          clase={estilos['campo-filtro']}
+        />
+        <CampoTexto
+          rotulo={ROTULOS_COMUNES.codigoCurso}
+          valor={idCurso}
+          alCambiar={setIdCurso}
+          maximo={LIMITES.identificador}
+          requerido
+          clase={estilos['campo-filtro']}
+        />
+        <button
+          type="submit"
+          className={controles['boton']}
+          disabled={ocupado || idCurso.trim() === ''}
+        >
+          {ROTULOS_JEFE.generarInforme}
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -270,40 +317,42 @@ function InformeGenerado({ informe }: { informe: Informe }) {
     );
 
   return (
-    <section className={controles['seccion']}>
-      <dl className={estilos['datos']}>
-        <div>
-          <dt>{ROTULOS_COMUNES.curso}</dt>
-          <dd>{informe.curso.nombre}</dd>
-        </div>
-        <div>
-          <dt>{ROTULOS_PERIODO.periodo}</dt>
-          <dd>{informe.periodo}</dd>
-        </div>
-        <div>
-          <dt>{ROTULOS_COMUNES.fecha}</dt>
-          <dd>{formatearFechaHora(informe.fecha)}</dd>
-        </div>
+    <section
+      className={`${controles['seccion']} ${controles['tarjeta']} ${estilos['informe']}`}
+    >
+      <ParesDatos
+        columnas={3}
+        datos={[
+          { rotulo: ROTULOS_COMUNES.curso, valor: informe.curso.nombre },
+          { rotulo: ROTULOS_PERIODO.periodo, valor: informe.periodo },
+          {
+            rotulo: ROTULOS_COMUNES.fecha,
+            valor: formatearFechaHora(informe.fecha),
+          },
+        ]}
+      />
+      <div className={estilos['cifras']}>
         {TOTALES.map((total) => (
-          <div key={total}>
-            <dt>{ROTULOS_JEFE[total]}</dt>
-            <dd>
-              {informe[total]}
-              <p className={controles['ayuda']}>
-                {informe.definiciones[total]}
-              </p>
-            </dd>
-          </div>
+          <CifraGrande
+            key={total}
+            valor={String(informe[total])}
+            rotulo={ROTULOS_JEFE[total]}
+            definicion={informe.definiciones[total]}
+          />
         ))}
-      </dl>
-      <p className={estilos['texto']}>{informe.resumen}</p>
+      </div>
+      <p className={estilos['resumen']}>{informe.resumen}</p>
+      <Aviso icono="lock">
+        <p>{AVISO_INFORME_AGREGADO}</p>
+      </Aviso>
       <MensajeError mensaje={error} />
       <button
         type="button"
-        className={controles['boton']}
+        className={controles['boton-secundario']}
         disabled={enviando || enEspera}
         onClick={exportar}
       >
+        <Icono nombre="download" tamano={18} />
         {ROTULOS_JEFE.exportarPdf}
       </button>
     </section>

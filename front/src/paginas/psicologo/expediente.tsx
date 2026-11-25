@@ -1,8 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { CampoTexto } from '../../componentes/campo-texto';
 import {
-  NOMBRE_NIVEL_RIESGO,
   NOMBRE_TIPO_APOYO,
   ROTULOS_COMUNES,
   ROTULOS_PERIODO,
@@ -14,11 +13,14 @@ import {
   formatearNota,
 } from '../../componentes/formato';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
+import { InsigniaRiesgo } from '../../componentes/insignias';
 import {
   MensajeError,
   MensajeInformativo,
 } from '../../componentes/mensaje-error';
 import controles from '../../componentes/controles.module.css';
+import { EnlaceVolver } from '../../componentes/enlace-volver';
+import { ParesDatos, type Dato } from '../../componentes/pares-datos';
 import tabla from '../../componentes/tabla.module.css';
 import { useConsulta } from '../../componentes/use-consulta';
 import { useEnvio } from '../../componentes/use-envio';
@@ -31,7 +33,6 @@ import {
 import { ErrorApi } from '../../servicios-api/errores';
 import { LIMITES } from '../../servicios-api/limites';
 import {
-  confirmarConsentimiento,
   consultarCasoPsicologo,
   evaluarPertinencia,
   type Antecedente,
@@ -42,6 +43,7 @@ import {
   type EstadoCaso,
 } from '../../servicios-api/psicologo';
 import { PlantillaPsicologo, RUTAS_PSICOLOGO } from './plantilla-psicologo';
+import { ConsentimientoDelCaso } from './consentimiento';
 import { OperacionesExpediente } from './operaciones';
 import estilos from './psicologo.module.css';
 import {
@@ -54,11 +56,10 @@ import {
   NOMBRE_TIPO_ASESORIA,
   OPCION_DICTAMEN,
   ROTULOS_PSICOLOGO,
-  TEXTO_CONSENTIMIENTO_CONFIRMADO,
   TEXTO_JUSTIFICACION,
-  TEXTO_REQUIERE_CONSENTIMIENTO,
   TEXTO_RESULTADO_INCIERTO,
   TEXTO_SIN_ANTECEDENTES,
+  TEXTO_VOLVER_REMISIONES,
   TITULOS_PSICOLOGO,
 } from './textos';
 
@@ -88,10 +89,14 @@ function DetalleDelCaso({ idCaso }: { idCaso: string }) {
     idCaso,
   );
   return (
-    <PlantillaPsicologo titulo={TITULOS_PSICOLOGO.expediente}>
-      <Link to={RUTAS_PSICOLOGO.remisiones} className={estilos['volver']}>
-        {TITULOS_PSICOLOGO.remisiones}
-      </Link>
+    <PlantillaPsicologo
+      titulo={TITULOS_PSICOLOGO.expediente}
+      volver={
+        <EnlaceVolver a={RUTAS_PSICOLOGO.remisiones}>
+          {TEXTO_VOLVER_REMISIONES}
+        </EnlaceVolver>
+      }
+    >
       <MensajeError mensaje={error} />
       <div aria-busy={datos === null && error === null}>
         {datos !== null && (
@@ -114,9 +119,6 @@ function ContenidoExpediente({
     detalle.caso.psicologo !== null,
   );
   const [mensajeDictamen, setMensajeDictamen] = useState<string | null>(null);
-  const [mensajeConsentimiento, setMensajeConsentimiento] = useState<
-    string | null
-  >(null);
   const relectura = useEnvio();
   // POST /pertinencia solo devuelve {estado, mensaje}: sin releer, el caso
   // seguiría sin psicólogo y «Programar primera cita» no aparecería hasta
@@ -131,9 +133,9 @@ function ContenidoExpediente({
   };
   return (
     <>
-      <DatosCaso caso={caso} />
-      <DatosOrigen caso={caso} />
+      <DatosExpediente caso={caso} />
       <Antecedentes antecedentes={detalle.antecedentes} />
+      <ConsentimientoDelCaso caso={caso} actualizar={setCaso} />
       <Citas citas={caso.citas} />
       {caso.psicologo !== null && (
         <OperacionesExpediente
@@ -142,16 +144,6 @@ function ContenidoExpediente({
           actualizar={setCaso}
         />
       )}
-      {caso.requiereConsentimiento && !caso.consentimientoConfirmado && (
-        <Consentimiento
-          idCaso={idCaso}
-          alConfirmar={(actual) => {
-            setCaso(actual);
-            setMensajeConsentimiento(TEXTO_CONSENTIMIENTO_CONFIRMADO);
-          }}
-        />
-      )}
-      <MensajeInformativo mensaje={mensajeConsentimiento} />
       {caso.psicologo === null && !dictamenHecho && (
         <Evaluacion
           idCaso={idCaso}
@@ -167,79 +159,118 @@ function ContenidoExpediente({
   );
 }
 
-type Fila = readonly [rotulo: string, valor: string];
+/** Tarjeta de sección del expediente (§7.5; maquetas 10 y 11). */
+const TARJETA_SECCION = `${controles['seccion']} ${controles['tarjeta']} ${estilos['bloque']}`;
 
-function DatosCaso({ caso }: { caso: CasoPsicologo }) {
-  const filas: Fila[] = [
-    [ROTULOS_COMUNES.estudiante, caso.estudiante.nombre],
-    [ROTULOS_COMUNES.fecha, formatearFecha(caso.fechaCreacion)],
-    [ROTULOS_COMUNES.estado, NOMBRE_ESTADO_CASO[caso.estado]],
-    [
-      ROTULOS_PSICOLOGO.ruta,
-      caso.ruta === null ? '' : NOMBRE_RUTA_PSICOLOGICA[caso.ruta],
-    ],
-    [ROTULOS_PSICOLOGO.riesgoCritico, caso.presentaRiesgoCritico ? 'Sí' : 'No'],
+const siNo = (valor: boolean) => (valor ? 'Sí' : 'No');
+
+/** Datos del caso en el orden de la §7.5; los mismos que antes de D7a. */
+function datosCaso(caso: CasoPsicologo): Dato[] {
+  const datos: Dato[] = [
+    { rotulo: ROTULOS_COMUNES.estudiante, valor: caso.estudiante.nombre },
+    {
+      rotulo: ROTULOS_COMUNES.fecha,
+      valor: formatearFecha(caso.fechaCreacion),
+    },
+    { rotulo: ROTULOS_COMUNES.estado, valor: NOMBRE_ESTADO_CASO[caso.estado] },
+    {
+      rotulo: ROTULOS_PSICOLOGO.ruta,
+      valor: caso.ruta === null ? '' : NOMBRE_RUTA_PSICOLOGICA[caso.ruta],
+    },
+    {
+      rotulo: ROTULOS_PSICOLOGO.riesgoCritico,
+      valor: siNo(caso.presentaRiesgoCritico),
+    },
   ];
   if (caso.nivelRiesgo !== null) {
-    filas.push([
-      ROTULOS_COMUNES.nivelRiesgo,
-      NOMBRE_NIVEL_RIESGO[caso.nivelRiesgo],
-    ]);
+    datos.push({
+      rotulo: ROTULOS_COMUNES.nivelRiesgo,
+      valor: <InsigniaRiesgo nivel={caso.nivelRiesgo} />,
+    });
   }
   if (caso.psicologo !== null) {
-    filas.push([ROTULOS_PSICOLOGO.psicologo, caso.psicologo.nombre]);
+    datos.push({
+      rotulo: ROTULOS_PSICOLOGO.psicologo,
+      valor: caso.psicologo.nombre,
+    });
   }
-  if (caso.consentimientoConfirmado) {
-    filas.push([ROTULOS_PSICOLOGO.consentimiento, 'Sí']);
+  const consentimiento = valorConsentimiento(caso);
+  if (consentimiento !== null) {
+    datos.push({
+      rotulo: ROTULOS_PSICOLOGO.consentimiento,
+      valor: consentimiento,
+    });
   }
-  if (caso.requiereConsentimiento) {
-    filas.push([ROTULOS_PSICOLOGO.consentimiento, 'No']);
-  }
-  return <ListaDatos filas={filas} />;
+  return datos;
 }
 
-function DatosOrigen({ caso }: { caso: CasoPsicologo }) {
-  const origen = caso.origen;
+/**
+ * Un solo valor de consentimiento (R06: casilla «Sí/No», si aplica): la
+ * confirmación gana a «requiere»; si no aplica (mayor de edad), ninguno.
+ */
+function valorConsentimiento(caso: CasoPsicologo): string | null {
+  if (caso.consentimientoConfirmado) return 'Sí';
+  if (caso.requiereConsentimiento) return 'No';
+  return null;
+}
+
+/** Datos propios del origen; los textos libres, a ancho completo. */
+function datosOrigen(origen: CasoPsicologo['origen']): Dato[] {
   if (origen.tipo === 'ALERTA') {
-    return (
-      <ListaDatos
-        filas={[
-          [ROTULOS_PSICOLOGO.origen, NOMBRE_ORIGEN_PSICOLOGO.ALERTA],
-          [ROTULOS_COMUNES.curso, origen.curso.nombre],
-          [ROTULOS_PERIODO.periodo, origen.curso.periodo],
-          [ROTULOS_COMUNES.justificacion, origen.descripcion],
-          [ROTULOS_COMUNES.nota, formatearNota(origen.registro.nota)],
-          [
-            ROTULOS_COMUNES.asistencia,
-            formatearAsistencia(origen.registro.porcentajeAsistencia),
-          ],
-        ]}
-      />
-    );
+    return [
+      {
+        rotulo: ROTULOS_PSICOLOGO.origen,
+        valor: NOMBRE_ORIGEN_PSICOLOGO.ALERTA,
+      },
+      { rotulo: ROTULOS_COMUNES.curso, valor: origen.curso.nombre },
+      { rotulo: ROTULOS_PERIODO.periodo, valor: origen.curso.periodo },
+      {
+        rotulo: ROTULOS_COMUNES.nota,
+        valor: formatearNota(origen.registro.nota),
+      },
+      {
+        rotulo: ROTULOS_COMUNES.asistencia,
+        valor: formatearAsistencia(origen.registro.porcentajeAsistencia),
+      },
+      {
+        rotulo: ROTULOS_COMUNES.justificacion,
+        valor: origen.descripcion,
+        ancho: true,
+      },
+    ];
   }
-  const filas: Fila[] = [
-    [ROTULOS_PSICOLOGO.origen, NOMBRE_ORIGEN_PSICOLOGO.SOLICITUD],
-    [ROTULOS_COMUNES.tipoApoyo, NOMBRE_TIPO_APOYO[origen.tipoApoyo]],
+  const datos: Dato[] = [
+    {
+      rotulo: ROTULOS_PSICOLOGO.origen,
+      valor: NOMBRE_ORIGEN_PSICOLOGO.SOLICITUD,
+    },
+    {
+      rotulo: ROTULOS_COMUNES.tipoApoyo,
+      valor: NOMBRE_TIPO_APOYO[origen.tipoApoyo],
+    },
   ];
   if (origen.motivo !== undefined) {
-    filas.push([ROTULOS_COMUNES.motivo, origen.motivo]);
+    datos.push({
+      rotulo: ROTULOS_COMUNES.motivo,
+      valor: origen.motivo,
+      ancho: true,
+    });
   }
   if (origen.disponibilidad !== undefined && origen.disponibilidad !== '') {
-    filas.push([ROTULOS_COMUNES.disponibilidad, origen.disponibilidad]);
+    datos.push({
+      rotulo: ROTULOS_COMUNES.disponibilidad,
+      valor: origen.disponibilidad,
+      ancho: true,
+    });
   }
-  return <ListaDatos filas={filas} />;
+  return datos;
 }
 
-function ListaDatos({ filas }: { filas: readonly Fila[] }) {
+function DatosExpediente({ caso }: { caso: CasoPsicologo }) {
   return (
-    <dl className={estilos['datos']}>
-      {filas.map(([rotulo, valor], indice) => (
-        <div key={indice}>
-          <dt>{rotulo}</dt>
-          <dd>{valor}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className={`${controles['tarjeta']} ${estilos['bloque']}`}>
+      <ParesDatos datos={[...datosCaso(caso), ...datosOrigen(caso.origen)]} />
+    </div>
   );
 }
 
@@ -250,46 +281,87 @@ function Antecedentes({
 }) {
   const idTitulo = useId();
   return (
-    <section aria-labelledby={idTitulo} className={controles['seccion']}>
+    <section aria-labelledby={idTitulo} className={TARJETA_SECCION}>
       <h2 id={idTitulo}>{ROTULOS_PSICOLOGO.antecedentes}</h2>
       {antecedentes.length === 0 ? (
         <p>{TEXTO_SIN_ANTECEDENTES}</p>
       ) : (
-        <table className={tabla['tabla']}>
-          <thead>
-            <tr>
-              <th scope="col">{ROTULOS_COMUNES.curso}</th>
-              <th scope="col">{ROTULOS_PERIODO.periodo}</th>
-              <th scope="col">{ROTULOS_COMUNES.nota}</th>
-              <th scope="col">{ROTULOS_COMUNES.asistencia}</th>
-              <th scope="col">{ROTULOS_COMUNES.ultimaSincronizacion}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {antecedentes.map((registro, indice) => (
-              <tr key={indice}>
-                <th scope="row">{registro.curso.nombre}</th>
-                <td data-rotulo={ROTULOS_PERIODO.periodo}>
-                  {registro.curso.periodo}
-                </td>
-                <td data-rotulo={ROTULOS_COMUNES.nota}>
-                  {formatearNota(registro.nota)}
-                </td>
-                <td data-rotulo={ROTULOS_COMUNES.asistencia}>
-                  {formatearAsistencia(registro.porcentajeAsistencia)}
-                </td>
-                <td data-rotulo={ROTULOS_COMUNES.ultimaSincronizacion}>
-                  {registro.ultimaSincronizacion === null
-                    ? TEXTO_SIN_ANTECEDENTES
-                    : formatearFechaHora(registro.ultimaSincronizacion)}
-                </td>
+        <div className={tabla['contenedor']}>
+          <table className={`${tabla['tabla']} ${tabla['comoda']}`}>
+            <thead>
+              <tr>
+                <th scope="col">{ROTULOS_COMUNES.curso}</th>
+                <th scope="col">{ROTULOS_PERIODO.periodo}</th>
+                <th scope="col">{ROTULOS_COMUNES.nota}</th>
+                <th scope="col">{ROTULOS_COMUNES.asistencia}</th>
+                <th scope="col">{ROTULOS_COMUNES.ultimaSincronizacion}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {antecedentes.map((registro, indice) => (
+                <tr key={indice}>
+                  <th scope="row">{registro.curso.nombre}</th>
+                  <td data-rotulo={ROTULOS_PERIODO.periodo}>
+                    {registro.curso.periodo}
+                  </td>
+                  <td data-rotulo={ROTULOS_COMUNES.nota}>
+                    {formatearNota(registro.nota)}
+                  </td>
+                  <td data-rotulo={ROTULOS_COMUNES.asistencia}>
+                    {formatearAsistencia(registro.porcentajeAsistencia)}
+                  </td>
+                  <td data-rotulo={ROTULOS_COMUNES.ultimaSincronizacion}>
+                    {registro.ultimaSincronizacion === null
+                      ? TEXTO_SIN_ANTECEDENTES
+                      : formatearFechaHora(registro.ultimaSincronizacion)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
+}
+
+/** Modalidad y estado; con resultado, también la asesoría (F4b). */
+function datosCita(cita: Cita): Dato[] {
+  const datos: Dato[] = [
+    {
+      rotulo: ROTULOS_PSICOLOGO.modalidad,
+      valor: NOMBRE_MODALIDAD[cita.modalidad],
+    },
+    { rotulo: ROTULOS_COMUNES.estado, valor: NOMBRE_ESTADO_CITA[cita.estado] },
+  ];
+  const asesoria = cita.asesoria;
+  if (asesoria === null) return datos;
+  return [
+    ...datos,
+    {
+      rotulo: ROTULOS_PSICOLOGO.tipoAsesoria,
+      valor: NOMBRE_TIPO_ASESORIA[asesoria.tipoAsesoria],
+    },
+    { rotulo: ROTULOS_PSICOLOGO.asistencia, valor: siNo(asesoria.asistencia) },
+    {
+      rotulo: ROTULOS_PSICOLOGO.seguimiento,
+      valor: siNo(asesoria.requiereSeguimiento),
+    },
+    {
+      rotulo: ROTULOS_PSICOLOGO.riesgoCritico,
+      valor: siNo(asesoria.presentaRiesgoCritico),
+    },
+    {
+      rotulo: ROTULOS_PSICOLOGO.observaciones,
+      valor: asesoria.observaciones,
+      ancho: true,
+    },
+    {
+      rotulo: ROTULOS_PSICOLOGO.acuerdos,
+      valor: asesoria.acuerdos,
+      ancho: true,
+    },
+  ];
 }
 
 function Citas({ citas }: { citas: readonly Cita[] }) {
@@ -297,88 +369,18 @@ function Citas({ citas }: { citas: readonly Cita[] }) {
   return (
     <section aria-labelledby={idTitulo} className={controles['seccion']}>
       <h2 id={idTitulo}>{ROTULOS_PSICOLOGO.citas}</h2>
-      {citas.map((cita, indice) => (
-        <article key={indice} className={estilos['cita']}>
-          <h3>{formatearFechaHora(cita.fechaHora)}</h3>
-          <ListaDatos
-            filas={[
-              [ROTULOS_PSICOLOGO.modalidad, NOMBRE_MODALIDAD[cita.modalidad]],
-              [ROTULOS_COMUNES.estado, NOMBRE_ESTADO_CITA[cita.estado]],
-            ]}
-          />
-          {cita.asesoria !== null && (
-            <ListaDatos
-              filas={[
-                [
-                  ROTULOS_PSICOLOGO.tipoAsesoria,
-                  NOMBRE_TIPO_ASESORIA[cita.asesoria.tipoAsesoria],
-                ],
-                [ROTULOS_PSICOLOGO.observaciones, cita.asesoria.observaciones],
-                [ROTULOS_PSICOLOGO.acuerdos, cita.asesoria.acuerdos],
-                [
-                  ROTULOS_PSICOLOGO.asistencia,
-                  cita.asesoria.asistencia ? 'Sí' : 'No',
-                ],
-                [
-                  ROTULOS_PSICOLOGO.seguimiento,
-                  cita.asesoria.requiereSeguimiento ? 'Sí' : 'No',
-                ],
-                [
-                  ROTULOS_PSICOLOGO.riesgoCritico,
-                  cita.asesoria.presentaRiesgoCritico ? 'Sí' : 'No',
-                ],
-              ]}
-            />
-          )}
-        </article>
-      ))}
+      <div className={estilos['citas']}>
+        {citas.map((cita, indice) => (
+          <article
+            key={indice}
+            className={`${controles['tarjeta']} ${estilos['cita']}`}
+          >
+            <h3>{formatearFechaHora(cita.fechaHora)}</h3>
+            <ParesDatos datos={datosCita(cita)} columnas={3} />
+          </article>
+        ))}
+      </div>
     </section>
-  );
-}
-
-function Consentimiento({
-  idCaso,
-  alConfirmar,
-}: {
-  idCaso: string;
-  alConfirmar: (caso: CasoPsicologo) => void;
-}) {
-  const [afirmado, setAfirmado] = useState(false);
-  const envio = useEnvio();
-  const confirmar = async (evento: FormEvent) => {
-    evento.preventDefault();
-    if (!afirmado) return;
-    const actual = await envio.ejecutar(async () => {
-      await confirmarConsentimiento(idCaso);
-      return consultarCasoPsicologo(idCaso);
-    });
-    if (actual === undefined) return;
-    alConfirmar(actual.caso);
-  };
-  return (
-    <form
-      className={`${controles['formulario']} ${controles['seccion']}`}
-      onSubmit={confirmar}
-    >
-      <h2>{ROTULOS_PSICOLOGO.confirmarConsentimiento}</h2>
-      <p>{TEXTO_REQUIERE_CONSENTIMIENTO}</p>
-      <label className={controles['opcion']}>
-        <input
-          type="checkbox"
-          checked={afirmado}
-          onChange={(evento) => setAfirmado(evento.target.checked)}
-        />
-        ¿El acudiente otorgó el consentimiento informado?
-      </label>
-      <MensajeError mensaje={envio.error} />
-      <button
-        type="submit"
-        className={controles['boton']}
-        disabled={!afirmado || envio.enviando || envio.enEspera}
-      >
-        {ROTULOS_PSICOLOGO.confirmarConsentimiento}
-      </button>
-    </form>
   );
 }
 
@@ -485,7 +487,7 @@ function Evaluacion({
     setErrorJustificacion(null);
   };
   return (
-    <section className={controles['seccion']}>
+    <section className={TARJETA_SECCION}>
       <h2>{ROTULOS_PSICOLOGO.dictamen}</h2>
       <form className={controles['formulario']} onSubmit={evaluar} noValidate>
         <GrupoOpciones

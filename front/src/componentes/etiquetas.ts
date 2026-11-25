@@ -58,6 +58,13 @@ export const ROTULOS_COMUNES = {
   motivo: 'Motivo',
   disponibilidad: 'Disponibilidad horaria',
   ultimaSincronizacion: 'Última sincronización',
+  /** Psicólogo (F4) y Jefe (leyenda de la canalización, F5b-diseño D6). */
+  rutaAtencion: 'Ruta de atención',
+  /**
+   * Cierra un formulario o un diálogo sin enviar: formulario de alerta del
+   * Docente (F2, ajuste B) y diálogo de consentimiento del Psicólogo (§7.6).
+   */
+  cancelar: 'Cancelar',
 } as const;
 
 /** Consulta por periodo (FormularioPeriodo) y rótulos que la acompañan. */

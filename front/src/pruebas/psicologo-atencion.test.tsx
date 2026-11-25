@@ -232,7 +232,10 @@ describe('Atención psicológica (F4b)', () => {
       'Resultado de prueba',
     );
     await usuario.type(screen.getByLabelText('Acuerdos'), 'Acuerdos de prueba');
-    await usuario.selectOptions(screen.getByLabelText('Tipo'), 'SEGUIMIENTO');
+    await usuario.selectOptions(
+      screen.getByLabelText('Tipo de asesoría'),
+      'SEGUIMIENTO',
+    );
     await usuario.selectOptions(screen.getByLabelText('Asistencia'), 'false');
     await usuario.click(screen.getByLabelText('Requiere seguimiento'));
     await usuario.click(screen.getByLabelText('Presenta riesgo crítico'));
@@ -490,7 +493,10 @@ async function llenarResultado(
 ) {
   await usuario.type(screen.getByLabelText('Observaciones'), observaciones);
   await usuario.type(screen.getByLabelText('Acuerdos'), acuerdos);
-  await usuario.selectOptions(screen.getByLabelText('Tipo'), 'SEGUIMIENTO');
+  await usuario.selectOptions(
+    screen.getByLabelText('Tipo de asesoría'),
+    'SEGUIMIENTO',
+  );
   await usuario.selectOptions(screen.getByLabelText('Asistencia'), 'false');
   await usuario.click(screen.getByLabelText('Requiere seguimiento'));
   await usuario.click(screen.getByLabelText('Presenta riesgo crítico'));
@@ -580,7 +586,7 @@ describe('Formularios tras cada operación (F5b, Commit 3)', () => {
     ).toHaveLength(2);
     expect(valorDe('Observaciones')).toBe('');
     expect(valorDe('Acuerdos')).toBe('');
-    expect(valorDe('Tipo')).toBe('ORIENTACION');
+    expect(valorDe('Tipo de asesoría')).toBe('ORIENTACION');
     expect(valorDe('Asistencia')).toBe('true');
     expect(marcada('Requiere seguimiento')).toBe(false);
     expect(marcada('Presenta riesgo crítico')).toBe(false);
@@ -632,7 +638,7 @@ describe('Formularios tras cada operación (F5b, Commit 3)', () => {
     );
     expect(valorDe('Observaciones')).toBe('Texto a conservar');
     expect(valorDe('Acuerdos')).toBe('Acuerdo a conservar');
-    expect(valorDe('Tipo')).toBe('SEGUIMIENTO');
+    expect(valorDe('Tipo de asesoría')).toBe('SEGUIMIENTO');
     expect(valorDe('Asistencia')).toBe('false');
     expect(marcada('Requiere seguimiento')).toBe(true);
     expect(marcada('Presenta riesgo crítico')).toBe(true);

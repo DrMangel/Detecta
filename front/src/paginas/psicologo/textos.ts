@@ -5,6 +5,7 @@ import type {
   RutaAtencion,
   TipoAsesoria,
 } from '../../servicios-api/psicologo';
+import { ROTULOS_COMUNES } from '../../componentes/etiquetas';
 
 /* Textos de F4a: transcritos, reutilizados del backend o provisionales. */
 
@@ -30,7 +31,7 @@ export const ROTULOS_PSICOLOGO = {
   casosAsignados: 'Asignadas a mí',
   verExpediente: 'Ver expediente',
   origen: 'Origen',
-  ruta: 'Ruta de atención',
+  ruta: ROTULOS_COMUNES.rutaAtencion,
   antecedentes: 'Antecedentes académicos',
   citas: 'Citas',
   asesoria: 'Resultado de asesoría',
@@ -103,10 +104,24 @@ export const TEXTO_RESULTADO_INCIERTO =
   'No se pudo confirmar el resultado. Para evitar repetir el dictamen, no puede enviarse de nuevo desde esta pantalla.';
 export const TEXTO_CONSENTIMIENTO_CONFIRMADO =
   'El consentimiento informado está confirmado.';
+/** Casilla de la confirmación (F4b; ahora dentro del diálogo de §7.6). */
+export const TEXTO_PREGUNTA_CONSENTIMIENTO =
+  '¿El acudiente otorgó el consentimiento informado?';
+
+/** Remisiones, ayuda bajo el título (§8; F5b-diseño, D7a). */
+export const AYUDA_REMISIONES = 'Casos remitidos a psicología.';
+/** Enlace de regreso del expediente (§7.5 y §8; F5b-diseño, D7a). */
+export const TEXTO_VOLVER_REMISIONES = 'Volver a remisiones';
 
 /** El backend da un único mensaje con barra para los dos estados terminales. */
 export const MENSAJE_DICTAMEN_POR_ESTADO = {
   EN_EVALUACION: 'Caso aprobado. Programe la cita',
   ARCHIVADO: 'Caso archivado',
   REORIENTADO: 'Caso reorientado',
+} as const;
+
+/** Tarjeta del inicio (especificación de diseño §7.0 y §8; provisional). */
+export const DESCRIPCION_INICIO_PSICOLOGO = {
+  remisiones:
+    'Atiende los casos remitidos a psicología y consulta sus expedientes.',
 } as const;

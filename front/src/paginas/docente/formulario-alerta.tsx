@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { formatearAsistencia, formatearNota } from '../../componentes/formato';
 import { CampoTexto } from '../../componentes/campo-texto';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
+import { Icono } from '../../componentes/icono';
 import { MensajeError } from '../../componentes/mensaje-error';
 import { useEnvio } from '../../componentes/use-envio';
 import {
@@ -79,31 +80,23 @@ function pasosAlerta(
   };
 }
 
-export function FormularioAlerta({
-  curso,
-  registro,
-  alCerrar,
-  alEmitir,
-}: {
+interface PropsAlerta {
   curso: ConsultaCurso['curso'];
   registro: RegistroCurso;
-  alCerrar: () => void;
   alEmitir: () => void;
-}) {
-  const idTitulo = useId();
-  const idErrorCampos = useId();
-  const seccion = useRef<HTMLElement>(null);
+}
+
+/**
+ * Estado y envío de la alerta (CUD03 pasos 6 a 8): la validación de 6.a, el
+ * envío con conciliación y el resultado incierto. La vista solo lo pinta.
+ */
+function useEmisionAlerta({ curso, registro, alEmitir }: PropsAlerta) {
   const [nivelRiesgo, setNivelRiesgo] = useState<NivelRiesgo | null>(null);
   const [descripcion, setDescripcion] = useState('');
   const [errorCampos, setErrorCampos] = useState<string | null>(null);
   // 401: ProveedorSesion ya llevó al inicio de sesión; el borrador no se
   // conserva.
   const { enviando, error, ponerError, ejecutar } = useEnvio();
-
-  // Ajuste B: al abrir (o al cambiar de estudiante) el foco pasa al formulario.
-  useEffect(() => {
-    seccion.current?.focus();
-  }, [registro.idRegistro]);
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -132,65 +125,88 @@ export function FormularioAlerta({
     alEmitir();
   };
 
-  const vacio = errorCampos !== null;
+  return {
+    nivelRiesgo,
+    setNivelRiesgo,
+    descripcion,
+    setDescripcion,
+    errorCampos,
+    enviando,
+    error,
+    enviar,
+  };
+}
+
+export function FormularioAlerta({
+  curso,
+  registro,
+  alCerrar,
+  alEmitir,
+}: PropsAlerta & { alCerrar: () => void }) {
+  const idTitulo = useId();
+  const idErrorCampos = useId();
+  const seccion = useRef<HTMLElement>(null);
+  const alerta = useEmisionAlerta({ curso, registro, alEmitir });
+
+  // Ajuste B: al abrir (o al cambiar de estudiante) el foco pasa al formulario.
+  useEffect(() => {
+    seccion.current?.focus();
+  }, [registro.idRegistro]);
+
+  const vacio = alerta.errorCampos !== null;
 
   return (
     <section
       ref={seccion}
       tabIndex={-1}
       aria-labelledby={idTitulo}
-      className={controles['seccion']}
+      className={`${controles['seccion']} ${controles['tarjeta']} ${estilos['destacada']}`}
     >
       <h2 id={idTitulo}>{ROTULOS_DOCENTE.emitirAlerta}</h2>
-      <form className={estilos['panel']} onSubmit={enviar} noValidate>
-        <dl className={estilos['registro']}>
-          <dt>{ROTULOS_DOCENTE.estudiante}</dt>
-          <dd>{registro.estudiante.nombre}</dd>
-          <dt>{ROTULOS_DOCENTE.curso}</dt>
-          <dd>{curso.nombre}</dd>
-          <dt>{ROTULOS_DOCENTE.nota}</dt>
-          <dd>{formatearNota(registro.nota)}</dd>
-          <dt>{ROTULOS_DOCENTE.asistencia}</dt>
-          <dd>{formatearAsistencia(registro.porcentajeAsistencia)}</dd>
-        </dl>
+      <form
+        className={estilos['panel']}
+        onSubmit={(evento) => void alerta.enviar(evento)}
+        noValidate
+      >
+        <DatosRegistro curso={curso} registro={registro} />
 
         <GrupoOpciones
           leyenda={ROTULOS_DOCENTE.nivelRiesgo}
           opciones={NIVELES}
           etiquetas={NOMBRE_NIVEL_RIESGO}
-          valor={nivelRiesgo}
-          alCambiar={setNivelRiesgo}
-          invalido={vacio && nivelRiesgo === null}
-          clase={estilos['grupo']}
+          valor={alerta.nivelRiesgo}
+          alCambiar={alerta.setNivelRiesgo}
+          invalido={vacio && alerta.nivelRiesgo === null}
         />
 
         <CampoTexto
           rotulo={ROTULOS_DOCENTE.justificacion}
-          valor={descripcion}
-          alCambiar={setDescripcion}
+          valor={alerta.descripcion}
+          alCambiar={alerta.setDescripcion}
           maximo={LIMITES.descripcion}
           multilinea
           requerido
           contador
-          invalido={vacio && descripcion.trim() === ''}
+          invalido={vacio && alerta.descripcion.trim() === ''}
           descritoPor={vacio ? idErrorCampos : undefined}
           clase={estilos['campo']}
         />
 
-        <MensajeError mensaje={errorCampos} id={idErrorCampos} />
-        <MensajeError mensaje={error} />
+        <MensajeError mensaje={alerta.errorCampos} id={idErrorCampos} enLinea />
+        <MensajeError mensaje={alerta.error} />
         <div className={estilos['acciones']}>
           <button
             type="submit"
-            className={estilos['boton']}
-            disabled={enviando}
+            className={controles['boton']}
+            disabled={alerta.enviando}
           >
+            <Icono nombre="send" tamano={18} />
             {ROTULOS_DOCENTE.emitirAlerta}
           </button>
           <button
             type="button"
-            className={estilos['botonSecundario']}
-            disabled={enviando}
+            className={controles['boton-secundario']}
+            disabled={alerta.enviando}
             onClick={alCerrar}
           >
             {ROTULOS_DOCENTE.cancelar}
@@ -198,5 +214,24 @@ export function FormularioAlerta({
         </div>
       </form>
     </section>
+  );
+}
+
+/** Bloque de solo lectura con el registro que sustenta la alerta (§7.3). */
+function DatosRegistro({
+  curso,
+  registro,
+}: Pick<PropsAlerta, 'curso' | 'registro'>) {
+  return (
+    <dl className={estilos['registro']}>
+      <dt>{ROTULOS_DOCENTE.estudiante}</dt>
+      <dd>{registro.estudiante.nombre}</dd>
+      <dt>{ROTULOS_DOCENTE.curso}</dt>
+      <dd>{curso.nombre}</dd>
+      <dt>{ROTULOS_DOCENTE.nota}</dt>
+      <dd>{formatearNota(registro.nota)}</dd>
+      <dt>{ROTULOS_DOCENTE.asistencia}</dt>
+      <dd>{formatearAsistencia(registro.porcentajeAsistencia)}</dd>
+    </dl>
   );
 }

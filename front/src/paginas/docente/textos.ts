@@ -29,11 +29,6 @@ export const ROTULOS_DOCENTE = {
   ...ROTULOS_COMUNES,
   emitirAlerta: 'Emitir alerta',
   estadoAtencion: 'Estado de atención',
-  /**
-   * Cierra el formulario sin emitir (ajuste B: «al cerrarlo»). No estaba en
-   * la lista de §4: pendiente de confirmación en el informe de cierre.
-   */
-  cancelar: 'Cancelar',
 } as const;
 
 export const TEXTO_SIN_ALERTAS_EMITIDAS =
@@ -42,3 +37,20 @@ export const TEXTO_SIN_ALERTAS_EMITIDAS =
 /** Error de red con resultado incierto (§5 del plan; como en F1). */
 export const TEXTO_ALERTA_INCIERTA =
   'No se pudo confirmar si la alerta fue registrada. Revise «Alertas emitidas» antes de emitirla de nuevo.';
+
+/* ---------- Nuevos de F5b-diseño (D5; provisionales, revisión en F5c) ---------- */
+
+/** Ayuda del listado (§7.3; formato del mockup 04, respuesta 2 de D5). */
+export const ayudaCurso = (nombre: string, codigo: string, periodo: string) =>
+  `${nombre} · Código ${codigo} · Periodo ${periodo}`;
+
+/** Tarjeta de cantidad (§8 «{n} estudiantes»; singular, respuesta 4 de D5). */
+export const cantidadEstudiantes = (cantidad: number) =>
+  cantidad === 1 ? '1 estudiante' : `${cantidad} estudiantes`;
+
+/** Tarjetas del inicio (especificación de diseño §7.0 y §8; provisionales). */
+export const DESCRIPCION_INICIO_DOCENTE = {
+  consultaCurso:
+    'Revisa las notas y la asistencia de tu curso y emite alertas tempranas.',
+  alertasEmitidas: 'Consulta las alertas que has emitido en el periodo.',
+} as const;

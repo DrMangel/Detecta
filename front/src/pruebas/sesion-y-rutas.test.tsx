@@ -11,11 +11,12 @@ import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
  * protegida lleva al inicio de sesión con el aviso una vez (ajuste A).
  */
 
-const ROLES: [Rol, string, string][] = [
-  ['ESTUDIANTE', '/estudiante', 'Consulta académica'],
-  ['DOCENTE', '/docente', 'Consulta de curso'],
-  ['JEFE_DEPARTAMENTO', '/jefe-departamento', 'Casos pendientes'],
-  ['PSICOLOGO', '/psicologo', 'Remisiones'],
+/* Tras iniciar sesión, cada rol llega a su inicio (F5b-diseño, §7.0). */
+const ROLES: [Rol, string][] = [
+  ['ESTUDIANTE', '/estudiante/inicio'],
+  ['DOCENTE', '/docente/inicio'],
+  ['JEFE_DEPARTAMENTO', '/jefe-departamento/inicio'],
+  ['PSICOLOGO', '/psicologo/inicio'],
 ];
 
 async function iniciarComo(correo: string, contrasena: string) {
@@ -30,14 +31,11 @@ async function iniciarComo(correo: string, contrasena: string) {
 
 describe('Inicio de sesión por rol', () => {
   it.each(ROLES)(
-    '%s inicia sesión y ve su espacio vacío en %s',
-    async (rol, ruta, titulo) => {
+    '%s inicia sesión y llega a su inicio en %s',
+    async (rol, ruta) => {
       const { llamadas } = simularApi({
         'GET /acceso/sesion': SIN_SESION,
         'POST /acceso/iniciar-sesion': { estado: 200, cuerpo: sesionDe(rol) },
-        ...(rol === 'PSICOLOGO'
-          ? { 'GET /atencion/casos': { estado: 200, cuerpo: [] } }
-          : {}),
       });
       renderizar('/');
       await iniciarComo(
@@ -46,19 +44,11 @@ describe('Inicio de sesión por rol', () => {
       );
 
       expect(
-        await screen.findByRole('heading', { level: 1, name: titulo }),
+        await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' }),
       ).toBeInTheDocument();
       expect(screen.getByTestId('ruta')).toHaveTextContent(ruta);
-      await waitFor(() => expect(document.title).toBe(`${titulo} · DETECTA`));
+      await waitFor(() => expect(document.title).toBe('Inicio · DETECTA'));
       expect(screen.getByText(`Usuario ${rol}`)).toBeInTheDocument();
-      // Espacio vacío: solo el título dentro del contenido principal. Los del
-      // Estudiante (F1), del Docente (F2) y del Jefe (F3) ya tienen contenido.
-      if (rol === 'PSICOLOGO') {
-        expect(
-          screen.getByText('No hay remisiones para mostrar.'),
-        ).toBeInTheDocument();
-      }
-      // La bandeja del Jefe consulta al montar: se busca el inicio de sesión.
       const inicio = llamadas.find((l) => l.url.endsWith('/iniciar-sesion'));
       expect(inicio?.cuerpo).toEqual({
         correo: `${rol.toLowerCase()}@ejemplo.edu.co`,
@@ -110,7 +100,9 @@ describe('Rutas protegidas por rol (ayuda de usabilidad)', () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId('ruta')).toHaveTextContent('/iniciar-sesion');
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(document.title).toBe('Iniciar sesión · DETECTA');
+    await waitFor(() =>
+      expect(document.title).toBe('Iniciar sesión · DETECTA'),
+    );
     expect(falso).toHaveBeenCalledTimes(1);
   });
 

@@ -51,7 +51,7 @@ async function abrirPlan(registro: Simulacion | (() => Simulacion)) {
   const usuario = userEvent.setup();
   await usuario.click(await screen.findByLabelText('Ruta académica'));
   await usuario.click(screen.getByRole('button', { name: 'Canalizar caso' }));
-  await screen.findByRole('heading', { name: 'Plan de nivelación' });
+  await screen.findByRole('heading', { name: 'Planes del caso' });
   return { ...api, usuario };
 }
 
@@ -295,7 +295,7 @@ function abrirDetalle(
 describe('Enlace de regreso sin bandeja de origen (F5b)', () => {
   it('URL directa a un caso en ruta académica: «Volver a casos en ruta académica» y su resalte', async () => {
     reabrir([]);
-    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    await screen.findByRole('heading', { name: 'Planes del caso' });
     const volver = screen.getByRole('link', {
       name: 'Volver a casos en ruta académica',
     });
@@ -327,7 +327,7 @@ describe('Enlace de regreso sin bandeja de origen (F5b)', () => {
       },
       { origen: 'informes' },
     );
-    await screen.findByRole('heading', { name: 'Plan de nivelación' });
+    await screen.findByRole('heading', { name: 'Planes del caso' });
     expect(
       screen.getByRole('link', { name: 'Volver a casos en ruta académica' }),
     ).toBeInTheDocument();

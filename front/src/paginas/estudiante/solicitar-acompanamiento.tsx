@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
+import { Aviso } from '../../componentes/aviso';
 import { CampoTexto } from '../../componentes/campo-texto';
 import { GrupoOpciones } from '../../componentes/grupo-opciones';
+import { Icono } from '../../componentes/icono';
 import { useLocation } from 'react-router';
 import { formatearFecha } from '../../componentes/formato';
 import {
@@ -25,8 +27,11 @@ import controles from '../../componentes/controles.module.css';
 import estilos from './estudiante.module.css';
 import { PlantillaEstudiante } from './plantilla-estudiante';
 import {
+  AVISO_GENERAL_SOLICITUD,
   AVISO_QUIEN_VE,
   AVISO_REMISION_PSICOLOGIA,
+  AVISO_SIN_JEFE,
+  AYUDA_ESTUDIANTE,
   ROTULOS_ESTUDIANTE,
   TEXTO_ASESORIA_EDUCATIVA,
   TEXTO_MOTIVO_VACIO,
@@ -107,6 +112,9 @@ function useBorrador() {
   };
 }
 
+/** Formulario en tarjeta del Estudiante, de 860 px como máximo (§7.2). */
+const CLASE_FORMULARIO = `${controles['formulario']} ${controles['tarjeta']} ${controles['tarjeta-estudiante']} ${estilos['solicitud']}`;
+
 function SolicitarAcompanamiento() {
   const borrador = useBorrador();
   const { tipoApoyo, motivo, disponibilidad } = borrador;
@@ -115,11 +123,6 @@ function SolicitarAcompanamiento() {
   // 401: ProveedorSesion ya llevó al inicio de sesión y el borrador no se
   // conserva (respuesta 5 de F1).
   const { enviando, enEspera, error, ponerError, ejecutar } = useEnvio();
-
-  const terminar = (registrada: Solicitud) => {
-    setComprobante(registrada);
-    borrador.vaciar();
-  };
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
@@ -142,7 +145,8 @@ function SolicitarAcompanamiento() {
       ponerError(TEXTO_RESULTADO_INCIERTO);
       return;
     }
-    terminar(resultado.valor);
+    setComprobante(resultado.valor);
+    borrador.vaciar();
   };
 
   if (comprobante !== null) {
@@ -150,16 +154,18 @@ function SolicitarAcompanamiento() {
   }
 
   return (
-    <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
+    <PlantillaEstudiante
+      titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}
+      ayuda={AYUDA_ESTUDIANTE.solicitud}
+    >
       <p className={estilos['caracter']}>{TEXTO_ASESORIA_EDUCATIVA}</p>
-      <form className={controles['formulario']} onSubmit={enviar} noValidate>
+      <form className={CLASE_FORMULARIO} onSubmit={enviar} noValidate>
         <GrupoOpciones
           leyenda={ROTULOS_ESTUDIANTE.tipoApoyo}
           opciones={TIPOS}
           etiquetas={NOMBRE_TIPO_APOYO}
           valor={tipoApoyo}
           alCambiar={borrador.setTipoApoyo}
-          clase={estilos['grupo']}
         />
 
         <AvisoQuienVe tipoApoyo={tipoApoyo} />
@@ -190,6 +196,7 @@ function SolicitarAcompanamiento() {
           className={controles['boton']}
           disabled={tipoApoyo === null || enviando || enEspera}
         >
+          <Icono nombre="send" />
           {ROTULOS_ESTUDIANTE.enviar}
         </button>
       </form>
@@ -197,17 +204,31 @@ function SolicitarAcompanamiento() {
   );
 }
 
-/** Paso 3 de R02: quién podrá ver la solicitud, antes del envío. */
+/** Segunda línea del aviso según el tipo (R02; complemento de D4b). */
+const COMPLEMENTO_AVISO: Readonly<Record<TipoApoyo, string>> = {
+  ACADEMICA: AVISO_REMISION_PSICOLOGIA,
+  PSICOLOGICA: AVISO_SIN_JEFE,
+};
+
+/**
+ * Paso 3 de R02: quién podrá ver la solicitud, antes del envío. Sin tipo
+ * elegido se ve el aviso general de §8; al elegir, lo reemplaza el aviso de
+ * R02 por tipo, sin repetir contenido (4b de D4).
+ */
 function AvisoQuienVe({ tipoApoyo }: { tipoApoyo: TipoApoyo | null }) {
   // Región viva siempre montada: el cambio de aviso se anuncia.
   return (
     <div aria-live="polite">
-      {tipoApoyo !== null && (
-        <div className={estilos['aviso']}>
-          <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
-          {tipoApoyo === 'ACADEMICA' && <p>{AVISO_REMISION_PSICOLOGIA}</p>}
-        </div>
-      )}
+      <Aviso icono="lock">
+        {tipoApoyo === null ? (
+          <p>{AVISO_GENERAL_SOLICITUD}</p>
+        ) : (
+          <>
+            <p>{AVISO_QUIEN_VE[tipoApoyo]}</p>
+            <p>{COMPLEMENTO_AVISO[tipoApoyo]}</p>
+          </>
+        )}
+      </Aviso>
     </div>
   );
 }
@@ -218,7 +239,9 @@ function ComprobanteSolicitud({ comprobante }: { comprobante: Solicitud }) {
     <PlantillaEstudiante titulo={TITULOS_ESTUDIANTE.nuevaSolicitud}>
       <div className={estilos['comprobante']}>
         <MensajeInformativo mensaje={TEXTO_SOLICITUD_RECIBIDA} />
-        <dl className={`${estilos['datos']} ${estilos['tarjeta']}`}>
+        <dl
+          className={`${estilos['datos']} ${controles['tarjeta']} ${controles['tarjeta-estudiante']}`}
+        >
           <dt>{ROTULOS_ESTUDIANTE.codigo}</dt>
           <dd>{comprobante.codigo}</dd>
           <dt>{ROTULOS_ESTUDIANTE.fecha}</dt>

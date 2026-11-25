@@ -1,0 +1,33 @@
+/*
+ * Aviso con ícono (§4): tinte azul, texto en primario oscuro (8,41:1) y
+ * radio de control. Antes vivía en estudiante.module.css (D4b); desde D7a
+ * lo comparten el Estudiante y el Psicólogo.
+ */
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-1-5);
+  padding: 0.875rem var(--espacio-3);
+  border-radius: var(--radio-control);
+  background: var(--color-primario-tinte);
+  color: var(--color-primario-hover);
+  font-size: 0.875rem;
+}
+
+.aviso svg {
+  flex: none;
+  margin-top: 0.0625rem;
+}
+
+.texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.texto p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

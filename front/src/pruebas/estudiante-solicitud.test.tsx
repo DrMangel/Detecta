@@ -85,8 +85,12 @@ function envios(llamadas: LlamadaRegistrada[]) {
   );
 }
 
+/** Aviso general antes de elegir el tipo de apoyo (§8; D4b). */
+const AVISO_GENERAL =
+  'Las solicitudes académicas las atiende el Programa. Las psicosociales solo las verá el área de Psicología; el Jefe de Departamento no tendrá acceso a ellas.';
+
 describe('Formulario de solicitud (CUD02 pasos 2 a 4)', () => {
-  it('sin tipo de apoyo no se puede enviar y no hay aviso; el carácter de asesoría educativa está a la vista (ER 1.3.4)', async () => {
+  it('sin tipo de apoyo no se puede enviar y se ve el aviso general (D4b); el carácter de asesoría educativa está a la vista (ER 1.3.4)', async () => {
     simularApi({ 'GET /acceso/sesion': SESION });
     renderizar('/estudiante/solicitudes/nueva');
     expect(
@@ -97,7 +101,8 @@ describe('Formulario de solicitud (CUD02 pasos 2 a 4)', () => {
       screen.getByRole('radio', { name: 'Psicosocial' }),
     ).not.toBeChecked();
     expect(botonEnviar()).toBeDisabled();
-    expect(screen.queryByText(/Podrá ver su solicitud/)).toBeNull();
+    expect(screen.queryByText(/Podrá ver tu solicitud/)).toBeNull();
+    expect(screen.getByText(AVISO_GENERAL)).toBeInTheDocument();
     expect(
       screen.getByText(
         'El acompañamiento de DETECTA es una asesoría educativa y no una intervención clínica.',
@@ -108,34 +113,6 @@ describe('Formulario de solicitud (CUD02 pasos 2 a 4)', () => {
     ).not.toBeRequired();
   });
 
-  it('el aviso de R02 cambia según el tipo, antes del envío', async () => {
-    simularApi({ 'GET /acceso/sesion': SESION });
-    renderizar('/estudiante/solicitudes/nueva');
-    const usuario = userEvent.setup();
-
-    await usuario.click(
-      await screen.findByRole('radio', { name: 'Académico' }),
-    );
-    expect(
-      screen.getByText(
-        'Podrá ver su solicitud el Jefe de Departamento de Programa.',
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Si lo considera necesario, podrá remitirla a psicología; en ese caso dejará de verla y la verá el Psicólogo.',
-      ),
-    ).toBeInTheDocument();
-    expect(botonEnviar()).toBeEnabled();
-
-    await usuario.click(screen.getByRole('radio', { name: 'Psicosocial' }));
-    expect(
-      screen.getByText('Podrá ver su solicitud el Psicólogo.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/remitirla a psicología/)).toBeNull();
-    expect(screen.queryByText(/Jefe de Departamento/)).toBeNull();
-  });
-
   it('motivo vacío o solo espacios (5.a): el texto de sd_CUD02 junto al campo y no se envía', async () => {
     const { llamadas } = simularApi({ 'GET /acceso/sesion': SESION });
     renderizar('/estudiante/solicitudes/nueva');
@@ -143,14 +120,14 @@ describe('Formulario de solicitud (CUD02 pasos 2 a 4)', () => {
     await usuario.type(screen.getByLabelText('Motivo'), '   ');
     await usuario.click(botonEnviar());
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Describa el motivo de la solicitud',
+      'Describe el motivo de tu solicitud',
     );
     expect(screen.getByLabelText('Motivo')).toHaveAttribute(
       'aria-invalid',
       'true',
     );
     expect(screen.getByLabelText('Motivo')).toHaveAccessibleDescription(
-      'Describa el motivo de la solicitud',
+      'Describe el motivo de tu solicitud',
     );
     expect(llamadas.some((l) => l.url.includes('solicitudes'))).toBe(false);
   });
@@ -169,6 +146,42 @@ describe('Formulario de solicitud (CUD02 pasos 2 a 4)', () => {
   });
 });
 
+describe('Aviso de R02 según el tipo (CUD02 paso 3; D4b)', () => {
+  it('el aviso de R02 cambia según el tipo, antes del envío', async () => {
+    simularApi({ 'GET /acceso/sesion': SESION });
+    renderizar('/estudiante/solicitudes/nueva');
+    const usuario = userEvent.setup();
+
+    await usuario.click(
+      await screen.findByRole('radio', { name: 'Académico' }),
+    );
+    expect(
+      screen.getByText(
+        'Podrá ver tu solicitud el Jefe de Departamento de Programa.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Si lo considera necesario, podrá remitirla a psicología; en ese caso dejará de verla y la verá el Psicólogo.',
+      ),
+    ).toBeInTheDocument();
+    expect(botonEnviar()).toBeEnabled();
+    // Al elegir el tipo, el aviso general se reemplaza (D4b).
+    expect(screen.queryByText(AVISO_GENERAL)).toBeNull();
+
+    await usuario.click(screen.getByRole('radio', { name: 'Psicosocial' }));
+    expect(
+      screen.getByText('Podrá ver tu solicitud el Psicólogo.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('El Jefe de Departamento no tendrá acceso a ella.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Podrá ver tu solicitud el Jefe/)).toBeNull();
+    expect(screen.queryByText(/remitirla a psicología/)).toBeNull();
+    expect(screen.queryByText(AVISO_GENERAL)).toBeNull();
+  });
+});
+
 describe('Comprobante (CUD02 pasos 6 y 7; ER 3.3.3)', () => {
   it('201: el comprobante con código de rastreo, fecha y «Pendiente», sin datos de identidad', async () => {
     const { llamadas } = simularApi({
@@ -181,7 +194,7 @@ describe('Comprobante (CUD02 pasos 6 y 7; ER 3.3.3)', () => {
     await usuario.click(botonEnviar());
 
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Su solicitud fue recibida.',
+      'Tu solicitud fue recibida.',
     );
     const contenido = within(screen.getByRole('main'));
     expect(
@@ -218,7 +231,7 @@ describe('Comprobante (CUD02 pasos 6 y 7; ER 3.3.3)', () => {
     renderizar('/estudiante/solicitudes/nueva');
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
-    await screen.findByText('Su solicitud fue recibida.');
+    await screen.findByText('Tu solicitud fue recibida.');
 
     await usuario.click(
       within(screen.getByRole('navigation')).getByRole('link', {
@@ -249,7 +262,7 @@ describe('Doble envío (sección i y ajuste C)', () => {
     await usuario.click(botonEnviar());
     responder(CREADA as RespuestaSimulada);
     expect(
-      await screen.findByText('Su solicitud fue recibida.'),
+      await screen.findByText('Tu solicitud fue recibida.'),
     ).toBeInTheDocument();
     expect(envios(llamadas)).toHaveLength(1);
   });
@@ -280,7 +293,7 @@ describe('Doble envío (sección i y ajuste C)', () => {
     await usuario.click(botonEnviar());
 
     expect(
-      await screen.findByText('Su solicitud fue recibida.'),
+      await screen.findByText('Tu solicitud fue recibida.'),
     ).toBeInTheDocument();
     expect(screen.getByText('nueva-registrada')).toBeInTheDocument();
     expect(envios(llamadas)).toHaveLength(1);
@@ -320,7 +333,7 @@ describe('Doble envío (sección i y ajuste C)', () => {
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
     expect(
-      await screen.findByText('Su solicitud fue recibida.'),
+      await screen.findByText('Tu solicitud fue recibida.'),
     ).toBeInTheDocument();
     expect(envios(llamadas)).toHaveLength(1);
   });
@@ -335,7 +348,7 @@ describe('Doble envío (sección i y ajuste C)', () => {
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'No se pudo confirmar si su solicitud fue registrada. Revise «Mis solicitudes» antes de enviarla de nuevo.',
+      'No se pudo confirmar si tu solicitud fue registrada. Revisa «Mis solicitudes» antes de enviarla de nuevo.',
     );
     expect(screen.getByLabelText('Motivo')).toHaveValue(MOTIVO);
   });
@@ -354,7 +367,7 @@ describe('Doble envío (sección i y ajuste C)', () => {
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      /^No se pudo confirmar si su solicitud fue registrada\./,
+      /^No se pudo confirmar si tu solicitud fue registrada\./,
     );
     expect(screen.getByLabelText('Motivo')).toHaveValue(MOTIVO);
   });
@@ -394,7 +407,7 @@ describe('Errores al enviar (R02 6.a, D21 y uniformes de F0)', () => {
 
     await usuario.click(botonEnviar());
     expect(
-      await screen.findByText('Su solicitud fue recibida.'),
+      await screen.findByText('Tu solicitud fue recibida.'),
     ).toBeInTheDocument();
     const [primero, segundo] = envios(llamadas);
     expect(segundo?.cuerpo).toEqual(primero?.cuerpo);
@@ -521,7 +534,7 @@ describe('Datos confidenciales en el navegador', () => {
     renderizar('/estudiante/solicitudes/nueva');
     const usuario = await diligenciar();
     await usuario.click(botonEnviar());
-    await screen.findByText('Su solicitud fue recibida.');
+    await screen.findByText('Tu solicitud fue recibida.');
     expect(escribir).not.toHaveBeenCalled();
     expect(localStorage).toHaveLength(0);
     expect(sessionStorage).toHaveLength(0);

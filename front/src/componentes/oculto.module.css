@@ -1,0 +1,15 @@
+/*
+ * Texto solo para lectores de pantalla, compartido (F5b-diseño, D3): antes
+ * vivía en tabla.module.css, pero también lo usa la línea de estado.
+ */
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

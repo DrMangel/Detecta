@@ -67,4 +67,24 @@ describe('GrupoOpciones', () => {
       screen.getByRole('group', { name: 'Nivel de riesgo' }),
     ).toHaveAttribute('aria-invalid', 'true');
   });
+
+  it('selección en caja (§4, D3b): clases del grupo y de cada opción, y aria-invalid', () => {
+    render(
+      <GrupoOpciones
+        leyenda="Nivel de riesgo"
+        opciones={OPCIONES}
+        etiquetas={ETIQUETAS}
+        valor={null}
+        alCambiar={() => undefined}
+        invalido
+        clase="propia-del-rol"
+      />,
+    );
+    const grupo = screen.getByRole('group', { name: 'Nivel de riesgo' });
+    expect(grupo).toHaveClass('grupo', 'grupo-cajas', 'propia-del-rol');
+    expect(grupo).toHaveAttribute('aria-invalid', 'true');
+    for (const opcion of within(grupo).getAllByRole('radio')) {
+      expect(opcion.closest('label')).toHaveClass('opcion-caja');
+    }
+  });
 });

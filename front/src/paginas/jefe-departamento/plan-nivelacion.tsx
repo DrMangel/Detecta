@@ -1,10 +1,15 @@
-import { useId, useState, type FormEvent } from 'react';
-import { CampoTexto } from '../../componentes/campo-texto';
-import controles from '../../componentes/controles.module.css';
 import {
-  ROTULOS_COMUNES,
-  TEXTO_INFORMACION_NO_DISPONIBLE,
-} from '../../componentes/etiquetas';
+  useId,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from 'react';
+import { CampoTexto } from '../../componentes/campo-texto';
+import { ParesDatos, type Dato } from '../../componentes/pares-datos';
+import controles from '../../componentes/controles.module.css';
+import { TEXTO_INFORMACION_NO_DISPONIBLE } from '../../componentes/etiquetas';
+import { InsigniaEstado, type TonoEstado } from '../../componentes/insignias';
 import {
   MensajeError,
   MensajeInformativo,
@@ -17,6 +22,7 @@ import {
   registrarPlan,
   type Antecedente,
   type DatosPlan,
+  type EstadoPlan,
   type Plan,
   type PlanCaso,
 } from '../../servicios-api/jefe-departamento';
@@ -24,11 +30,13 @@ import { LIMITES } from '../../servicios-api/limites';
 import estilos from './jefe-departamento.module.css';
 import {
   NOMBRE_ESTADO_PLAN,
+  ROTULOS_DISENO_JEFE,
   ROTULOS_JEFE,
   TEXTO_FALTA_TUTOR,
   TEXTO_PLAN_INCIERTO,
   TEXTO_PLAN_REGISTRADO,
   TEXTO_SIN_CURSOS,
+  tituloPlan,
 } from './textos';
 
 /*
@@ -50,7 +58,22 @@ import {
  *   segundo envío lo duplicaría (D29), así que el registro queda bloqueado
  *   mientras el Jefe siga en la vista (decisión de Ivan en F3). Un 400, 409 o
  *   503 no guardó nada: se muestra su texto y lo escrito se conserva.
+ *
+ * Diseño de F5b (D6; maqueta 08, solo el aspecto): cada plan en su tarjeta,
+ * «Plan {n}» en el orden del backend (el más antiguo primero), insignia de
+ * estado, cronograma con sus saltos de línea y «Finalizar plan» secundario;
+ * el formulario, al final y en tarjeta. La lista de planes la guarda el
+ * detalle, que pinta la línea de estado.
  */
+
+/** Insignia del plan (§4): activo en azul (en curso), finalizado neutro. */
+const TONO_PLAN: Readonly<Record<EstadoPlan, TonoEstado>> = {
+  ACTIVO: 'azul',
+  FINALIZADO: 'neutro',
+};
+
+/** Tarjeta de plan o de formulario dentro de «Planes del caso». */
+const TARJETA = `${controles['tarjeta']} ${estilos['plan']}`;
 
 /** Cursos sin repetir de los registros del estudiante. */
 function cursosDelEstudiante(
@@ -84,45 +107,47 @@ function faltante(datos: DatosPlan): string | null {
 }
 
 export function PlanNivelacion({
-  idCaso,
-  antecedentes,
+  caso,
   planes,
+  alCambiarPlanes,
 }: {
-  idCaso: string;
-  antecedentes: readonly Antecedente[];
+  caso: { idCaso: string; antecedentes: readonly Antecedente[] };
   planes: readonly PlanCaso[];
+  alCambiarPlanes: Dispatch<SetStateAction<PlanCaso[]>>;
 }) {
   const idTitulo = useId();
-  const [lista, setLista] = useState(planes);
   const [registrado, setRegistrado] = useState(false);
 
   const alRegistrar = (plan: Plan) => {
-    setLista((previos) => [...previos, plan]);
+    alCambiarPlanes((previos) => [...previos, plan]);
     setRegistrado(true);
   };
   const alFinalizar = (plan: PlanCaso) =>
-    setLista((previos) =>
+    alCambiarPlanes((previos) =>
       previos.map((previo) => (previo.idPlan === plan.idPlan ? plan : previo)),
     );
 
   return (
     <section aria-labelledby={idTitulo} className={controles['seccion']}>
-      <h2 id={idTitulo}>{ROTULOS_JEFE.planNivelacion}</h2>
+      <h2 id={idTitulo}>{ROTULOS_DISENO_JEFE.planesCaso}</h2>
       <MensajeInformativo mensaje={registrado ? TEXTO_PLAN_REGISTRADO : null} />
-      {lista.map((plan) => (
-        <PlanRegistrado
-          key={plan.idPlan}
-          plan={plan}
-          alFinalizar={alFinalizar}
-        />
-      ))}
-      {!lista.some((plan) => plan.estado === 'ACTIVO') && (
-        <FormularioPlan
-          idCaso={idCaso}
-          antecedentes={antecedentes}
-          alRegistrar={alRegistrar}
-        />
-      )}
+      <div className={estilos['planes']}>
+        {planes.map((plan, indice) => (
+          <PlanRegistrado
+            key={plan.idPlan}
+            plan={plan}
+            numero={indice + 1}
+            alFinalizar={alFinalizar}
+          />
+        ))}
+        {!planes.some((plan) => plan.estado === 'ACTIVO') && (
+          <FormularioPlan
+            idCaso={caso.idCaso}
+            antecedentes={caso.antecedentes}
+            alRegistrar={alRegistrar}
+          />
+        )}
+      </div>
     </section>
   );
 }
@@ -169,6 +194,7 @@ function FormularioPlan({
   const [errorCampos, setErrorCampos] = useState<string | null>(null);
   const { enviando, enEspera, error, bloqueado, registrar } =
     useRegistroPlan(alRegistrar);
+  const idTitulo = useId();
 
   const enviar = (evento: FormEvent) => {
     evento.preventDefault();
@@ -187,45 +213,50 @@ function FormularioPlan({
   };
 
   return (
-    <form className={controles['formulario']} onSubmit={enviar} noValidate>
-      <CampoTexto
-        rotulo={ROTULOS_JEFE.tutorNombre}
-        valor={tutorNombre}
-        alCambiar={setTutorNombre}
-        maximo={LIMITES.tutorNombre}
-        requerido
-      />
-      <CampoTexto
-        rotulo={ROTULOS_JEFE.tutorCodigo}
-        valor={tutorCodigo}
-        alCambiar={setTutorCodigo}
-        maximo={LIMITES.tutorCodigo}
-        requerido
-      />
-      <CursosDelPlan
-        cursos={cursosDelEstudiante(antecedentes)}
-        elegidos={idsCursos}
-        alCambiar={setIdsCursos}
-      />
-      <CampoTexto
-        rotulo={ROTULOS_JEFE.cronograma}
-        valor={cronograma}
-        alCambiar={setCronograma}
-        maximo={LIMITES.cronograma}
-        multilinea
-        contador
-        clase={estilos['campo']}
-      />
-      <MensajeError mensaje={errorCampos} />
-      <MensajeError mensaje={bloqueado ? TEXTO_PLAN_INCIERTO : error} />
-      <button
-        type="submit"
-        className={controles['boton']}
-        disabled={bloqueado || enviando || enEspera}
-      >
-        {ROTULOS_JEFE.registrarPlan}
-      </button>
-    </form>
+    <section aria-labelledby={idTitulo} className={TARJETA}>
+      <h3 id={idTitulo}>{ROTULOS_DISENO_JEFE.registrarPlan}</h3>
+      <form className={estilos['formulario']} onSubmit={enviar} noValidate>
+        <div className={estilos['tutor']}>
+          <CampoTexto
+            rotulo={ROTULOS_JEFE.tutorNombre}
+            valor={tutorNombre}
+            alCambiar={setTutorNombre}
+            maximo={LIMITES.tutorNombre}
+            requerido
+          />
+          <CampoTexto
+            rotulo={ROTULOS_JEFE.tutorCodigo}
+            valor={tutorCodigo}
+            alCambiar={setTutorCodigo}
+            maximo={LIMITES.tutorCodigo}
+            requerido
+          />
+        </div>
+        <CursosDelPlan
+          cursos={cursosDelEstudiante(antecedentes)}
+          elegidos={idsCursos}
+          alCambiar={setIdsCursos}
+        />
+        <CampoTexto
+          rotulo={ROTULOS_JEFE.cronograma}
+          valor={cronograma}
+          alCambiar={setCronograma}
+          maximo={LIMITES.cronograma}
+          multilinea
+          contador
+          clase={estilos['campo']}
+        />
+        <MensajeError mensaje={errorCampos} />
+        <MensajeError mensaje={bloqueado ? TEXTO_PLAN_INCIERTO : error} />
+        <button
+          type="submit"
+          className={controles['boton']}
+          disabled={bloqueado || enviando || enEspera}
+        >
+          {ROTULOS_JEFE.registrarPlan}
+        </button>
+      </form>
+    </section>
   );
 }
 
@@ -245,7 +276,7 @@ function CursosDelPlan({
         : [...elegidos, idCurso],
     );
   return (
-    <fieldset className={estilos['grupo']}>
+    <fieldset className={controles['grupo']}>
       <legend>{ROTULOS_JEFE.cursosPlan}</legend>
       {cursos.length === 0 && <p>{TEXTO_INFORMACION_NO_DISPONIBLE}</p>}
       {cursos.map((curso) => (
@@ -262,14 +293,37 @@ function CursosDelPlan({
   );
 }
 
+/** Tutor, código y cursos; el cronograma solo si se registró (ancho completo). */
+function datosDelPlan(plan: PlanCaso): Dato[] {
+  const datos: Dato[] = [
+    { rotulo: ROTULOS_DISENO_JEFE.tutor, valor: plan.tutorNombre },
+    { rotulo: ROTULOS_JEFE.tutorCodigo, valor: plan.tutorCodigo },
+    {
+      rotulo: ROTULOS_JEFE.cursosPlan,
+      valor: plan.cursos.map((curso) => curso.nombre).join(', '),
+    },
+  ];
+  if (plan.cronograma.trim() !== '') {
+    datos.push({
+      rotulo: ROTULOS_DISENO_JEFE.cronograma,
+      valor: plan.cronograma,
+      ancho: true,
+    });
+  }
+  return datos;
+}
+
 function PlanRegistrado({
   plan,
+  numero,
   alFinalizar,
 }: {
   plan: PlanCaso;
+  numero: number;
   alFinalizar: (plan: PlanCaso) => void;
 }) {
   const { enviando, enEspera, error, ejecutar } = useEnvio();
+  const idTitulo = useId();
 
   const finalizar = async () => {
     const finalizado = await ejecutar(() => finalizarPlan(plan.idPlan));
@@ -279,36 +333,26 @@ function PlanRegistrado({
   };
 
   return (
-    <>
-      <dl className={estilos['datos']}>
-        <div>
-          <dt>{ROTULOS_COMUNES.estado}</dt>
-          <dd>{NOMBRE_ESTADO_PLAN[plan.estado]}</dd>
-        </div>
-        <div>
-          <dt>{ROTULOS_JEFE.tutorNombre}</dt>
-          <dd>{plan.tutorNombre}</dd>
-        </div>
-        <div>
-          <dt>{ROTULOS_JEFE.tutorCodigo}</dt>
-          <dd>{plan.tutorCodigo}</dd>
-        </div>
-        <div>
-          <dt>{ROTULOS_JEFE.cursosPlan}</dt>
-          <dd>{plan.cursos.map((curso) => curso.nombre).join(', ')}</dd>
-        </div>
-      </dl>
+    <article aria-labelledby={idTitulo} className={TARJETA}>
+      <div className={estilos['cabecera-plan']}>
+        <h3 id={idTitulo}>{tituloPlan(numero)}</h3>
+        <InsigniaEstado
+          texto={NOMBRE_ESTADO_PLAN[plan.estado]}
+          tono={TONO_PLAN[plan.estado]}
+        />
+      </div>
+      <ParesDatos datos={datosDelPlan(plan)} columnas={3} />
       <MensajeError mensaje={error} />
       {plan.estado === 'ACTIVO' && (
         <button
           type="button"
-          className={controles['boton']}
+          className={controles['boton-secundario']}
           disabled={enviando || enEspera}
           onClick={() => void finalizar()}
         >
           {ROTULOS_JEFE.finalizarPlan}
         </button>
       )}
-    </>
+    </article>
   );
 }
