@@ -8,6 +8,8 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  // Cada prueba empieza como una pestaña nueva (decisión (g)).
+  sessionStorage.clear();
 });
 
 /*

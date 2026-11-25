@@ -1,9 +1,17 @@
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { LIMITE_CIERRE_MS, MARCA_PESTANA } from '../componentes/sesion';
 import { pedir } from '../servicios-api/cliente';
 import type { Rol } from '../servicios-api/tipos';
-import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
+import {
+  comprobarSoloMarca,
+  renderizar,
+  SIN_SESION,
+  sesionDe,
+  simularApi,
+  type RespuestaSimulada,
+} from './utilidades';
 
 /*
  * Criterio de cierre de F0: cada rol inicia sesión y ve su espacio vacío; es
@@ -19,8 +27,12 @@ const ROLES: [Rol, string][] = [
   ['PSICOLOGO', '/psicologo/inicio'],
 ];
 
-async function iniciarComo(correo: string, contrasena: string) {
-  const usuario = userEvent.setup();
+async function iniciarComo(
+  correo: string,
+  contrasena: string,
+  opciones?: Parameters<typeof userEvent.setup>[0],
+) {
+  const usuario = userEvent.setup(opciones);
   await usuario.type(
     await screen.findByLabelText('Correo electrónico'),
     correo,
@@ -176,25 +188,211 @@ describe('Sesión caducada y cierre de sesión', () => {
   });
 });
 
-describe('Nada en el almacenamiento del navegador', () => {
-  it('iniciar sesión, cerrar sesión y solicitar enlace no escriben en localStorage ni sessionStorage', async () => {
+describe('Almacenamiento del navegador: solo la marca de pestaña (decisión (g))', () => {
+  it('iniciar sesión deja solo la marca, sin token ni correo, y cerrar sesión la borra', async () => {
     const escritura = vi.spyOn(Storage.prototype, 'setItem');
     simularApi({
-      'GET /acceso/sesion': SIN_SESION,
+      'POST /acceso/cerrar-sesion': { estado: 204 },
       'POST /acceso/iniciar-sesion': {
         estado: 200,
         cuerpo: sesionDe('ESTUDIANTE'),
       },
+    });
+    renderizar('/', { marcar: false });
+    await iniciarComo('e@ejemplo.edu.co', 'clave-12345678');
+    await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' });
+    comprobarSoloMarca(escritura);
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
+    expect(localStorage).toHaveLength(0);
+    expect(sessionStorage).toHaveLength(0);
+  });
+});
+
+/*
+ * Decisión (g): en una pestaña nueva siempre se piden correo y contraseña,
+ * aunque la cookie siga vigente. La marca de pestaña distingue la recarga
+ * (F5) de una pestaña nueva.
+ */
+describe('Acceso por pestaña (decisión (g))', () => {
+  const CERRAR = 'POST /api/acceso/cerrar-sesion';
+  const metodosYRutas = (llamadas: { metodo: string; url: string }[]) =>
+    llamadas.map((l) => `${l.metodo} ${l.url}`);
+
+  it('con marca y cookie vigente: restaura la sesión con una sola consulta', async () => {
+    const { llamadas } = simularApi({
+      'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('DOCENTE') },
+    });
+    renderizar('/docente/inicio');
+    await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' });
+    expect(metodosYRutas(llamadas)).toEqual(['GET /api/acceso/sesion']);
+  });
+
+  it('sin marca y cookie vigente: muestra el inicio de sesión, cierra la sesión y no la consulta', async () => {
+    const { llamadas } = simularApi({
+      'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('PSICOLOGO') },
       'POST /acceso/cerrar-sesion': { estado: 204 },
     });
-    renderizar('/');
-    await iniciarComo('e@ejemplo.edu.co', 'clave-12345678');
+    renderizar('/psicologo', { marcar: false });
+    expect(
+      await screen.findByRole('heading', { name: 'Iniciar sesión' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('ruta')).toHaveTextContent('/iniciar-sesion');
+    expect(screen.queryByRole('alert')).toBeNull();
+    await waitFor(() => expect(metodosYRutas(llamadas)).toEqual([CERRAR]));
+  });
+
+  it('recarga en la misma pestaña: tras iniciar sesión, volver a montar restaura la sesión', async () => {
+    simularApi({
+      'POST /acceso/cerrar-sesion': { estado: 204 },
+      'POST /acceso/iniciar-sesion': {
+        estado: 200,
+        cuerpo: sesionDe('JEFE_DEPARTAMENTO'),
+      },
+    });
+    const primera = renderizar('/', { marcar: false });
+    await iniciarComo('j@ejemplo.edu.co', 'clave-12345678');
+    await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' });
+    primera.unmount();
+
+    const { llamadas } = simularApi({
+      'GET /acceso/sesion': {
+        estado: 200,
+        cuerpo: sesionDe('JEFE_DEPARTAMENTO'),
+      },
+    });
+    renderizar('/jefe-departamento/inicio', { marcar: false });
+    await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' });
+    expect(metodosYRutas(llamadas)).toEqual(['GET /api/acceso/sesion']);
+  });
+
+  it('cerrar sesión borra la marca: al volver a montar se piden de nuevo las credenciales', async () => {
+    simularApi({
+      'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('PSICOLOGO') },
+      'GET /atencion/casos': { estado: 200, cuerpo: [] },
+      'POST /acceso/cerrar-sesion': { estado: 204 },
+    });
+    const primera = renderizar('/psicologo');
     await userEvent
       .setup()
       .click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
     await screen.findByRole('heading', { name: 'Iniciar sesión' });
-    expect(escritura).not.toHaveBeenCalled();
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.length).toBe(0);
+    expect(sessionStorage.getItem(MARCA_PESTANA)).toBeNull();
+    primera.unmount();
+
+    const { llamadas } = simularApi({
+      'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('PSICOLOGO') },
+      'POST /acceso/cerrar-sesion': { estado: 204 },
+    });
+    renderizar('/psicologo', { marcar: false });
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
+    await waitFor(() => expect(metodosYRutas(llamadas)).toEqual([CERRAR]));
+  });
+
+  it('401 en una petición protegida: borra la marca', async () => {
+    simularApi({
+      'GET /acceso/sesion': { estado: 200, cuerpo: sesionDe('ESTUDIANTE') },
+      'GET /consulta/registros': SIN_SESION,
+    });
+    renderizar('/estudiante');
+    await screen.findByRole('heading', { name: 'Consulta académica' });
+    await act(async () => {
+      await pedir({ metodo: 'GET', ruta: '/consulta/registros' }).catch(
+        () => undefined,
+      );
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Sesión no válida o caducada',
+    );
+    expect(sessionStorage.getItem(MARCA_PESTANA)).toBeNull();
+  });
+
+  it('con marca y cookie caducada: inicio de sesión sin aviso y sin marca', async () => {
+    simularApi({ 'GET /acceso/sesion': SIN_SESION });
+    renderizar('/estudiante');
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(sessionStorage.getItem(MARCA_PESTANA)).toBeNull();
+  });
+
+  it('sessionStorage bloqueado: el inicio de sesión funciona sin errores en pantalla', async () => {
+    const bloqueado = () => {
+      throw new DOMException('Bloqueado', 'SecurityError');
+    };
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(bloqueado);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(bloqueado);
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(bloqueado);
+    simularApi({
+      'POST /acceso/cerrar-sesion': { estado: 204 },
+      'POST /acceso/iniciar-sesion': {
+        estado: 200,
+        cuerpo: sesionDe('DOCENTE'),
+      },
+    });
+    renderizar('/', { marcar: false });
+    await iniciarComo('d@ejemplo.edu.co', 'clave-12345678');
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('ajuste A: con un cierre lento, el inicio de sesión se muestra de inmediato y el envío espera al cierre', async () => {
+    let terminarCierre: (respuesta: RespuestaSimulada) => void = () =>
+      undefined;
+    const { llamadas } = simularApi({
+      'POST /acceso/cerrar-sesion': () =>
+        new Promise<RespuestaSimulada>((resolver) => {
+          terminarCierre = resolver;
+        }),
+      'POST /acceso/iniciar-sesion': {
+        estado: 200,
+        cuerpo: sesionDe('ESTUDIANTE'),
+      },
+    });
+    renderizar('/', { marcar: false });
+    await iniciarComo('e@ejemplo.edu.co', 'clave-12345678');
+    expect(metodosYRutas(llamadas)).toEqual([CERRAR]);
+    expect(
+      screen.getByRole('button', { name: 'Iniciar sesión' }),
+    ).toBeDisabled();
+
+    await act(async () => terminarCierre({ estado: 204 }));
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' }),
+    ).toBeInTheDocument();
+    expect(metodosYRutas(llamadas)).toEqual([
+      CERRAR,
+      'POST /api/acceso/iniciar-sesion',
+    ]);
+    comprobarSoloMarca();
+  });
+
+  it('ajuste A: si el cierre no responde, el envío sigue al vencer el tiempo máximo', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { llamadas } = simularApi({
+        'POST /acceso/cerrar-sesion': () => new Promise<never>(() => undefined),
+        'POST /acceso/iniciar-sesion': {
+          estado: 200,
+          cuerpo: sesionDe('DOCENTE'),
+        },
+      });
+      renderizar('/', { marcar: false });
+      await iniciarComo('d@ejemplo.edu.co', 'clave-12345678', {
+        advanceTimers: vi.advanceTimersByTime,
+      });
+      expect(metodosYRutas(llamadas)).toEqual([CERRAR]);
+
+      await act(async () => vi.advanceTimersByTimeAsync(LIMITE_CIERRE_MS));
+      expect(
+        await screen.findByRole('heading', { level: 1, name: 'Hola, Usuario' }),
+      ).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

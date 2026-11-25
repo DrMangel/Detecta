@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, type InitialEntry } from 'react-router';
-import { vi } from 'vitest';
+import { expect, vi, type MockInstance } from 'vitest';
 import { Aplicacion } from '../aplicacion';
+import { MARCA_PESTANA } from '../componentes/sesion';
 import type { DatosSesion, Rol } from '../servicios-api/tipos';
 
 /*
@@ -85,8 +86,36 @@ function RutaActual() {
   return <div data-testid="ruta">{ubicacion.pathname}</div>;
 }
 
-/** `ruta` puede llevar estado de navegación (F5b: bandeja de origen). */
-export function renderizar(ruta: InitialEntry) {
+/**
+ * Simula una pestaña en la que ya se inició sesión (decisión (g)): sin la
+ * marca, el arranque cierra la sesión y muestra el inicio de sesión.
+ */
+export function marcarPestana() {
+  sessionStorage.setItem(MARCA_PESTANA, '1');
+}
+
+/**
+ * Lo único que el front puede dejar en el almacenamiento es la marca de
+ * pestaña, y su valor no lleva el token ni el correo (decisión (g)).
+ */
+export function comprobarSoloMarca(
+  escrituras?: MockInstance<Storage['setItem']>,
+) {
+  expect(localStorage).toHaveLength(0);
+  expect(Object.keys(sessionStorage)).toEqual([MARCA_PESTANA]);
+  expect(sessionStorage.getItem(MARCA_PESTANA)).not.toMatch(/@|eyJ|token/i);
+  for (const [clave] of escrituras?.mock.calls ?? []) {
+    expect(clave).toBe(MARCA_PESTANA);
+  }
+}
+
+/**
+ * `ruta` puede llevar estado de navegación (F5b: bandeja de origen). Por
+ * defecto la pestaña ya tiene la marca; `marcar: false` simula una pestaña
+ * nueva.
+ */
+export function renderizar(ruta: InitialEntry, { marcar = true } = {}) {
+  if (marcar) marcarPestana();
   return render(
     <MemoryRouter initialEntries={[ruta]}>
       <Aplicacion />

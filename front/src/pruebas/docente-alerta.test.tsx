@@ -10,6 +10,7 @@ import {
   simularApi,
   type LlamadaRegistrada,
   type RespuestaSimulada,
+  comprobarSoloMarca,
 } from './utilidades';
 
 /*
@@ -448,8 +449,6 @@ describe('Errores al emitir (sd_CUD03 *.a, *.b y ER 3.5.3)', () => {
     await diligenciar(usuario);
     await enviar(usuario);
     await screen.findByRole('status');
-    expect(escribir).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-    expect(sessionStorage).toHaveLength(0);
+    comprobarSoloMarca(escribir);
   });
 });

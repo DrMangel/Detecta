@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { TEXTO_SIN_PERMISO } from '../servicios-api/errores';
 import { CURSO, ID_ESTUDIANTE_SECRETO } from './datos-docente';
-import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
+import {
+  renderizar,
+  SIN_SESION,
+  sesionDe,
+  simularApi,
+  comprobarSoloMarca,
+} from './utilidades';
 
 /*
  * Criterio de cierre de F2, «el docente ve solo sus cursos; la fecha de la
@@ -235,8 +241,6 @@ describe('Navegación del Docente', () => {
     });
     renderizar('/docente/cursos/IS-101');
     await screen.findByRole('table');
-    expect(escribir).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-    expect(sessionStorage).toHaveLength(0);
+    comprobarSoloMarca(escribir);
   });
 });

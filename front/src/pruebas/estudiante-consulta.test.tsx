@@ -2,7 +2,13 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { TEXTO_SIN_PERMISO } from '../servicios-api/errores';
-import { renderizar, SIN_SESION, sesionDe, simularApi } from './utilidades';
+import {
+  renderizar,
+  SIN_SESION,
+  sesionDe,
+  simularApi,
+  comprobarSoloMarca,
+} from './utilidades';
 
 /*
  * Criterio de cierre de F1, «el estudiante consulta lo suyo» (CUD01;
@@ -333,8 +339,6 @@ describe('Navegación del Estudiante (respuesta 2)', () => {
     renderizar('/estudiante');
     await consultar('2026-2');
     await enContenido().findAllByRole('listitem');
-    expect(escribir).not.toHaveBeenCalled();
-    expect(localStorage).toHaveLength(0);
-    expect(sessionStorage).toHaveLength(0);
+    comprobarSoloMarca(escribir);
   });
 });
