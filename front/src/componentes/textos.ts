@@ -25,6 +25,13 @@ export const TITULOS = {
 export const TEXTO_CONTRASENA_FIJADA =
   'Contraseña fijada. Ya puede iniciar sesión.';
 
+/**
+ * Mismo texto que el 401 del backend, para el aviso que llega de otra
+ * pestaña, donde no hay respuesta del backend que mostrar (decisión (g),
+ * revisada).
+ */
+export const SESION_CADUCADA = 'Sesión no válida o caducada';
+
 /** Nombre del sistema (ER), en la pestaña y en el encabezado. */
 export const NOMBRE_SISTEMA = 'DETECTA';
 

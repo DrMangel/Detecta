@@ -67,6 +67,39 @@ export function simularApi(rutas: Record<string, Simulacion>) {
   return { llamadas, falso };
 }
 
+/**
+ * Sustituye BroadcastChannel por un canal en memoria (decisión (g),
+ * revisada). `emitir` simula el aviso de otra pestaña; `publicados` guarda
+ * lo que publicó la aplicación, `escuchando` dice si alguna pestaña con
+ * sesión ya atiende avisos y `abiertos` cuenta los canales sin cerrar.
+ */
+export function simularCanal() {
+  const instancias = new Set<CanalFalso>();
+  const publicados: unknown[] = [];
+  class CanalFalso {
+    onmessage: ((evento: MessageEvent) => void) | null = null;
+    constructor(readonly name: string) {
+      instancias.add(this);
+    }
+    postMessage(datos: unknown) {
+      publicados.push(datos);
+    }
+    close() {
+      instancias.delete(this);
+    }
+  }
+  vi.stubGlobal('BroadcastChannel', CanalFalso);
+  const emitir = (datos: unknown = 'sesion-iniciada') => {
+    for (const canal of instancias) {
+      canal.onmessage?.(new MessageEvent('message', { data: datos }));
+    }
+  };
+  // La escucha se conecta en un efecto, tras pintar: hay que esperarla.
+  const escuchando = () =>
+    [...instancias].some((canal) => canal.onmessage !== null);
+  return { publicados, emitir, escuchando, abiertos: () => instancias.size };
+}
+
 export function sesionDe(rol: Rol): DatosSesion {
   return {
     id: `ID-${rol}`,

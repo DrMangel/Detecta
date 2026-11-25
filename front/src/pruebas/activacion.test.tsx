@@ -22,7 +22,6 @@ describe('Fijar contraseña con el enlace de activación', () => {
     window.history.replaceState(null, '', `/activar#token=${TOKEN}`);
     reemplazo.mockClear();
     const { llamadas } = simularApi({
-      'POST /acceso/cerrar-sesion': { estado: 204 },
       'POST /acceso/activar': { estado: 204 },
     });
 

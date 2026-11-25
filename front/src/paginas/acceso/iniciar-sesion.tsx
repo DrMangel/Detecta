@@ -24,12 +24,10 @@ import { iniciarSesion } from '../../servicios-api/acceso';
  * Inicio de sesión (ControladorAcceso.iniciarSesion; ER 1.3.1: correo y
  * contraseña propios). Muestra una vez el aviso de sesión caducada (ajuste
  * A) o la confirmación de la contraseña fijada (cierre de F0), y respeta el
- * 429 con Retry-After (D15). En una pestaña nueva, el envío espera a que
- * termine el cierre de la sesión anterior para que no borre la nueva
- * (decisión (g), ajuste A).
+ * 429 con Retry-After (D15).
  */
 export function PaginaIniciarSesion() {
-  const { consumirAviso, establecer, esperarCierre } = useSesion();
+  const { consumirAviso, establecer } = useSesion();
   const navegar = useNavigate();
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
@@ -49,7 +47,6 @@ export function PaginaIniciarSesion() {
   const enviar = async () => {
     setConfirmacion(null);
     await ejecutar(async () => {
-      await esperarCierre();
       const datos = await iniciarSesion(correo.trim(), contrasena);
       establecer(datos);
       void navegar(ESPACIO_POR_ROL[datos.rol], { replace: true });
