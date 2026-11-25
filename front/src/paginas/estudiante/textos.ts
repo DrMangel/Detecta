@@ -67,3 +67,15 @@ export const TEXTO_SOLICITUD_RECIBIDA = 'Su solicitud fue recibida.';
 /** Error de red con resultado incierto (sección i y ajuste C). */
 export const TEXTO_RESULTADO_INCIERTO =
   'No se pudo confirmar si su solicitud fue registrada. Revise «Mis solicitudes» antes de enviarla de nuevo.';
+
+/**
+ * Tarjetas del inicio (especificación de diseño §7.0 y §8; provisionales).
+ * La de la solicitud no promete más que ER 3.5.3 (decisión de Ivan en D4).
+ */
+export const DESCRIPCION_INICIO_ESTUDIANTE = {
+  consulta: 'Revisa tus notas, tu asistencia y tus alertas por periodo.',
+  solicitudes:
+    'Consulta el estado de las solicitudes de acompañamiento que has enviado.',
+  nuevaSolicitud:
+    'Pide apoyo académico o psicosocial. Tu solicitud solo la ve el personal que la atiende.',
+} as const;

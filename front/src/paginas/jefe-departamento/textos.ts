@@ -100,3 +100,14 @@ export const TEXTO_PLAN_INCIERTO =
 
 /** Estado de carga del informe (ajuste E de F3). Fuera de la lista de §4. */
 export const TEXTO_GENERANDO_INFORME = 'Generando el informe…';
+
+/**
+ * Tarjetas del inicio (especificación de diseño §7.0 y §8; provisionales).
+ * «En ruta académica» la fijó Ivan en el plan de F5b-diseño (respuesta 5).
+ */
+export const DESCRIPCION_INICIO_JEFE = {
+  casosPendientes:
+    'Revisa los casos recibidos y canalízalos a la ruta académica o psicológica.',
+  rutaAcademica:
+    'Consulta los casos canalizados a la ruta académica y gestiona sus planes de nivelación.',
+} as const;

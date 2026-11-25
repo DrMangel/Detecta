@@ -37,12 +37,16 @@ export type TonoEstado = 'neutro' | 'azul' | 'verde';
 export function InsigniaEstado({
   texto,
   tono,
+  icono,
 }: {
   texto: string;
   tono: TonoEstado;
+  /** Ícono decorativo opcional (por ejemplo, lock en «Confidencial», §7.0). */
+  icono?: NombreIcono;
 }) {
   return (
     <span className={`${estilos['insignia']} ${estilos[`estado-${tono}`]}`}>
+      {icono !== undefined && <Icono nombre={icono} tamano={14} />}
       {texto}
     </span>
   );

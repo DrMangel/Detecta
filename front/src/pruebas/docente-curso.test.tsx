@@ -195,25 +195,27 @@ describe('Consulta de curso (CUD01, Docente)', () => {
 });
 
 describe('Navegación del Docente', () => {
-  it('dos enlaces; «Consulta de curso» queda activa en el listado de un curso y no en «Alertas emitidas»', async () => {
+  it('«Inicio» y dos funciones (D4a); «Consulta de curso» queda activa en el listado de un curso y no en «Alertas emitidas»', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
       'GET /alertas/cursos/IS-101': { estado: 200, cuerpo: CURSO },
     });
     renderizar('/docente/cursos/IS-101');
     const navegacion = await screen.findByRole('navigation');
-    const [consulta, alertas] = within(navegacion).getAllByRole('link');
-    expect([consulta?.textContent, alertas?.textContent]).toEqual([
-      'Consulta de curso',
-      'Alertas emitidas',
-    ]);
+    const [inicio, consulta, alertas] = within(navegacion).getAllByRole('link');
+    expect([
+      inicio?.textContent,
+      consulta?.textContent,
+      alertas?.textContent,
+    ]).toEqual(['Inicio', 'Consulta de curso', 'Alertas emitidas']);
+    expect(inicio).not.toHaveAttribute('aria-current');
     expect(consulta).toHaveAttribute('aria-current', 'page');
     expect(alertas).not.toHaveAttribute('aria-current');
 
     await userEvent.setup().click(alertas!);
     expect(screen.getByTestId('ruta')).toHaveTextContent('/docente/alertas');
     // La página nueva monta su propia navegación.
-    const [consulta2, alertas2] = within(
+    const [, consulta2, alertas2] = within(
       await screen.findByRole('navigation'),
     ).getAllByRole('link');
     expect(alertas2).toHaveAttribute('aria-current', 'page');

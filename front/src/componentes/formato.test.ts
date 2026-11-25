@@ -62,6 +62,8 @@ describe('iniciales y primer nombre', () => {
     ['Ana Pérez', 'Ana'],
     ['  Marta   Ruiz ', 'Marta'],
     ['Usuario', 'Usuario'],
+    ['María José Pérez', 'María'],
+    ['  Ángela   Ñúñez ', 'Ángela'],
     ['', ''],
   ])('primer nombre de «%s» → «%s»', (nombre, texto) => {
     expect(primerNombre(nombre)).toBe(texto);

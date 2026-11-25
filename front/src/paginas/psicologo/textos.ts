@@ -110,3 +110,9 @@ export const MENSAJE_DICTAMEN_POR_ESTADO = {
   ARCHIVADO: 'Caso archivado',
   REORIENTADO: 'Caso reorientado',
 } as const;
+
+/** Tarjeta del inicio (especificación de diseño §7.0 y §8; provisional). */
+export const DESCRIPCION_INICIO_PSICOLOGO = {
+  remisiones:
+    'Atiende los casos remitidos a psicología y consulta sus expedientes.',
+} as const;

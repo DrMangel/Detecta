@@ -42,3 +42,10 @@ export const TEXTO_SIN_ALERTAS_EMITIDAS =
 /** Error de red con resultado incierto (§5 del plan; como en F1). */
 export const TEXTO_ALERTA_INCIERTA =
   'No se pudo confirmar si la alerta fue registrada. Revise «Alertas emitidas» antes de emitirla de nuevo.';
+
+/** Tarjetas del inicio (especificación de diseño §7.0 y §8; provisionales). */
+export const DESCRIPCION_INICIO_DOCENTE = {
+  consultaCurso:
+    'Revisa las notas y la asistencia de tu curso y emite alertas tempranas.',
+  alertasEmitidas: 'Consulta las alertas que has emitido en el periodo.',
+} as const;

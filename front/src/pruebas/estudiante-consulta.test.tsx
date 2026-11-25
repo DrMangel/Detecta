@@ -291,7 +291,7 @@ describe('Mis solicitudes (CUD01 2.b, D27)', () => {
 });
 
 describe('Navegación del Estudiante (respuesta 2)', () => {
-  it('tres enlaces; el de la pantalla actual con aria-current', async () => {
+  it('«Inicio» y tres funciones (D4a); el de la pantalla actual con aria-current', async () => {
     simularApi({
       'GET /acceso/sesion': SESION,
       'GET /consulta/solicitudes': { estado: 200, cuerpo: [] },
@@ -300,14 +300,16 @@ describe('Navegación del Estudiante (respuesta 2)', () => {
     const navegacion = await screen.findByRole('navigation');
     const enlaces = within(navegacion).getAllByRole('link');
     expect(enlaces.map((e) => e.textContent)).toEqual([
+      'Inicio',
       'Consulta académica',
       'Mis solicitudes',
       'Solicitar acompañamiento',
     ]);
-    expect(enlaces[0]).toHaveAttribute('aria-current', 'page');
-    expect(enlaces[1]).not.toHaveAttribute('aria-current');
+    expect(enlaces[0]).not.toHaveAttribute('aria-current');
+    expect(enlaces[1]).toHaveAttribute('aria-current', 'page');
+    expect(enlaces[2]).not.toHaveAttribute('aria-current');
 
-    await userEvent.setup().click(enlaces[1]!);
+    await userEvent.setup().click(enlaces[2]!);
     expect(screen.getByTestId('ruta')).toHaveTextContent(
       '/estudiante/solicitudes',
     );

@@ -172,6 +172,13 @@
   background: var(--color-primario-tinte);
 }
 
+/* Ayuda bajo el título (§3.1): 14 px, texto suave. */
+.ayuda {
+  margin: calc(-1 * var(--espacio-2)) 0 var(--espacio-4);
+  font-size: 0.875rem;
+  color: var(--color-texto-suave);
+}
+
 .contenido {
   width: 100%;
   max-width: var(--ancho-contenido);

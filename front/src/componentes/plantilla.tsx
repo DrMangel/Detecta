@@ -19,16 +19,22 @@ export function Plantilla({
   titulo,
   navegacion,
   volver,
+  ayuda,
+  tituloPestana,
   children,
 }: {
   titulo: string;
+  /** Texto de ayuda bajo el título (especificación, §3.1). */
+  ayuda?: string;
+  /** Título de la pestaña, si difiere del h1 (inicio, §7.0). */
+  tituloPestana?: string;
   /** Navegación del rol (F1). */
   navegacion?: ReactNode;
   /** Enlace de regreso, encima del título (especificación, §7.4 y 7.5). */
   volver?: ReactNode;
   children?: ReactNode;
 }) {
-  useTituloPestana(titulo);
+  useTituloPestana(tituloPestana ?? titulo);
   const { usuario } = useSesion();
   const rol = usuario ? NOMBRE_ROL[usuario.rol] : '';
   return (
@@ -45,6 +51,7 @@ export function Plantilla({
       <main className={estilos['contenido']}>
         {volver}
         <h1>{titulo}</h1>
+        {ayuda !== undefined && <p className={estilos['ayuda']}>{ayuda}</p>}
         {children}
       </main>
     </div>

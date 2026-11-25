@@ -51,4 +51,15 @@ describe('InsigniaEstado', () => {
       );
     },
   );
+
+  it('ícono opcional, decorativo (insignia «Confidencial» del inicio, §7.0)', () => {
+    const { rerender } = render(
+      <InsigniaEstado texto="Confidencial" tono="azul" />,
+    );
+    expect(screen.getByText('Confidencial').querySelector('svg')).toBeNull();
+    rerender(<InsigniaEstado texto="Confidencial" tono="azul" icono="lock" />);
+    const icono = screen.getByText('Confidencial').querySelector('svg')!;
+    expect(icono).toHaveAttribute('aria-hidden', 'true');
+    expect(icono.querySelector('rect')).toHaveAttribute('width', '18');
+  });
 });

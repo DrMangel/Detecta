@@ -3,11 +3,14 @@ import {
   NavegacionRol,
   type EnlaceRol,
 } from '../../componentes/navegacion-rol';
+import type { TarjetaInicio } from '../../componentes/pagina-inicio';
 import { Plantilla } from '../../componentes/plantilla';
-import { TITULOS_JEFE } from './textos';
+import { TEXTO_INICIO_INFORMES, TITULO_INICIO } from '../../componentes/textos';
+import { DESCRIPCION_INICIO_JEFE, TITULOS_JEFE } from './textos';
 
 /* Rutas del espacio del Jefe de Departamento (plan de F3, §1). */
 export const RUTAS_JEFE = {
+  inicio: '/jefe-departamento/inicio',
   casosPendientes: '/jefe-departamento',
   rutaAcademica: '/jefe-departamento/ruta-academica',
   caso: (idCaso: string) =>
@@ -34,10 +37,11 @@ const PREFIJO_DETALLE = ['/jefe-departamento/casos/'] as const;
  * entrada del menú lleva el prefijo del detalle y queda resaltada (F5b;
  * Manual 3.1.2.2.6, Tabla 30, «Dar el control al usuario»).
  */
-function enlacesJefe(origen: TipoBandeja): readonly EnlaceRol[] {
+export function enlacesJefe(origen: TipoBandeja): readonly EnlaceRol[] {
   const detalleEn = (bandeja: TipoBandeja) =>
     bandeja === origen ? PREFIJO_DETALLE : [];
   return [
+    { ruta: RUTAS_JEFE.inicio, rotulo: TITULO_INICIO, icono: 'house' },
     {
       ruta: RUTA_BANDEJA.pendientes,
       rotulo: TITULOS_JEFE.casosPendientes,
@@ -58,7 +62,18 @@ function enlacesJefe(origen: TipoBandeja): readonly EnlaceRol[] {
   ];
 }
 
-/* Plantilla de F0 con la navegación de tres enlaces del Jefe. */
+/** Tarjetas del inicio del Jefe, por la ruta de su función (§7.0). */
+export const TARJETAS_INICIO_JEFE: Readonly<Record<string, TarjetaInicio>> = {
+  [RUTA_BANDEJA.pendientes]: {
+    descripcion: DESCRIPCION_INICIO_JEFE.casosPendientes,
+  },
+  [RUTA_BANDEJA.rutaAcademica]: {
+    descripcion: DESCRIPCION_INICIO_JEFE.rutaAcademica,
+  },
+  [RUTAS_JEFE.informes]: { descripcion: TEXTO_INICIO_INFORMES },
+};
+
+/* Plantilla de F0 con la navegación del Jefe («Inicio» y tres funciones). */
 export function PlantillaJefe({
   titulo,
   origen = 'pendientes',

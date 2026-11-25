@@ -2,16 +2,17 @@ import type { Rol } from '../servicios-api/tipos';
 
 /*
  * Espacio de cada rol (diagrama de paquetes, Manual 4.1.2: paginas/<rol>;
- * respuesta 1 del plan de F0: jefe-departamento). Ocultar o redirigir por rol
+ * respuesta 1 del plan de F0: jefe-departamento). Desde F5b-diseño (§7.0)
+ * cada rol llega a su pantalla de inicio. Ocultar o redirigir por rol
  * es solo una ayuda de usabilidad: la autorización real está en el backend
  * (Manual 4.1.1.1).
  */
 
 export const ESPACIO_POR_ROL: Readonly<Record<Rol, string>> = {
-  ESTUDIANTE: '/estudiante',
-  DOCENTE: '/docente',
-  JEFE_DEPARTAMENTO: '/jefe-departamento',
-  PSICOLOGO: '/psicologo',
+  ESTUDIANTE: '/estudiante/inicio',
+  DOCENTE: '/docente/inicio',
+  JEFE_DEPARTAMENTO: '/jefe-departamento/inicio',
+  PSICOLOGO: '/psicologo/inicio',
 };
 
 /** Título del espacio de cada rol (texto aprobado en el plan de F0). */

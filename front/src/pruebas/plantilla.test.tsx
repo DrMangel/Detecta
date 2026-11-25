@@ -37,7 +37,8 @@ describe('Plantilla de los roles (F5b-diseño, D2)', () => {
     await screen.findByRole('heading', { level: 1 });
     expect(screen.getAllByRole('navigation')).toHaveLength(1);
     const enlaces = within(screen.getByRole('navigation')).getAllByRole('link');
-    expect(enlaces).toHaveLength(3);
+    // «Inicio» y las tres funciones del Estudiante (D4a, §7.0).
+    expect(enlaces).toHaveLength(4);
     for (const enlace of enlaces) {
       expect(enlace.querySelector('svg')).toHaveAttribute(
         'aria-hidden',

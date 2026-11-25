@@ -40,3 +40,24 @@ export const TEXTO_ESTADO_PASO = {
   hecho: 'completado',
   pendiente: 'pendiente',
 } as const;
+
+/* ---------- Nuevos de F5b-diseño (provisionales, especificación §8) ---------- */
+
+/** Ayuda bajo «Iniciar sesión» (§7.1). */
+export const TEXTO_AYUDA_INICIAR_SESION =
+  'Ingresa con tu correo institucional.';
+
+/** Pantalla de inicio de cada rol (§7.0): menú, pestaña, saludo y ayuda. */
+export const TITULO_INICIO = 'Inicio';
+export const TEXTO_AYUDA_INICIO =
+  'Estas son las funciones disponibles para tu rol y para qué sirve cada una.';
+export const TEXTO_CONFIDENCIAL = 'Confidencial';
+
+/** «Hola, Ana»; sin nombre, «Hola». */
+export function saludo(primerNombre: string): string {
+  return primerNombre === '' ? 'Hola' : `Hola, ${primerNombre}`;
+}
+
+/** Tarjeta «Informes de riesgo» del inicio del Jefe y del Psicólogo (§8). */
+export const TEXTO_INICIO_INFORMES =
+  'Genera informes con totales por asignatura y periodo, sin datos personales.';

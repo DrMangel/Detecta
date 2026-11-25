@@ -69,6 +69,12 @@ const TRAZOS = {
       <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
     </>
   ),
+  house: (
+    <>
+      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+      <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </>
+  ),
   info: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -84,6 +90,12 @@ const TRAZOS = {
       <path d="M8 5h13" />
       <path d="M8 12h13" />
       <path d="M8 19h13" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </>
   ),
   'log-out': (
