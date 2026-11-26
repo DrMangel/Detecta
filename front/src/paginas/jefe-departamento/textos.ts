@@ -59,11 +59,6 @@ export const ROTULOS_JEFE = {
   cursosPlan: 'Cursos del plan',
   registrarPlan: 'Registrar plan',
   finalizarPlan: 'Finalizar plan',
-  generarInforme: 'Generar informe',
-  exportarPdf: 'Exportar PDF',
-  totalAlertas: 'Total de alertas',
-  totalCasos: 'Total de casos',
-  totalPlanes: 'Total de planes',
 } as const;
 
 export const NOMBRE_RUTA: Readonly<Record<RutaAtencion, string>> = {
@@ -96,9 +91,6 @@ export const TEXTO_SIN_CURSOS = 'Seleccione al menos un curso';
  */
 export const TEXTO_PLAN_INCIERTO =
   'No se pudo confirmar si el plan fue registrado. Para evitar un plan duplicado, no puede registrarse de nuevo desde esta pantalla.';
-
-/** Estado de carga del informe (ajuste E de F3). Fuera de la lista de §4. */
-export const TEXTO_GENERANDO_INFORME = 'Generando el informe…';
 
 /* ---------- Nuevos de F5b-diseño (D6; provisionales, revisión en F5c) ---------- */
 
