@@ -73,3 +73,19 @@ export const ROTULOS_PERIODO = {
   ayuda: 'Por ejemplo: 2026-2',
   consultar: 'Consultar',
 } as const;
+
+/**
+ * Informes de riesgo (CUD10) que comparten el Jefe y el Psicólogo
+ * (provisionales del plan de F3, §4; F4c). Antes en los textos del Jefe:
+ * F5d los trae aquí para que componentes no dependa de paginas (Figura 16).
+ */
+export const ROTULOS_INFORME = {
+  generarInforme: 'Generar informe',
+  exportarPdf: 'Exportar PDF',
+  totalAlertas: 'Total de alertas',
+  totalCasos: 'Total de casos',
+  totalPlanes: 'Total de planes',
+} as const;
+
+/** Estado de carga del informe (ajuste E de F3). */
+export const TEXTO_GENERANDO_INFORME = 'Generando el informe…';
